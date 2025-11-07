@@ -1,11 +1,5 @@
-using CourseService.DAL.Data_Context;
 using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
-
-var connectionString = builder.Configuration.GetConnectionString("CourseConnection");
-
-builder.Services.AddDbContext<CourseContext>(options =>
-        options.UseSqlServer(connectionString));
 
 // Add services to the container.
 

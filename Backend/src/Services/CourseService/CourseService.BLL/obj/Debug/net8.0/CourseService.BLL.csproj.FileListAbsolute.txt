@@ -15,3 +15,4 @@ D:\Learning Management System\Backend\src\Services\CourseService\CourseService.B
 D:\Learning Management System\Backend\src\Services\CourseService\CourseService.BLL\obj\Debug\net8.0\CourseService.BLL.pdb
 D:\Learning Management System\Backend\src\Services\CourseService\CourseService.BLL\obj\Debug\net8.0\CourseService.BLL.genruntimeconfig.cache
 D:\Learning Management System\Backend\src\Services\CourseService\CourseService.BLL\obj\Debug\net8.0\ref\CourseService.BLL.dll
+D:\Learning Management System\Backend\src\Services\CourseService\CourseService.BLL\obj\Debug\net8.0\CourseService.BLL.sourcelink.json

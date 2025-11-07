@@ -169,3 +169,4 @@ D:\Learning Management System\Backend\src\Gateway\obj\Debug\net8.0\refint\Gatewa
 D:\Learning Management System\Backend\src\Gateway\obj\Debug\net8.0\Gateway.pdb
 D:\Learning Management System\Backend\src\Gateway\obj\Debug\net8.0\Gateway.genruntimeconfig.cache
 D:\Learning Management System\Backend\src\Gateway\obj\Debug\net8.0\ref\Gateway.dll
+D:\Learning Management System\Backend\src\Gateway\obj\Debug\net8.0\Gateway.sourcelink.json

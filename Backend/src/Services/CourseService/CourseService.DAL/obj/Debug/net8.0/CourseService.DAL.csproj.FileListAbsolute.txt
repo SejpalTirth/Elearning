@@ -12,3 +12,4 @@ D:\Learning Management System\Backend\src\Services\CourseService\CourseService.D
 D:\Learning Management System\Backend\src\Services\CourseService\CourseService.DAL\bin\Debug\net8.0\CourseService.DAL.runtimeconfig.json
 D:\Learning Management System\Backend\src\Services\CourseService\CourseService.DAL\obj\Debug\net8.0\CourseService.DAL.csproj.AssemblyReference.cache
 D:\Learning Management System\Backend\src\Services\CourseService\CourseService.DAL\obj\Debug\net8.0\CourseService.DAL.genruntimeconfig.cache
+D:\Learning Management System\Backend\src\Services\CourseService\CourseService.DAL\obj\Debug\net8.0\CourseService.DAL.sourcelink.json
