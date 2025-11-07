@@ -1,0 +1,14 @@
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.DAL\bin\Debug\net8.0\AssessmentService.DAL.deps.json
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.DAL\bin\Debug\net8.0\AssessmentService.DAL.runtimeconfig.json
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.DAL\bin\Debug\net8.0\AssessmentService.DAL.dll
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.DAL\bin\Debug\net8.0\AssessmentService.DAL.pdb
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.DAL\obj\Debug\net8.0\AssessmentService.DAL.csproj.AssemblyReference.cache
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.DAL\obj\Debug\net8.0\AssessmentService.DAL.GeneratedMSBuildEditorConfig.editorconfig
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.DAL\obj\Debug\net8.0\AssessmentService.DAL.AssemblyInfoInputs.cache
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.DAL\obj\Debug\net8.0\AssessmentService.DAL.AssemblyInfo.cs
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.DAL\obj\Debug\net8.0\AssessmentService.DAL.csproj.CoreCompileInputs.cache
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.DAL\obj\Debug\net8.0\AssessmentService.DAL.dll
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.DAL\obj\Debug\net8.0\refint\AssessmentService.DAL.dll
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.DAL\obj\Debug\net8.0\AssessmentService.DAL.pdb
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.DAL\obj\Debug\net8.0\AssessmentService.DAL.genruntimeconfig.cache
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.DAL\obj\Debug\net8.0\ref\AssessmentService.DAL.dll

@@ -1,0 +1,14 @@
+D:\Learning Management System\Backend\src\Services\UserService\UserService.DAL\bin\Debug\net8.0\UserService.DAL.deps.json
+D:\Learning Management System\Backend\src\Services\UserService\UserService.DAL\bin\Debug\net8.0\UserService.DAL.runtimeconfig.json
+D:\Learning Management System\Backend\src\Services\UserService\UserService.DAL\bin\Debug\net8.0\UserService.DAL.dll
+D:\Learning Management System\Backend\src\Services\UserService\UserService.DAL\bin\Debug\net8.0\UserService.DAL.pdb
+D:\Learning Management System\Backend\src\Services\UserService\UserService.DAL\obj\Debug\net8.0\UserService.DAL.csproj.AssemblyReference.cache
+D:\Learning Management System\Backend\src\Services\UserService\UserService.DAL\obj\Debug\net8.0\UserService.DAL.GeneratedMSBuildEditorConfig.editorconfig
+D:\Learning Management System\Backend\src\Services\UserService\UserService.DAL\obj\Debug\net8.0\UserService.DAL.AssemblyInfoInputs.cache
+D:\Learning Management System\Backend\src\Services\UserService\UserService.DAL\obj\Debug\net8.0\UserService.DAL.AssemblyInfo.cs
+D:\Learning Management System\Backend\src\Services\UserService\UserService.DAL\obj\Debug\net8.0\UserService.DAL.csproj.CoreCompileInputs.cache
+D:\Learning Management System\Backend\src\Services\UserService\UserService.DAL\obj\Debug\net8.0\UserService.DAL.dll
+D:\Learning Management System\Backend\src\Services\UserService\UserService.DAL\obj\Debug\net8.0\refint\UserService.DAL.dll
+D:\Learning Management System\Backend\src\Services\UserService\UserService.DAL\obj\Debug\net8.0\UserService.DAL.pdb
+D:\Learning Management System\Backend\src\Services\UserService\UserService.DAL\obj\Debug\net8.0\UserService.DAL.genruntimeconfig.cache
+D:\Learning Management System\Backend\src\Services\UserService\UserService.DAL\obj\Debug\net8.0\ref\UserService.DAL.dll

@@ -1,0 +1,6 @@
+@GatewayService.Web_HostAddress = http://localhost:5049
+
+GET {{GatewayService.Web_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
