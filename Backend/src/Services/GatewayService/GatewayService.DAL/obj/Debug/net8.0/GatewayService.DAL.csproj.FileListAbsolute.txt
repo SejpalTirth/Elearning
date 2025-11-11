@@ -1,0 +1,14 @@
+D:\Learning Management System\Backend\src\Services\GatewayService\GatewayService.DAL\bin\Debug\net8.0\GatewayService.DAL.deps.json
+D:\Learning Management System\Backend\src\Services\GatewayService\GatewayService.DAL\bin\Debug\net8.0\GatewayService.DAL.runtimeconfig.json
+D:\Learning Management System\Backend\src\Services\GatewayService\GatewayService.DAL\bin\Debug\net8.0\GatewayService.DAL.dll
+D:\Learning Management System\Backend\src\Services\GatewayService\GatewayService.DAL\bin\Debug\net8.0\GatewayService.DAL.pdb
+D:\Learning Management System\Backend\src\Services\GatewayService\GatewayService.DAL\obj\Debug\net8.0\GatewayService.DAL.csproj.AssemblyReference.cache
+D:\Learning Management System\Backend\src\Services\GatewayService\GatewayService.DAL\obj\Debug\net8.0\GatewayService.DAL.GeneratedMSBuildEditorConfig.editorconfig
+D:\Learning Management System\Backend\src\Services\GatewayService\GatewayService.DAL\obj\Debug\net8.0\GatewayService.DAL.AssemblyInfoInputs.cache
+D:\Learning Management System\Backend\src\Services\GatewayService\GatewayService.DAL\obj\Debug\net8.0\GatewayService.DAL.AssemblyInfo.cs
+D:\Learning Management System\Backend\src\Services\GatewayService\GatewayService.DAL\obj\Debug\net8.0\GatewayService.DAL.csproj.CoreCompileInputs.cache
+D:\Learning Management System\Backend\src\Services\GatewayService\GatewayService.DAL\obj\Debug\net8.0\GatewayService.DAL.dll
+D:\Learning Management System\Backend\src\Services\GatewayService\GatewayService.DAL\obj\Debug\net8.0\refint\GatewayService.DAL.dll
+D:\Learning Management System\Backend\src\Services\GatewayService\GatewayService.DAL\obj\Debug\net8.0\GatewayService.DAL.pdb
+D:\Learning Management System\Backend\src\Services\GatewayService\GatewayService.DAL\obj\Debug\net8.0\GatewayService.DAL.genruntimeconfig.cache
+D:\Learning Management System\Backend\src\Services\GatewayService\GatewayService.DAL\obj\Debug\net8.0\ref\GatewayService.DAL.dll

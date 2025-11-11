@@ -1,0 +1,28 @@
+[
+  {
+    "ContainingType": "Gateway.Controllers.GatewayCourseController",
+    "Method": "Get",
+    "RelativePath": "api/GatewayCourse",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Gateway.Controllers.GatewayCourseController",
+    "Method": "Getbyid",
+    "RelativePath": "api/GatewayCourse/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  }
+]

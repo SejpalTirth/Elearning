@@ -1,0 +1,14 @@
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.BLL\bin\Debug\net8.0\AssessmentService.BLL.deps.json
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.BLL\bin\Debug\net8.0\AssessmentService.BLL.runtimeconfig.json
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.BLL\bin\Debug\net8.0\AssessmentService.BLL.dll
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.BLL\bin\Debug\net8.0\AssessmentService.BLL.pdb
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.BLL\obj\Debug\net8.0\AssessmentService.BLL.csproj.AssemblyReference.cache
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.BLL\obj\Debug\net8.0\AssessmentService.BLL.GeneratedMSBuildEditorConfig.editorconfig
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.BLL\obj\Debug\net8.0\AssessmentService.BLL.AssemblyInfoInputs.cache
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.BLL\obj\Debug\net8.0\AssessmentService.BLL.AssemblyInfo.cs
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.BLL\obj\Debug\net8.0\AssessmentService.BLL.csproj.CoreCompileInputs.cache
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.BLL\obj\Debug\net8.0\AssessmentService.BLL.dll
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.BLL\obj\Debug\net8.0\refint\AssessmentService.BLL.dll
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.BLL\obj\Debug\net8.0\AssessmentService.BLL.pdb
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.BLL\obj\Debug\net8.0\AssessmentService.BLL.genruntimeconfig.cache
+D:\Learning Management System\Backend\src\Services\AssessmentService\AssessmentService.BLL\obj\Debug\net8.0\ref\AssessmentService.BLL.dll
