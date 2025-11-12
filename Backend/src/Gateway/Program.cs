@@ -1,27 +1,78 @@
+using GatewayService.BLL.Interface;
+using GatewayService.BLL.Service;
+using GatewayService.DAL.Data;
+using GatewayService.DAL.Repo;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System;
+using System.Text;
+
 var builder = WebApplication.CreateBuilder(args);
+var services = builder.Services;
+var config = builder.Configuration;
 
-// Add services to the container.
+// DB and repos
+services.AddDbContext<GatewayServiceContext>(opt => opt.UseSqlServer(config.GetConnectionString("DefaultConnection")));
+services.AddScoped<IUserRepository, UserRepository>();
+services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+services.AddScoped<IAuthService, AuthService>();
 
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// Authentication
+services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddCookie("External") // cookie for temporary external auth principal
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidIssuer = config["Jwt:Issuer"],
+        ValidateAudience = true,
+        ValidAudience = config["Jwt:Audience"],
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"])),
+        ValidateLifetime = true
+    };
+})
+.AddGoogle("Google", options =>
+{
+    options.SignInScheme = "External";
+    options.ClientId = config["Authentication:Google:ClientId"];
+    options.ClientSecret = config["Authentication:Google:ClientSecret"];
+    options.CallbackPath = "/api/GatewayAuth/google-response";
+    options.SaveTokens = true;
+    // request email
+    options.Scope.Add("email");
+    options.Scope.Add("profile");
+})
+.AddMicrosoftAccount("Microsoft", options =>
+{
+    options.SignInScheme = "External";
+    options.ClientId = config["Authentication:Microsoft:ClientId"];
+    options.ClientSecret = config["Authentication:Microsoft:ClientSecret"];
+    options.CallbackPath = "/api/GatewayAuth/microsoft-response";
+    options.SaveTokens = true;
+    options.Scope.Add("User.Read");
+});
 
-builder.Services.AddHttpClient();
+// controllers
+services.AddControllers();
+
+// swagger, cors etc.
+services.AddEndpointsApiExplorer();
+services.AddSwaggerGen();
 
 var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-app.UseHttpsRedirection();
-
+app.UseSwagger();
+app.UseSwaggerUI();
+app.UseRouting();
+app.UseCors(policy => policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();

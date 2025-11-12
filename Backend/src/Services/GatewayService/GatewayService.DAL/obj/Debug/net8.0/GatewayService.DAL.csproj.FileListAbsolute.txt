@@ -12,3 +12,18 @@ D:\Learning Management System\Backend\src\Services\GatewayService\GatewayService
 D:\Learning Management System\Backend\src\Services\GatewayService\GatewayService.DAL\obj\Debug\net8.0\GatewayService.DAL.pdb
 D:\Learning Management System\Backend\src\Services\GatewayService\GatewayService.DAL\obj\Debug\net8.0\GatewayService.DAL.genruntimeconfig.cache
 D:\Learning Management System\Backend\src\Services\GatewayService\GatewayService.DAL\obj\Debug\net8.0\ref\GatewayService.DAL.dll
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.DAL\bin\Debug\net8.0\GatewayService.DAL.deps.json
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.DAL\bin\Debug\net8.0\GatewayService.DAL.runtimeconfig.json
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.DAL\bin\Debug\net8.0\GatewayService.DAL.dll
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.DAL\bin\Debug\net8.0\GatewayService.DAL.pdb
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.DAL\obj\Debug\net8.0\GatewayService.DAL.csproj.AssemblyReference.cache
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.DAL\obj\Debug\net8.0\GatewayService.DAL.GeneratedMSBuildEditorConfig.editorconfig
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.DAL\obj\Debug\net8.0\GatewayService.DAL.AssemblyInfoInputs.cache
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.DAL\obj\Debug\net8.0\GatewayService.DAL.AssemblyInfo.cs
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.DAL\obj\Debug\net8.0\GatewayService.DAL.csproj.CoreCompileInputs.cache
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.DAL\obj\Debug\net8.0\GatewayService.DAL.sourcelink.json
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.DAL\obj\Debug\net8.0\GatewayService.DAL.dll
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.DAL\obj\Debug\net8.0\refint\GatewayService.DAL.dll
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.DAL\obj\Debug\net8.0\GatewayService.DAL.pdb
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.DAL\obj\Debug\net8.0\GatewayService.DAL.genruntimeconfig.cache
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.DAL\obj\Debug\net8.0\ref\GatewayService.DAL.dll

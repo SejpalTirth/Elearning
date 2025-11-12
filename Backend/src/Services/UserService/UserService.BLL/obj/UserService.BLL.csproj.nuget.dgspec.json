@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Learning Management System\\Backend\\src\\Services\\UserService\\UserService.BLL\\UserService.BLL.csproj": {}
+    "D:\\Elearning\\Backend\\src\\Services\\UserService\\UserService.BLL\\UserService.BLL.csproj": {}
   },
   "projects": {
-    "D:\\Learning Management System\\Backend\\src\\Services\\UserService\\UserService.BLL\\UserService.BLL.csproj": {
+    "D:\\Elearning\\Backend\\src\\Services\\UserService\\UserService.BLL\\UserService.BLL.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Learning Management System\\Backend\\src\\Services\\UserService\\UserService.BLL\\UserService.BLL.csproj",
+        "projectUniqueName": "D:\\Elearning\\Backend\\src\\Services\\UserService\\UserService.BLL\\UserService.BLL.csproj",
         "projectName": "UserService.BLL",
-        "projectPath": "D:\\Learning Management System\\Backend\\src\\Services\\UserService\\UserService.BLL\\UserService.BLL.csproj",
+        "projectPath": "D:\\Elearning\\Backend\\src\\Services\\UserService\\UserService.BLL\\UserService.BLL.csproj",
         "packagesPath": "C:\\Users\\tsejpal\\.nuget\\packages\\",
-        "outputPath": "D:\\Learning Management System\\Backend\\src\\Services\\UserService\\UserService.BLL\\obj\\",
+        "outputPath": "D:\\Elearning\\Backend\\src\\Services\\UserService\\UserService.BLL\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -83,7 +83,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.304/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.306/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

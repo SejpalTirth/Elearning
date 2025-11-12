@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Learning Management System\\Backend\\src\\Services\\ProgresService\\ProgresService.DAL\\ProgresService.DAL.csproj": {}
+    "D:\\Elearning\\Backend\\src\\Services\\ProgresService\\ProgresService.DAL\\ProgresService.DAL.csproj": {}
   },
   "projects": {
-    "D:\\Learning Management System\\Backend\\src\\Services\\ProgresService\\ProgresService.DAL\\ProgresService.DAL.csproj": {
+    "D:\\Elearning\\Backend\\src\\Services\\ProgresService\\ProgresService.DAL\\ProgresService.DAL.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Learning Management System\\Backend\\src\\Services\\ProgresService\\ProgresService.DAL\\ProgresService.DAL.csproj",
+        "projectUniqueName": "D:\\Elearning\\Backend\\src\\Services\\ProgresService\\ProgresService.DAL\\ProgresService.DAL.csproj",
         "projectName": "ProgresService.DAL",
-        "projectPath": "D:\\Learning Management System\\Backend\\src\\Services\\ProgresService\\ProgresService.DAL\\ProgresService.DAL.csproj",
+        "projectPath": "D:\\Elearning\\Backend\\src\\Services\\ProgresService\\ProgresService.DAL\\ProgresService.DAL.csproj",
         "packagesPath": "C:\\Users\\tsejpal\\.nuget\\packages\\",
-        "outputPath": "D:\\Learning Management System\\Backend\\src\\Services\\ProgresService\\ProgresService.DAL\\obj\\",
+        "outputPath": "D:\\Elearning\\Backend\\src\\Services\\ProgresService\\ProgresService.DAL\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -83,7 +83,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.304/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.306/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

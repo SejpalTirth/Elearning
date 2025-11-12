@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "giYJbltgx64=",
+  "dgSpecHash": "N34w1ZhgVGM=",
   "success": true,
-  "projectFilePath": "D:\\Learning Management System\\Backend\\src\\Services\\ProgresService\\ProgresService.Web\\ProgresService.Web.csproj",
+  "projectFilePath": "D:\\Elearning\\Backend\\src\\Services\\ProgresService\\ProgresService.Web\\ProgresService.Web.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\tsejpal\\.nuget\\packages\\azure.core\\1.38.0\\azure.core.1.38.0.nupkg.sha512",
     "C:\\Users\\tsejpal\\.nuget\\packages\\azure.identity\\1.11.4\\azure.identity.1.11.4.nupkg.sha512",

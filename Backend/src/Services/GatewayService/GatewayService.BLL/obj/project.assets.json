@@ -1601,6 +1601,19 @@
             "rid": "win"
           }
         }
+      },
+      "GatewayService.DAL/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore.SqlServer": "9.0.10"
+        },
+        "compile": {
+          "bin/placeholder/GatewayService.DAL.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/GatewayService.DAL.dll": {}
+        }
       }
     }
   },
@@ -4712,10 +4725,16 @@
         "system.windows.extensions.nuspec",
         "useSharedDesignerContext.txt"
       ]
+    },
+    "GatewayService.DAL/1.0.0": {
+      "type": "project",
+      "path": "../GatewayService.DAL/GatewayService.DAL.csproj",
+      "msbuildProject": "../GatewayService.DAL/GatewayService.DAL.csproj"
     }
   },
   "projectFileDependencyGroups": {
     "net8.0": [
+      "GatewayService.DAL >= 1.0.0",
       "Microsoft.EntityFrameworkCore.Design >= 9.0.10",
       "Microsoft.EntityFrameworkCore.SqlServer >= 9.0.10",
       "Microsoft.EntityFrameworkCore.Tools >= 9.0.10"
@@ -4728,11 +4747,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Learning Management System\\Backend\\src\\Services\\GatewayService\\GatewayService.BLL\\GatewayService.BLL.csproj",
+      "projectUniqueName": "D:\\Elearning\\Backend\\src\\Services\\GatewayService\\GatewayService.BLL\\GatewayService.BLL.csproj",
       "projectName": "GatewayService.BLL",
-      "projectPath": "D:\\Learning Management System\\Backend\\src\\Services\\GatewayService\\GatewayService.BLL\\GatewayService.BLL.csproj",
+      "projectPath": "D:\\Elearning\\Backend\\src\\Services\\GatewayService\\GatewayService.BLL\\GatewayService.BLL.csproj",
       "packagesPath": "C:\\Users\\tsejpal\\.nuget\\packages\\",
-      "outputPath": "D:\\Learning Management System\\Backend\\src\\Services\\GatewayService\\GatewayService.BLL\\obj\\",
+      "outputPath": "D:\\Elearning\\Backend\\src\\Services\\GatewayService\\GatewayService.BLL\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -4752,7 +4771,11 @@
       "frameworks": {
         "net8.0": {
           "targetAlias": "net8.0",
-          "projectReferences": {}
+          "projectReferences": {
+            "D:\\Elearning\\Backend\\src\\Services\\GatewayService\\GatewayService.DAL\\GatewayService.DAL.csproj": {
+              "projectPath": "D:\\Elearning\\Backend\\src\\Services\\GatewayService\\GatewayService.DAL\\GatewayService.DAL.csproj"
+            }
+          }
         }
       },
       "warningProperties": {
@@ -4804,7 +4827,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.304/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.306/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
