@@ -27,28 +27,6 @@
         }
       }
     },
-    "/api/GatewayAuth/google-response": {
-      "get": {
-        "tags": [
-          "GatewayAuth"
-        ],
-        "parameters": [
-          {
-            "name": "returnUrl",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "default": "/"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
     "/api/GatewayAuth/microsoft-login": {
       "get": {
         "tags": [
@@ -71,7 +49,7 @@
         }
       }
     },
-    "/api/GatewayAuth/microsoft-response": {
+    "/api/GatewayAuth/external-response": {
       "get": {
         "tags": [
           "GatewayAuth"
@@ -86,68 +64,6 @@
             }
           }
         ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/GatewayAuth/refresh": {
-      "post": {
-        "tags": [
-          "GatewayAuth"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RefreshRequestDto"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RefreshRequestDto"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/RefreshRequestDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/GatewayAuth/revoke": {
-      "post": {
-        "tags": [
-          "GatewayAuth"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RefreshRequestDto"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RefreshRequestDto"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/RefreshRequestDto"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "OK"
@@ -191,18 +107,5 @@
       }
     }
   },
-  "components": {
-    "schemas": {
-      "RefreshRequestDto": {
-        "type": "object",
-        "properties": {
-          "refreshToken": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      }
-    }
-  }
+  "components": { }
 }

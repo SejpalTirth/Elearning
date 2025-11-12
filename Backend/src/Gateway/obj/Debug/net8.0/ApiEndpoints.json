@@ -1,6 +1,22 @@
 [
   {
-    "ContainingType": "Gateway.Controllers.GatewayAuthController",
+    "ContainingType": "Gateway.Web.Controllers.GatewayAuthController",
+    "Method": "ExternalResponse",
+    "RelativePath": "api/GatewayAuth/external-response",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "returnUrl",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Gateway.Web.Controllers.GatewayAuthController",
     "Method": "GoogleLogin",
     "RelativePath": "api/GatewayAuth/google-login",
     "HttpMethod": "GET",
@@ -16,23 +32,7 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "Gateway.Controllers.GatewayAuthController",
-    "Method": "GoogleResponse",
-    "RelativePath": "api/GatewayAuth/google-response",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "returnUrl",
-        "Type": "System.String",
-        "IsRequired": false
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "Gateway.Controllers.GatewayAuthController",
+    "ContainingType": "Gateway.Web.Controllers.GatewayAuthController",
     "Method": "MicrosoftLogin",
     "RelativePath": "api/GatewayAuth/microsoft-login",
     "HttpMethod": "GET",
@@ -43,54 +43,6 @@
         "Name": "returnUrl",
         "Type": "System.String",
         "IsRequired": false
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "Gateway.Controllers.GatewayAuthController",
-    "Method": "MicrosoftResponse",
-    "RelativePath": "api/GatewayAuth/microsoft-response",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "returnUrl",
-        "Type": "System.String",
-        "IsRequired": false
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "Gateway.Controllers.GatewayAuthController",
-    "Method": "Refresh",
-    "RelativePath": "api/GatewayAuth/refresh",
-    "HttpMethod": "POST",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "dto",
-        "Type": "GatewayService.BLL.DTOs.RefreshRequestDto",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "Gateway.Controllers.GatewayAuthController",
-    "Method": "Revoke",
-    "RelativePath": "api/GatewayAuth/revoke",
-    "HttpMethod": "POST",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "dto",
-        "Type": "GatewayService.BLL.DTOs.RefreshRequestDto",
-        "IsRequired": true
       }
     ],
     "ReturnTypes": []

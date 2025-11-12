@@ -1,1 +1,15 @@
 D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\staticwebassets.build.json
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\staticwebassets.build.json
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\staticwebassets.build.json
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\staticwebassets.build.json
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\staticwebassets.build.json
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\staticwebassets.build.json
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\staticwebassets.build.json
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\staticwebassets.build.json
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\staticwebassets.build.json
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\staticwebassets.build.json
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\staticwebassets.build.json
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\staticwebassets.build.json
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\staticwebassets.build.json
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\staticwebassets.build.json
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\staticwebassets.build.json

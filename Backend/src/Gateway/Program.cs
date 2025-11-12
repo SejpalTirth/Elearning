@@ -1,5 +1,4 @@
 using GatewayService.BLL.Interface;
-using GatewayService.BLL.Service;
 using GatewayService.DAL.Data;
 using GatewayService.DAL.Repo;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -21,10 +20,12 @@ services.AddScoped<IAuthService, AuthService>();
 // Authentication
 services.AddAuthentication(options =>
 {
+    options.DefaultScheme = "Cookies";
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
-.AddCookie("External") // cookie for temporary external auth principal
+.AddCookie()
+.AddCookie("External")
 .AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
@@ -38,26 +39,28 @@ services.AddAuthentication(options =>
         ValidateLifetime = true
     };
 })
-.AddGoogle("Google", options =>
+.AddGoogle(options =>
 {
     options.SignInScheme = "External";
     options.ClientId = config["Authentication:Google:ClientId"];
     options.ClientSecret = config["Authentication:Google:ClientSecret"];
-    options.CallbackPath = "/api/GatewayAuth/google-response";
+    options.CallbackPath = "/signin-google"; // default path the middleware handles automatically
     options.SaveTokens = true;
-    // request email
     options.Scope.Add("email");
     options.Scope.Add("profile");
 })
-.AddMicrosoftAccount("Microsoft", options =>
+.AddMicrosoftAccount(options =>
 {
     options.SignInScheme = "External";
     options.ClientId = config["Authentication:Microsoft:ClientId"];
     options.ClientSecret = config["Authentication:Microsoft:ClientSecret"];
-    options.CallbackPath = "/api/GatewayAuth/microsoft-response";
+    options.CallbackPath = "/signin-microsoft"; // default path
     options.SaveTokens = true;
     options.Scope.Add("User.Read");
 });
+
+
+
 
 // controllers
 services.AddControllers();
