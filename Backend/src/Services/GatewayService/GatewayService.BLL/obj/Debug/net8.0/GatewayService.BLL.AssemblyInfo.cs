@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("GatewayService.BLL")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c5c84d581b4760342c9136ab1c50aa0fb4e4affa")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+49958a4138e15b94074583ea7185c985c33d2b75")]
 [assembly: System.Reflection.AssemblyProductAttribute("GatewayService.BLL")]
 [assembly: System.Reflection.AssemblyTitleAttribute("GatewayService.BLL")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
