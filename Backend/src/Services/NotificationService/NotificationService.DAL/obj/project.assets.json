@@ -4728,11 +4728,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Elearning\\Backend\\src\\Services\\NotificationService\\NotificationService.DAL\\NotificationService.DAL.csproj",
+      "projectUniqueName": "D:\\Learning Management System\\Backend\\src\\Services\\NotificationService\\NotificationService.DAL\\NotificationService.DAL.csproj",
       "projectName": "NotificationService.DAL",
-      "projectPath": "D:\\Elearning\\Backend\\src\\Services\\NotificationService\\NotificationService.DAL\\NotificationService.DAL.csproj",
+      "projectPath": "D:\\Learning Management System\\Backend\\src\\Services\\NotificationService\\NotificationService.DAL\\NotificationService.DAL.csproj",
       "packagesPath": "C:\\Users\\tsejpal\\.nuget\\packages\\",
-      "outputPath": "D:\\Elearning\\Backend\\src\\Services\\NotificationService\\NotificationService.DAL\\obj\\",
+      "outputPath": "D:\\Learning Management System\\Backend\\src\\Services\\NotificationService\\NotificationService.DAL\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -4804,7 +4804,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.306/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.304/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

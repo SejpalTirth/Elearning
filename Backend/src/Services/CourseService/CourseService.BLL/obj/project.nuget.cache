@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "OuZjTiKZyWM=",
+  "dgSpecHash": "Q0if09Z5PRg=",
   "success": true,
-  "projectFilePath": "D:\\Elearning\\Backend\\src\\Services\\CourseService\\CourseService.BLL\\CourseService.BLL.csproj",
+  "projectFilePath": "D:\\Learning Management System\\Backend\\src\\Services\\CourseService\\CourseService.BLL\\CourseService.BLL.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\tsejpal\\.nuget\\packages\\azure.core\\1.38.0\\azure.core.1.38.0.nupkg.sha512",
     "C:\\Users\\tsejpal\\.nuget\\packages\\azure.identity\\1.11.4\\azure.identity.1.11.4.nupkg.sha512",

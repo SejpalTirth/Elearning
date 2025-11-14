@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Elearning\\Backend\\src\\Services\\UserService\\UserService.Web\\UserService.Web.csproj": {}
+    "D:\\Learning Management System\\Backend\\src\\Services\\UserService\\UserService.Web\\UserService.Web.csproj": {}
   },
   "projects": {
-    "D:\\Elearning\\Backend\\src\\Services\\UserService\\UserService.Web\\UserService.Web.csproj": {
+    "D:\\Learning Management System\\Backend\\src\\Services\\UserService\\UserService.Web\\UserService.Web.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Elearning\\Backend\\src\\Services\\UserService\\UserService.Web\\UserService.Web.csproj",
+        "projectUniqueName": "D:\\Learning Management System\\Backend\\src\\Services\\UserService\\UserService.Web\\UserService.Web.csproj",
         "projectName": "UserService.Web",
-        "projectPath": "D:\\Elearning\\Backend\\src\\Services\\UserService\\UserService.Web\\UserService.Web.csproj",
+        "projectPath": "D:\\Learning Management System\\Backend\\src\\Services\\UserService\\UserService.Web\\UserService.Web.csproj",
         "packagesPath": "C:\\Users\\tsejpal\\.nuget\\packages\\",
-        "outputPath": "D:\\Elearning\\Backend\\src\\Services\\UserService\\UserService.Web\\obj\\",
+        "outputPath": "D:\\Learning Management System\\Backend\\src\\Services\\UserService\\UserService.Web\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -90,7 +90,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.306/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.304/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

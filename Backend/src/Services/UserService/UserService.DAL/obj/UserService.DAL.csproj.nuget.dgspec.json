@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\Elearning\\Backend\\src\\Services\\UserService\\UserService.DAL\\UserService.DAL.csproj": {}
+    "D:\\Learning Management System\\Backend\\src\\Services\\UserService\\UserService.DAL\\UserService.DAL.csproj": {}
   },
   "projects": {
-    "D:\\Elearning\\Backend\\src\\Services\\UserService\\UserService.DAL\\UserService.DAL.csproj": {
+    "D:\\Learning Management System\\Backend\\src\\Services\\UserService\\UserService.DAL\\UserService.DAL.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\Elearning\\Backend\\src\\Services\\UserService\\UserService.DAL\\UserService.DAL.csproj",
+        "projectUniqueName": "D:\\Learning Management System\\Backend\\src\\Services\\UserService\\UserService.DAL\\UserService.DAL.csproj",
         "projectName": "UserService.DAL",
-        "projectPath": "D:\\Elearning\\Backend\\src\\Services\\UserService\\UserService.DAL\\UserService.DAL.csproj",
+        "projectPath": "D:\\Learning Management System\\Backend\\src\\Services\\UserService\\UserService.DAL\\UserService.DAL.csproj",
         "packagesPath": "C:\\Users\\tsejpal\\.nuget\\packages\\",
-        "outputPath": "D:\\Elearning\\Backend\\src\\Services\\UserService\\UserService.DAL\\obj\\",
+        "outputPath": "D:\\Learning Management System\\Backend\\src\\Services\\UserService\\UserService.DAL\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -83,7 +83,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.306/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.304/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

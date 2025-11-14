@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "sBPAr0C2hL8=",
+  "dgSpecHash": "D5DaBs0rANQ=",
   "success": true,
-  "projectFilePath": "D:\\Elearning\\Backend\\src\\Services\\NotificationService\\NotificationService.Web\\NotificationService.Web.csproj",
+  "projectFilePath": "D:\\Learning Management System\\Backend\\src\\Services\\NotificationService\\NotificationService.Web\\NotificationService.Web.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\tsejpal\\.nuget\\packages\\azure.core\\1.38.0\\azure.core.1.38.0.nupkg.sha512",
     "C:\\Users\\tsejpal\\.nuget\\packages\\azure.identity\\1.11.4\\azure.identity.1.11.4.nupkg.sha512",

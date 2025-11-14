@@ -5203,11 +5203,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Elearning\\Backend\\src\\Services\\CourseService\\CourseService.Web\\CourseService.Web.csproj",
+      "projectUniqueName": "D:\\Learning Management System\\Backend\\src\\Services\\CourseService\\CourseService.Web\\CourseService.Web.csproj",
       "projectName": "CourseService.Web",
-      "projectPath": "D:\\Elearning\\Backend\\src\\Services\\CourseService\\CourseService.Web\\CourseService.Web.csproj",
+      "projectPath": "D:\\Learning Management System\\Backend\\src\\Services\\CourseService\\CourseService.Web\\CourseService.Web.csproj",
       "packagesPath": "C:\\Users\\tsejpal\\.nuget\\packages\\",
-      "outputPath": "D:\\Elearning\\Backend\\src\\Services\\CourseService\\CourseService.Web\\obj\\",
+      "outputPath": "D:\\Learning Management System\\Backend\\src\\Services\\CourseService\\CourseService.Web\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -5228,11 +5228,11 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "D:\\Elearning\\Backend\\src\\Services\\CourseService\\CourseService.BLL\\CourseService.BLL.csproj": {
-              "projectPath": "D:\\Elearning\\Backend\\src\\Services\\CourseService\\CourseService.BLL\\CourseService.BLL.csproj"
+            "D:\\Learning Management System\\Backend\\src\\Services\\CourseService\\CourseService.BLL\\CourseService.BLL.csproj": {
+              "projectPath": "D:\\Learning Management System\\Backend\\src\\Services\\CourseService\\CourseService.BLL\\CourseService.BLL.csproj"
             },
-            "D:\\Elearning\\Backend\\src\\Services\\CourseService\\CourseService.DAL\\CourseService.DAL.csproj": {
-              "projectPath": "D:\\Elearning\\Backend\\src\\Services\\CourseService\\CourseService.DAL\\CourseService.DAL.csproj"
+            "D:\\Learning Management System\\Backend\\src\\Services\\CourseService\\CourseService.DAL\\CourseService.DAL.csproj": {
+              "projectPath": "D:\\Learning Management System\\Backend\\src\\Services\\CourseService\\CourseService.DAL\\CourseService.DAL.csproj"
             }
           }
         }
@@ -5293,7 +5293,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.306/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.304/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
