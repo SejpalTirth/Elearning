@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "+ydbbDjK36Y=",
+  "dgSpecHash": "sK/dhfajlO8=",
   "success": true,
-  "projectFilePath": "D:\\Learning Management System\\Backend\\src\\Services\\CourseService\\CourseService.DAL\\CourseService.DAL.csproj",
+  "projectFilePath": "D:\\Elearning\\Backend\\src\\Services\\CourseService\\CourseService.DAL\\CourseService.DAL.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\tsejpal\\.nuget\\packages\\azure.core\\1.38.0\\azure.core.1.38.0.nupkg.sha512",
     "C:\\Users\\tsejpal\\.nuget\\packages\\azure.identity\\1.11.4\\azure.identity.1.11.4.nupkg.sha512",

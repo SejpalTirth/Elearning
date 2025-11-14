@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CourseService.DAL")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+eecfd313bf9ca184a184f39f7a001475e31e7291")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0036e55b4f62b88e11022f8ba77ec9fd6b46bd53")]
 [assembly: System.Reflection.AssemblyProductAttribute("CourseService.DAL")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CourseService.DAL")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
