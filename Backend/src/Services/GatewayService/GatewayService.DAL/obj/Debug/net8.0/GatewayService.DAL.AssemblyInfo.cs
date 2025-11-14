@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("GatewayService.DAL")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0036e55b4f62b88e11022f8ba77ec9fd6b46bd53")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+16d1e05f6ad86920afa2605676e6e52a2b56ec41")]
 [assembly: System.Reflection.AssemblyProductAttribute("GatewayService.DAL")]
 [assembly: System.Reflection.AssemblyTitleAttribute("GatewayService.DAL")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
