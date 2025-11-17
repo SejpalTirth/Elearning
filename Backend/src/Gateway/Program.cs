@@ -74,7 +74,11 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseRouting();
-app.UseCors(policy => policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+app.UseCors(policy => policy
+    .WithOrigins("http://localhost:4200")
+    .AllowAnyHeader()
+    .AllowAnyMethod()
+);
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
