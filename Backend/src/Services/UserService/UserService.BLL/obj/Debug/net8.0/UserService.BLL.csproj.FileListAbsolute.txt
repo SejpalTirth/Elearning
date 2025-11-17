@@ -12,3 +12,21 @@ D:\Learning Management System\Backend\src\Services\UserService\UserService.BLL\o
 D:\Learning Management System\Backend\src\Services\UserService\UserService.BLL\obj\Debug\net8.0\UserService.BLL.pdb
 D:\Learning Management System\Backend\src\Services\UserService\UserService.BLL\obj\Debug\net8.0\UserService.BLL.genruntimeconfig.cache
 D:\Learning Management System\Backend\src\Services\UserService\UserService.BLL\obj\Debug\net8.0\ref\UserService.BLL.dll
+D:\Elearning\Backend\src\Services\UserService\UserService.BLL\obj\Debug\net8.0\UserService.BLL.csproj.AssemblyReference.cache
+D:\Elearning\Backend\src\Services\UserService\UserService.BLL\obj\Debug\net8.0\UserService.BLL.GeneratedMSBuildEditorConfig.editorconfig
+D:\Elearning\Backend\src\Services\UserService\UserService.BLL\obj\Debug\net8.0\UserService.BLL.AssemblyInfoInputs.cache
+D:\Elearning\Backend\src\Services\UserService\UserService.BLL\obj\Debug\net8.0\UserService.BLL.AssemblyInfo.cs
+D:\Elearning\Backend\src\Services\UserService\UserService.BLL\obj\Debug\net8.0\UserService.BLL.csproj.CoreCompileInputs.cache
+D:\Elearning\Backend\src\Services\UserService\UserService.BLL\obj\Debug\net8.0\UserService.BLL.sourcelink.json
+D:\Elearning\Backend\src\Services\UserService\UserService.BLL\bin\Debug\net8.0\UserService.BLL.deps.json
+D:\Elearning\Backend\src\Services\UserService\UserService.BLL\bin\Debug\net8.0\UserService.BLL.runtimeconfig.json
+D:\Elearning\Backend\src\Services\UserService\UserService.BLL\bin\Debug\net8.0\UserService.BLL.dll
+D:\Elearning\Backend\src\Services\UserService\UserService.BLL\bin\Debug\net8.0\UserService.BLL.pdb
+D:\Elearning\Backend\src\Services\UserService\UserService.BLL\bin\Debug\net8.0\UserService.DAL.dll
+D:\Elearning\Backend\src\Services\UserService\UserService.BLL\bin\Debug\net8.0\UserService.DAL.pdb
+D:\Elearning\Backend\src\Services\UserService\UserService.BLL\obj\Debug\net8.0\UserServ.3C1E1032.Up2Date
+D:\Elearning\Backend\src\Services\UserService\UserService.BLL\obj\Debug\net8.0\UserService.BLL.dll
+D:\Elearning\Backend\src\Services\UserService\UserService.BLL\obj\Debug\net8.0\refint\UserService.BLL.dll
+D:\Elearning\Backend\src\Services\UserService\UserService.BLL\obj\Debug\net8.0\UserService.BLL.pdb
+D:\Elearning\Backend\src\Services\UserService\UserService.BLL\obj\Debug\net8.0\UserService.BLL.genruntimeconfig.cache
+D:\Elearning\Backend\src\Services\UserService\UserService.BLL\obj\Debug\net8.0\ref\UserService.BLL.dll

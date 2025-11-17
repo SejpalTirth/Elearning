@@ -174,3 +174,16 @@ D:\Learning Management System\Backend\src\Services\CourseService\CourseService.W
 D:\Learning Management System\Backend\src\Services\CourseService\CourseService.Web\obj\Debug\net8.0\CourseService.Web.genruntimeconfig.cache
 D:\Learning Management System\Backend\src\Services\CourseService\CourseService.Web\obj\Debug\net8.0\ref\CourseService.Web.dll
 D:\Learning Management System\Backend\src\Services\CourseService\CourseService.Web\obj\Debug\net8.0\CourseService.Web.sourcelink.json
+D:\Elearning\Backend\src\Services\CourseService\CourseService.Web\obj\Debug\net8.0\CourseService.Web.csproj.AssemblyReference.cache
+D:\Elearning\Backend\src\Services\CourseService\CourseService.Web\obj\Debug\net8.0\rpswa.dswa.cache.json
+D:\Elearning\Backend\src\Services\CourseService\CourseService.Web\obj\Debug\net8.0\CourseService.Web.GeneratedMSBuildEditorConfig.editorconfig
+D:\Elearning\Backend\src\Services\CourseService\CourseService.Web\obj\Debug\net8.0\CourseService.Web.AssemblyInfoInputs.cache
+D:\Elearning\Backend\src\Services\CourseService\CourseService.Web\obj\Debug\net8.0\CourseService.Web.AssemblyInfo.cs
+D:\Elearning\Backend\src\Services\CourseService\CourseService.Web\obj\Debug\net8.0\CourseService.Web.csproj.CoreCompileInputs.cache
+D:\Elearning\Backend\src\Services\CourseService\CourseService.Web\obj\Debug\net8.0\CourseService.Web.MvcApplicationPartsAssemblyInfo.cs
+D:\Elearning\Backend\src\Services\CourseService\CourseService.Web\obj\Debug\net8.0\CourseService.Web.MvcApplicationPartsAssemblyInfo.cache
+D:\Elearning\Backend\src\Services\CourseService\CourseService.Web\obj\Debug\net8.0\CourseService.Web.sourcelink.json
+D:\Elearning\Backend\src\Services\CourseService\CourseService.Web\obj\Debug\net8.0\rjimswa.dswa.cache.json
+D:\Elearning\Backend\src\Services\CourseService\CourseService.Web\obj\Debug\net8.0\CourseService.Web.dll
+D:\Elearning\Backend\src\Services\CourseService\CourseService.Web\obj\Debug\net8.0\refint\CourseService.Web.dll
+D:\Elearning\Backend\src\Services\CourseService\CourseService.Web\obj\Debug\net8.0\CourseService.Web.pdb

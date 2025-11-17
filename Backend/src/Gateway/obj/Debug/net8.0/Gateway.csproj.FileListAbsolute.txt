@@ -170,3 +170,7 @@ D:\Learning Management System\Backend\src\Gateway\obj\Debug\net8.0\Gateway.pdb
 D:\Learning Management System\Backend\src\Gateway\obj\Debug\net8.0\Gateway.genruntimeconfig.cache
 D:\Learning Management System\Backend\src\Gateway\obj\Debug\net8.0\ref\Gateway.dll
 D:\Learning Management System\Backend\src\Gateway\obj\Debug\net8.0\Gateway.sourcelink.json
+D:\Elearning\Backend\src\Gateway\obj\Debug\net8.0\Gateway.csproj.AssemblyReference.cache
+D:\Elearning\Backend\src\Gateway\obj\Debug\net8.0\Gateway.dll
+D:\Elearning\Backend\src\Gateway\obj\Debug\net8.0\refint\Gateway.dll
+D:\Elearning\Backend\src\Gateway\obj\Debug\net8.0\Gateway.pdb

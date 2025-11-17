@@ -169,3 +169,16 @@ D:\Learning Management System\Backend\src\Services\GatewayService\GatewayService
 D:\Learning Management System\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\GatewayService.Web.pdb
 D:\Learning Management System\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\GatewayService.Web.genruntimeconfig.cache
 D:\Learning Management System\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\ref\GatewayService.Web.dll
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\GatewayService.Web.csproj.AssemblyReference.cache
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\rpswa.dswa.cache.json
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\GatewayService.Web.GeneratedMSBuildEditorConfig.editorconfig
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\GatewayService.Web.AssemblyInfoInputs.cache
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\GatewayService.Web.AssemblyInfo.cs
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\GatewayService.Web.csproj.CoreCompileInputs.cache
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\GatewayService.Web.MvcApplicationPartsAssemblyInfo.cs
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\GatewayService.Web.MvcApplicationPartsAssemblyInfo.cache
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\GatewayService.Web.sourcelink.json
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\rjimswa.dswa.cache.json
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\GatewayService.Web.dll
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\refint\GatewayService.Web.dll
+D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\GatewayService.Web.pdb
