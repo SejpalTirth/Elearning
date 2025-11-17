@@ -1,0 +1,14 @@
+.redirect-container {
+  text-align: center;
+  margin-top: 120px;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+}
+
+.redirect-container h2 {
+  color: #4CAF50;
+}
+
+.redirect-container p {
+  color: #555;
+  font-size: 18px;
+}

@@ -17,7 +17,7 @@ export class LoginComponent implements OnInit {
   ngOnInit(): void {
     this.route.queryParams.subscribe(params => {
       if (params['success'] === 'true') {
-        this.loginMessage = '✅ Successfully Logged In!';
+        this.loginMessage = 'Successfully Logged In!';
       }
     });
   }

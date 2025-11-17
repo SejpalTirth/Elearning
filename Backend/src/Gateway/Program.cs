@@ -58,6 +58,7 @@ services.AddAuthentication(options =>
     options.SaveTokens = true;
     options.Scope.Add("User.Read");
 });
+// Add services to the contai
 
 
 
