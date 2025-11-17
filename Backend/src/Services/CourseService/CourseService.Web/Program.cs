@@ -1,12 +1,36 @@
+using CourseService.BLL.Interface;
+using CourseService.BLL.Service;
+using CourseService.DAL.Models;
+using CourseService.DAL.Repo;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json.Serialization;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Read connection string
+var connectionString = builder.Configuration.GetConnectionString("DefaultString");
+
+// Register DbContext
+builder.Services.AddDbContext<CourseContext>(options =>
+    options.UseSqlServer(connectionString));
+
+// Register repositories
+builder.Services.AddScoped<ICourseRepository, CourseRepository>();
+builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
+
+// Register services
+builder.Services.AddScoped<ICourseService, Courseservice>();
+
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+});
+
 
 var app = builder.Build();
 
