@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 
 namespace Gateway.Controllers
 {
@@ -9,37 +8,68 @@ namespace Gateway.Controllers
     {
         private readonly HttpClient _httpClient;
 
-        public GatewayCourseController(HttpClient httpclient)
+        public GatewayCourseController(HttpClient httpClient)
         {
-            _httpClient = httpclient ?? throw new ArgumentNullException(nameof(httpclient));
+            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         }
+
+        private const string BaseUrl = "http://localhost:5257/api/courses";
 
         [HttpGet]
         public async Task<ActionResult> Get()
         {
-            var url = $"http://localhost:5257/api/course";
-            
-            var response = await _httpClient.GetAsync(url);
+            var response = await _httpClient.GetAsync(BaseUrl);
 
-            if(!response.IsSuccessStatusCode)
-            {
-                return StatusCode((int)response.StatusCode,"Error calling the Courseservice");
-            }
+            if (!response.IsSuccessStatusCode)
+                return StatusCode((int)response.StatusCode, "Error calling the CourseService");
 
             var content = await response.Content.ReadAsStringAsync();
             return Content(content, "application/json");
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult> Getbyid(int id)
+        public async Task<ActionResult> GetById(int id)
         {
-            var url = $"http://localhost:5257/api/course/{id}";
+            var response = await _httpClient.GetAsync($"{BaseUrl}/{id}");
 
-            var response = await _httpClient.GetAsync(url);
             if (!response.IsSuccessStatusCode)
-            {
-                return StatusCode((int)response.StatusCode, "Error calling the Courseservice");
-            }
+                return StatusCode((int)response.StatusCode, "Error calling the CourseService");
+
+            var content = await response.Content.ReadAsStringAsync();
+            return Content(content, "application/json");
+        }
+
+        [HttpPost]
+        public async Task<ActionResult> Create([FromBody] object dto)
+        {
+            var response = await _httpClient.PostAsJsonAsync(BaseUrl, dto);
+
+            if (!response.IsSuccessStatusCode)
+                return StatusCode((int)response.StatusCode, "Error calling the CourseService");
+
+            var content = await response.Content.ReadAsStringAsync();
+            return Content(content, "application/json");
+        }
+
+        [HttpPut("{id}")]
+        public async Task<ActionResult> Update(int id, [FromBody] object dto)
+        {
+            var response = await _httpClient.PutAsJsonAsync($"{BaseUrl}/{id}", dto);
+
+            if (!response.IsSuccessStatusCode)
+                return StatusCode((int)response.StatusCode, "Error calling the CourseService");
+
+            var content = await response.Content.ReadAsStringAsync();
+            return Content(content, "application/json");
+        }
+
+        [HttpPost("enroll")]
+        public async Task<ActionResult> Enroll([FromBody] object dto)
+        {
+            var response = await _httpClient.PostAsJsonAsync($"{BaseUrl}/enroll", dto);
+
+            if (!response.IsSuccessStatusCode)
+                return StatusCode((int)response.StatusCode, "Error calling the CourseService");
 
             var content = await response.Content.ReadAsStringAsync();
             return Content(content, "application/json");
