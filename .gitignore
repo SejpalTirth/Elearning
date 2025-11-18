@@ -1,1 +1,84 @@
+# .NET Specific
 .vs/
+.vscode/
+.idea/
+
+# Ignore user secrets
+secrets.json
+appsettings.Development.json
+appsettings.Local.json
+
+# Ignore build outputs (root + nested)
+bin/
+obj/
+**/bin/
+**/obj/
+
+# Ignore dependency directories
+packages/
+
+# Publish outputs
+publish/
+
+# Windows Installer files
+*.cab
+*.msi
+*.msm
+*.msp
+
+# Temp files
+*.user
+*.userosscache
+*.suo
+*.sln.docstates
+
+# ASP.NET Core session files
+.session/
+
+# Test results
+TestResults/
+
+# Coverage & profiling
+.coverage
+*.profiler
+
+# Angular / Node
+node_modules/
+dist/
+build/
+tmp/
+out-tsc/
+
+# Logs
+*.log
+
+# Angular config
+src/app/config/*.secret.json
+src/app/config/.env
+
+# Environment files
+src/environments/environment.prod.ts
+src/environments/environment.ts
+
+# Angular cache
+.angular/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Coverage
+coverage/
+*.lcov
+
+# Temporary files
+*.swp
+*.swo
+
+# macOS system files
+.DS_Store
+
+# Windows system files
+Thumbs.db
+
+# Cache
+.cache/
