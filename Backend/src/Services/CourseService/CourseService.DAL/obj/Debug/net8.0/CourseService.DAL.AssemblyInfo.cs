@@ -14,11 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CourseService.DAL")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-<<<<<<< Updated upstream
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0036e55b4f62b88e11022f8ba77ec9fd6b46bd53")]
-=======
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9d5d1e2bd2ad59a64424ed6cf6182aa46159cff4")]
->>>>>>> Stashed changes
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+767795de73b4492938d849746076bf04d3c7472c")]
 [assembly: System.Reflection.AssemblyProductAttribute("CourseService.DAL")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CourseService.DAL")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

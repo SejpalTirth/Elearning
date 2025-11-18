@@ -7,9 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Entity\" />
-    <Folder Include="Data Context\" />
-    <Folder Include="Repo\" />
+    <Compile Remove="Data Context\**" />
+    <Compile Remove="Entity\**" />
+    <EmbeddedResource Remove="Data Context\**" />
+    <EmbeddedResource Remove="Entity\**" />
+    <None Remove="Data Context\**" />
+    <None Remove="Entity\**" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,5 +1,95 @@
 [
   {
+    "ContainingType": "Gateway.Controllers.AssessmentGatewayController",
+    "Method": "GetAllQuizzes",
+    "RelativePath": "api/AssessmentGateway/quizzes",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Gateway.Controllers.AssessmentGatewayController",
+    "Method": "GetQuizById",
+    "RelativePath": "api/AssessmentGateway/quizzes/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Gateway.Controllers.AssessmentGatewayController",
+    "Method": "SubmitQuiz",
+    "RelativePath": "api/AssessmentGateway/submit",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "Gateway.DTOs.SubmitQuizDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Gateway.Web.Controllers.GatewayAuthController",
+    "Method": "ExternalResponse",
+    "RelativePath": "api/GatewayAuth/external-response",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "returnUrl",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Gateway.Web.Controllers.GatewayAuthController",
+    "Method": "GoogleLogin",
+    "RelativePath": "api/GatewayAuth/google-login",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "returnUrl",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "Gateway.Web.Controllers.GatewayAuthController",
+    "Method": "MicrosoftLogin",
+    "RelativePath": "api/GatewayAuth/microsoft-login",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "returnUrl",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "Gateway.Controllers.GatewayCourseController",
     "Method": "Get",
     "RelativePath": "api/GatewayCourse",

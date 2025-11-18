@@ -12,6 +12,9 @@ appsettings.Local.json
 # Ignore build outputs
 /bin/
 /obj/
+**/bin/
+**/obj/
+
 
 # Ignore dependency directories
 /packages/

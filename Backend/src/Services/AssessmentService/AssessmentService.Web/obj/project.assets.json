@@ -1688,6 +1688,33 @@
             "rid": "win"
           }
         }
+      },
+      "AssessmentService.BLL/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "dependencies": {
+          "AssessmentService.DAL": "1.0.0",
+          "Microsoft.EntityFrameworkCore.SqlServer": "9.0.10"
+        },
+        "compile": {
+          "bin/placeholder/AssessmentService.BLL.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/AssessmentService.BLL.dll": {}
+        }
+      },
+      "AssessmentService.DAL/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v8.0",
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore.SqlServer": "9.0.10"
+        },
+        "compile": {
+          "bin/placeholder/AssessmentService.DAL.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/AssessmentService.DAL.dll": {}
+        }
       }
     }
   },
@@ -5147,10 +5174,21 @@
         "system.windows.extensions.nuspec",
         "useSharedDesignerContext.txt"
       ]
+    },
+    "AssessmentService.BLL/1.0.0": {
+      "type": "project",
+      "path": "../AssessmentService.BLL/AssessmentService.BLL.csproj",
+      "msbuildProject": "../AssessmentService.BLL/AssessmentService.BLL.csproj"
+    },
+    "AssessmentService.DAL/1.0.0": {
+      "type": "project",
+      "path": "../AssessmentService.DAL/AssessmentService.DAL.csproj",
+      "msbuildProject": "../AssessmentService.DAL/AssessmentService.DAL.csproj"
     }
   },
   "projectFileDependencyGroups": {
     "net8.0": [
+      "AssessmentService.BLL >= 1.0.0",
       "Microsoft.EntityFrameworkCore.Design >= 9.0.10",
       "Microsoft.EntityFrameworkCore.SqlServer >= 9.0.10",
       "Microsoft.EntityFrameworkCore.Tools >= 9.0.10",
@@ -5188,7 +5226,11 @@
       "frameworks": {
         "net8.0": {
           "targetAlias": "net8.0",
-          "projectReferences": {}
+          "projectReferences": {
+            "D:\\Elearning\\Backend\\src\\Services\\AssessmentService\\AssessmentService.BLL\\AssessmentService.BLL.csproj": {
+              "projectPath": "D:\\Elearning\\Backend\\src\\Services\\AssessmentService\\AssessmentService.BLL\\AssessmentService.BLL.csproj"
+            }
+          }
         }
       },
       "warningProperties": {
@@ -5247,7 +5289,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.306/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.307/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
