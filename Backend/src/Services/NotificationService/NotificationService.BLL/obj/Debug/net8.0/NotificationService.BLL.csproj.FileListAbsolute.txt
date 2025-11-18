@@ -1,0 +1,14 @@
+D:\Learning Management System\Backend\src\Services\NotificationService\NotificationService.BLL\bin\Debug\net8.0\NotificationService.BLL.deps.json
+D:\Learning Management System\Backend\src\Services\NotificationService\NotificationService.BLL\bin\Debug\net8.0\NotificationService.BLL.runtimeconfig.json
+D:\Learning Management System\Backend\src\Services\NotificationService\NotificationService.BLL\bin\Debug\net8.0\NotificationService.BLL.dll
+D:\Learning Management System\Backend\src\Services\NotificationService\NotificationService.BLL\bin\Debug\net8.0\NotificationService.BLL.pdb
+D:\Learning Management System\Backend\src\Services\NotificationService\NotificationService.BLL\obj\Debug\net8.0\NotificationService.BLL.csproj.AssemblyReference.cache
+D:\Learning Management System\Backend\src\Services\NotificationService\NotificationService.BLL\obj\Debug\net8.0\NotificationService.BLL.GeneratedMSBuildEditorConfig.editorconfig
+D:\Learning Management System\Backend\src\Services\NotificationService\NotificationService.BLL\obj\Debug\net8.0\NotificationService.BLL.AssemblyInfoInputs.cache
+D:\Learning Management System\Backend\src\Services\NotificationService\NotificationService.BLL\obj\Debug\net8.0\NotificationService.BLL.AssemblyInfo.cs
+D:\Learning Management System\Backend\src\Services\NotificationService\NotificationService.BLL\obj\Debug\net8.0\NotificationService.BLL.csproj.CoreCompileInputs.cache
+D:\Learning Management System\Backend\src\Services\NotificationService\NotificationService.BLL\obj\Debug\net8.0\NotificationService.BLL.dll
+D:\Learning Management System\Backend\src\Services\NotificationService\NotificationService.BLL\obj\Debug\net8.0\refint\NotificationService.BLL.dll
+D:\Learning Management System\Backend\src\Services\NotificationService\NotificationService.BLL\obj\Debug\net8.0\NotificationService.BLL.pdb
+D:\Learning Management System\Backend\src\Services\NotificationService\NotificationService.BLL\obj\Debug\net8.0\NotificationService.BLL.genruntimeconfig.cache
+D:\Learning Management System\Backend\src\Services\NotificationService\NotificationService.BLL\obj\Debug\net8.0\ref\NotificationService.BLL.dll

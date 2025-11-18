@@ -1,11 +1,24 @@
+using Microsoft.EntityFrameworkCore;
+using ProgresService.DAL.Data;
+using ProgresService.DAL.Repo;
+using ProgressService.BLL.Interface;
+using ProgressService.BLL.Service;
+using ProgressService.DAL.Repo;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Register DbContext (REQUIRED)
+builder.Services.AddDbContext<ProgressDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Register Repository + Service
+builder.Services.AddScoped<IProgressRepository, ProgressRepository>();
+builder.Services.AddScoped<IProgressService, ProgressServiceImpl>();
 
 var app = builder.Build();
 

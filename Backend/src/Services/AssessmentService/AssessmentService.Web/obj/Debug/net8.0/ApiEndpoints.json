@@ -1,0 +1,44 @@
+[
+  {
+    "ContainingType": "AssessmentService.Web.Controllers.AssessmentController",
+    "Method": "GetAllQuizzes",
+    "RelativePath": "api/Assessment",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "AssessmentService.Web.Controllers.AssessmentController",
+    "Method": "GetQuizById",
+    "RelativePath": "api/Assessment/{id}",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int32",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "AssessmentService.Web.Controllers.AssessmentController",
+    "Method": "SubmitQuiz",
+    "RelativePath": "api/Assessment/submit",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "AssessmentService.BLL.DTOs.SubmitQuizDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  }
+]
