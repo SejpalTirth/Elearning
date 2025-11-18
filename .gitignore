@@ -12,6 +12,8 @@ appsettings.Local.json
 # Ignore build outputs
 /bin/
 /obj/
+**/bin/
+**/obj/
 
 # Ignore dependency directories
 /packages/
@@ -44,6 +46,7 @@ TestResults/
 # Angular Specific
 # Ignore node_modules (this is huge, and should not be in Git)
 node_modules/
+**/node_modules/
 
 # Ignore build artifacts
 /dist/
