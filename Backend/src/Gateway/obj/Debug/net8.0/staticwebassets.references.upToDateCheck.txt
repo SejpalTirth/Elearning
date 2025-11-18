@@ -1,6 +1,0 @@
-D:\Elearning\Backend\src\Services\AssessmentService\AssessmentService.Web\obj\Debug\net8.0\staticwebassets.build.json
-D:\Elearning\Backend\src\Services\CourseService\CourseService.Web\obj\Debug\net8.0\staticwebassets.build.json
-D:\Elearning\Backend\src\Services\GatewayService\GatewayService.Web\obj\Debug\net8.0\staticwebassets.build.json
-D:\Elearning\Backend\src\Services\NotificationService\NotificationService.Web\obj\Debug\net8.0\staticwebassets.build.json
-D:\Elearning\Backend\src\Services\ProgresService\ProgresService.Web\obj\Debug\net8.0\staticwebassets.build.json
-D:\Elearning\Backend\src\Services\UserService\UserService.Web\obj\Debug\net8.0\staticwebassets.build.json
