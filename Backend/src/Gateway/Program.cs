@@ -4,15 +4,16 @@ using GatewayService.DAL.Repo;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
 var config = builder.Configuration;
 
-// DB and repos
-services.AddDbContext<GatewayServiceContext>(opt => opt.UseSqlServer(config.GetConnectionString("DefaultConnection")));
+// DB & Repos
+services.AddDbContext<GatewayServiceContext>(opt =>
+    opt.UseSqlServer(config.GetConnectionString("DefaultConnection")));
+
 services.AddScoped<IUserRepository, UserRepository>();
 services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 services.AddScoped<IAuthService, AuthService>();
@@ -31,56 +32,90 @@ services.AddAuthentication(options =>
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
-        ValidIssuer = config["Jwt:Issuer"],
+        ValidIssuer = config.GetValue<string>("Jwt:Issuer"),
+
         ValidateAudience = true,
-        ValidAudience = config["Jwt:Audience"],
+        ValidAudience = config.GetValue<string>("Jwt:Audience"),
+
         ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"])),
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(config.GetValue<string>("Jwt:Key"))
+        ),
+
         ValidateLifetime = true
+    };
+
+    // Added for debuggability
+    options.Events = new JwtBearerEvents
+    {
+        OnAuthenticationFailed = ctx =>
+        {
+            Console.WriteLine($"JWT Auth failed: {ctx.Exception.Message}");
+            return Task.CompletedTask;
+        }
     };
 })
 .AddGoogle(options =>
 {
     options.SignInScheme = "External";
-    options.ClientId = config["Authentication:Google:ClientId"];
-    options.ClientSecret = config["Authentication:Google:ClientSecret"];
-    options.CallbackPath = "/signin-google"; // default path the middleware handles automatically
+    options.ClientId = config.GetValue<string>("Authentication:Google:ClientId");
+    options.ClientSecret = config.GetValue<string>("Authentication:Google:ClientSecret");
+    options.CallbackPath = "/signin-google";
     options.SaveTokens = true;
+
     options.Scope.Add("email");
     options.Scope.Add("profile");
+
+    // Better error visibility
+    options.Events.OnRemoteFailure = ctx =>
+    {
+        Console.WriteLine($"Google auth error: {ctx.Failure?.Message}");
+        ctx.Response.Redirect("/auth/error");
+        ctx.HandleResponse();
+        return Task.CompletedTask;
+    };
 })
 .AddMicrosoftAccount(options =>
 {
     options.SignInScheme = "External";
-    options.ClientId = config["Authentication:Microsoft:ClientId"];
-    options.ClientSecret = config["Authentication:Microsoft:ClientSecret"];
-    options.CallbackPath = "/signin-microsoft"; // default path
+    options.ClientId = config.GetValue<string>("Authentication:Microsoft:ClientId");
+    options.ClientSecret = config.GetValue<string>("Authentication:Microsoft:ClientSecret");
+    options.CallbackPath = "/signin-microsoft";
     options.SaveTokens = true;
+
     options.Scope.Add("User.Read");
+
+    // Better error visibility
+    options.Events.OnRemoteFailure = ctx =>
+    {
+        Console.WriteLine($"Microsoft auth error: {ctx.Failure?.Message}");
+        ctx.Response.Redirect("/auth/error");
+        ctx.HandleResponse();
+        return Task.CompletedTask;
+    };
 });
-// Add services to the contai
-
-
-
 
 // controllers
 services.AddControllers();
 
-// swagger, cors etc.
+// Swagger & CORS
 services.AddEndpointsApiExplorer();
 services.AddSwaggerGen();
 
 var app = builder.Build();
+
 app.UseSwagger();
 app.UseSwaggerUI();
+
 app.UseRouting();
+
 app.UseCors(policy => policy
     .WithOrigins("http://localhost:4200")
     .AllowAnyHeader()
     .AllowAnyMethod()
 );
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-
 app.Run();
