@@ -1,62 +1,80 @@
+using GatewayService.BLL.Interface;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using System.Security.Claims;
 
-namespace Gateway.Web.Controllers
+[ApiController]
+[Route("api/[controller]")]
+public class GatewayAuthController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class GatewayAuthController : ControllerBase
+    private readonly IAuthService _authService;
+    private readonly ILogger<GatewayAuthController> _logger;
+
+    public GatewayAuthController(IAuthService authService, ILogger<GatewayAuthController> logger)
     {
-        private readonly ILogger<GatewayAuthController> _logger;
+        _authService = authService;
+        _logger = logger;
+    }
 
-        public GatewayAuthController(ILogger<GatewayAuthController> logger)
+    // Helper to validate returnUrl and prevent open redirect attacks
+    private string SanitizeReturnUrl(string? returnUrl)
+    {
+        if (string.IsNullOrWhiteSpace(returnUrl))
+            return "/";
+
+        // Only allow local URLs
+        if (Url.IsLocalUrl(returnUrl))
+            return returnUrl;
+
+        _logger.LogWarning("Blocked open redirect attempt to: {Url}", returnUrl);
+        return "/";
+    }
+
+    [HttpGet("google-login")]
+    public IActionResult GoogleLogin([FromQuery] string? returnUrl = "/")
+    {
+        returnUrl = SanitizeReturnUrl(returnUrl);
+        var properties = new AuthenticationProperties
         {
-            _logger = logger;
+            RedirectUri = Url.Action("ExternalResponse", new { returnUrl })
+        };
+        return Challenge(properties, GoogleDefaults.AuthenticationScheme);
+    }
+
+    [HttpGet("external-response")]
+    public async Task<IActionResult> ExternalResponse([FromQuery] string? returnUrl = "/")
+    {
+        returnUrl = SanitizeReturnUrl(returnUrl);
+
+        var result = await HttpContext.AuthenticateAsync("External");
+
+        if (!result.Succeeded)
+        {
+            _logger.LogError("External authentication failed. Details: {Error}", result.Failure?.Message);
+            return BadRequest("External authentication error");
         }
 
-        [HttpGet("google-login")]
-        public IActionResult GoogleLogin([FromQuery] string? returnUrl = "/")
-        {
-            if (!Url.IsLocalUrl(returnUrl))
-                returnUrl = "/";
+        // Extract user claims safely
+        var email = result.Principal.FindFirst(ClaimTypes.Email)?.Value;
+        var name = result.Principal.FindFirst(ClaimTypes.Name)?.Value;
 
-            var redirectUrl = Url.Action(nameof(ExternalResponse), "GatewayAuth", new { returnUrl });
-            var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
-            return Challenge(properties, "Google");
+        if (string.IsNullOrEmpty(email))
+        {
+            _logger.LogWarning("Google/Microsoft login missing email claim.");
+            return BadRequest("Unable to retrieve email from external provider.");
         }
 
-        [HttpGet("microsoft-login")]
-        public IActionResult MicrosoftLogin([FromQuery] string? returnUrl = "/")
+        if (string.IsNullOrEmpty(name))
         {
-            if (!Url.IsLocalUrl(returnUrl))
-                returnUrl = "/";
-
-            var redirectUrl = Url.Action(nameof(ExternalResponse), "GatewayAuth", new { returnUrl });
-            var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
-            return Challenge(properties, "Microsoft");
+            _logger.LogWarning("Google/Microsoft login missing name claim.");
+            name = "Unknown User"; // fallback if needed
         }
 
-        [HttpGet("external-response")]
-        public async Task<IActionResult> ExternalResponse([FromQuery] string? returnUrl = "/")
-        {
-            var result = await HttpContext.AuthenticateAsync("External");
+        // Now continue with your auth service logic
+        var tokens = await _authService.HandleExternalLogin(email, name);
 
-            if (!result.Succeeded)
-            {
-                _logger.LogWarning("External authentication failed. ReturnUrl: {ReturnUrl}", returnUrl);
-                return BadRequest("External authentication error");
-            }
-
-            var email = result.Principal?.FindFirst(c => c.Type == System.Security.Claims.ClaimTypes.Email)?.Value;
-            var name = result.Principal?.Identity?.Name;
-
-            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(name))
-            {
-                _logger.LogWarning("Missing essential claims after external authentication. Email: {Email}, Name: {Name}", email, name);
-                return BadRequest("Required user claims not found");
-            }
-
-            return Ok(new { Email = email, Name = name, ReturnUrl = returnUrl });
-        }
+        return Redirect($"{returnUrl}?token={tokens.AccessToken}&refresh={tokens.RefreshToken}");
     }
 }
