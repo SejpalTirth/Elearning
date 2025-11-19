@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
+// Add controllers
 var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
 var config = builder.Configuration;
@@ -17,10 +18,12 @@ services.AddDbContext<GatewayServiceContext>(opt =>
     opt.UseSqlServer(config.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
+// Add Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// HttpClient for forwarding requests to microservices
 builder.Services.AddHttpClient();
 builder.Services.AddHttpClient("NotificationService", client =>
 {
@@ -66,6 +69,7 @@ services.AddAuthentication(options =>
         ValidateLifetime = true
     };
 
+// Pipeline
 if (app.Environment.IsDevelopment())
     // Added for debuggability
     options.Events = new JwtBearerEvents

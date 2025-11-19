@@ -17,6 +17,16 @@
         "Path": "Services\\GatewayService\\GatewayService.Web\\GatewayService.Web.csproj",
         "Action": "Start",
         "DebugTarget": "https"
+      },
+      {
+        "Path": "Services\\GatewayService\\GatewayService.Web\\GatewayService.Web.csproj",
+        "Action": "Start",
+        "DebugTarget": "https"
+      },
+      {
+        "Path": "Services\\UserService\\UserService.Web\\UserService.Web.csproj",
+        "Action": "Start",
+        "DebugTarget": "https"
       }
     ]
   }
