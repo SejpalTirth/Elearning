@@ -8,6 +8,7 @@
         "DebugTarget": "https"
       },
       {
+        "Path": "Services\\NotificationService\\NotificationService.Web\\NotificationService.Web.csproj",
         "Path": "Services\\ProgresService\\ProgresService.Web\\ProgresService.Web.csproj",
         "Action": "Start",
         "DebugTarget": "https"

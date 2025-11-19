@@ -17,6 +17,16 @@ services.AddDbContext<GatewayServiceContext>(opt =>
     opt.UseSqlServer(config.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddControllers();
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+builder.Services.AddHttpClient();
+builder.Services.AddHttpClient("NotificationService", client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7245");
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
