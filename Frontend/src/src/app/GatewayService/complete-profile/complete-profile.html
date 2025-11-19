@@ -1,0 +1,16 @@
+<div class="container">
+  <h2>Complete Your Profile</h2>
+
+  <label class="label">Full Name</label>
+  <input type="text" class="form-input" [(ngModel)]="name" placeholder="Enter your name" />
+
+  <label class="label">Select Role</label>
+  <select class="form-input" [(ngModel)]="roleId">
+    <option [value]="3">Student</option>
+    <option [value]="2">Instructor</option>
+  </select>
+
+  <button class="btn" (click)="saveProfile()" [disabled]="loading">
+    {{ loading ? "Saving..." : "Submit" }}
+  </button>
+</div>

@@ -1,40 +1,50 @@
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-auth-callback',
+  standalone: true,
   templateUrl: './auth-callback.html',
-  styleUrls: ['./auth-callback.css'],
+  styleUrl: './auth-callback.css'
 })
 export class AuthCallback implements OnInit {
 
-  message = "Processing login...";
+  constructor(private router: Router) {}
 
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router
-  ) {}
+  ngOnInit() {
 
-  ngOnInit(): void {
-    this.route.queryParams.subscribe(params => {
-      const token = params['token'];
-      const refresh = params['refresh'];
+    const params = new URLSearchParams(window.location.search);
 
-      if (token && refresh) {
-        // Save tokens
-        localStorage.setItem('access_token', token);
-        localStorage.setItem('refresh_token', refresh);
+    // NEW USER CHECK
+    const isNewUser = params.get('isNewUser');
+    const userId = params.get('userId');
 
-        this.message = "Successfully logged in! Redirecting...";
+    // EXISTING USER TOKENS
+    const token = params.get('token');
+    const refresh = params.get('refresh');
 
-        // Redirect after delay
-        setTimeout(() => {
-          this.router.navigate(['/dashboard']);
-        }, 1500);
+    // If new user → redirect to complete-profile
+    if (isNewUser === 'true' && userId) {
+      this.router.navigate(
+        ['/complete-profile'],
+        { queryParams: { userId } }
+      );
+      return;
+    }
 
-      } else {
-        this.message = "Login failed. Missing authentication tokens.";
-      }
-    });
+    // If tokens exist → store and redirect to home
+    if (token && refresh) {
+      localStorage.setItem('token', token);
+      localStorage.setItem('refresh', refresh);
+
+      setTimeout(() => {
+        this.router.navigate(['/home']);
+      }, 300);
+      
+      return;
+    }
+
+    // Fallback
+    this.router.navigate(['/login']);
   }
 }

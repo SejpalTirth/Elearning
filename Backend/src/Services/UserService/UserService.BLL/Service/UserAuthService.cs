@@ -115,5 +115,51 @@ namespace UserService.BLL.Service
                 .Select(p => p.Name)
                 .ToListAsync();
         }
+
+        public async Task<CompleteProfileResultDto> CompleteUserProfileAsync(CompleteProfileDto dto)
+        {
+            if (dto.RoleId == 1)
+                return new CompleteProfileResultDto
+                {
+                    Success = false,
+                    Message = "Cannot assign Admin role"
+                };
+
+            var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == dto.UserId);
+            if (user == null)
+                return new CompleteProfileResultDto
+                {
+                    Success = false,
+                    Message = "User not found"
+                };
+
+            user.Name = dto.Name;
+
+            var role = await _context.Roles.FirstOrDefaultAsync(r => r.Id == dto.RoleId);
+            if (role == null)
+                return new CompleteProfileResultDto
+                {
+                    Success = false,
+                    Message = "Invalid RoleId"
+                };
+
+            bool exists = await _context.UserRoles
+                .AnyAsync(ur => ur.UserId == dto.UserId && ur.RoleId == dto.RoleId);
+
+            if (!exists)
+            {
+                await _context.UserRoles.AddAsync(new UserRole
+                {
+                    UserId = dto.UserId,
+                    RoleId = dto.RoleId
+                });
+            }
+
+            user.Role = role.Name;
+
+            await _context.SaveChangesAsync();
+
+            return new CompleteProfileResultDto { Success = true };
+        }
     }
 }
