@@ -24,7 +24,6 @@ public class GatewayAuthController : ControllerBase
         if (string.IsNullOrWhiteSpace(returnUrl))
             return "/";
 
-        // Only allow local URLs
         if (Url.IsLocalUrl(returnUrl))
             return returnUrl;
 
@@ -32,21 +31,43 @@ public class GatewayAuthController : ControllerBase
         return "/";
     }
 
+    // GOOGLE LOGIN
     [HttpGet("google-login")]
-    public IActionResult GoogleLogin([FromQuery] string? returnUrl = "/")
+    public IActionResult GoogleLogin()
     {
-        returnUrl = SanitizeReturnUrl(returnUrl);
+        var returnUrl = "http://localhost:4200/gateway/auth/callback";
+
         var properties = new AuthenticationProperties
         {
             RedirectUri = Url.Action("ExternalResponse", new { returnUrl })
         };
+
         return Challenge(properties, GoogleDefaults.AuthenticationScheme);
     }
 
-    [HttpGet("external-response")]
-    public async Task<IActionResult> ExternalResponse([FromQuery] string? returnUrl = "/")
+
+    // MICROSOFT LOGIN
+    [HttpGet("microsoft-login")]
+    public IActionResult MicrosoftLogin()
     {
-        returnUrl = SanitizeReturnUrl(returnUrl);
+        var returnUrl = "http://localhost:4200/gateway/auth/callback";
+
+        var properties = new AuthenticationProperties
+        {
+            RedirectUri = Url.Action("ExternalResponse", new { returnUrl })
+        };
+
+        return Challenge(properties, "Microsoft");
+    }
+
+
+    // CALLBACK FROM GOOGLE/MICROSOFT
+    [HttpGet("external-response")]
+    public async Task<IActionResult> ExternalResponse([FromQuery] string? returnUrl = null)
+    {
+        // Angular callback URL (DEFAULT)
+        returnUrl ??= "http://localhost:4200/gateway/auth/callback";
+
 
         var result = await HttpContext.AuthenticateAsync("External");
 
@@ -56,25 +77,29 @@ public class GatewayAuthController : ControllerBase
             return BadRequest("External authentication error");
         }
 
-        // Extract user claims safely
+        // Extract external provider
+        var provider = result.Properties?.Items?[".AuthScheme"] ?? "Unknown";
+
+        // Extract provider user ID
+        var providerUserId = result.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        // Extract email and name
         var email = result.Principal.FindFirst(ClaimTypes.Email)?.Value;
         var name = result.Principal.FindFirst(ClaimTypes.Name)?.Value;
 
-        if (string.IsNullOrEmpty(email))
-        {
-            _logger.LogWarning("Google/Microsoft login missing email claim.");
-            return BadRequest("Unable to retrieve email from external provider.");
-        }
+        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(providerUserId))
+            return BadRequest("Missing required external login fields.");
 
-        if (string.IsNullOrEmpty(name))
-        {
-            _logger.LogWarning("Google/Microsoft login missing name claim.");
-            name = "Unknown User"; // fallback if needed
-        }
+        // Generate tokens
+        var tokens = await _authService.SignInExternalAsync(
+            provider,
+            providerUserId,
+            email,
+            name ?? "Unknown User"
+        );
 
-        // Now continue with your auth service logic
-        var tokens = await _authService.HandleExternalLogin(email, name);
-
+        // Redirect to Angular with tokens
         return Redirect($"{returnUrl}?token={tokens.AccessToken}&refresh={tokens.RefreshToken}");
     }
+
 }

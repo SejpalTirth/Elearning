@@ -8,8 +8,6 @@
         "DebugTarget": "https"
       },
       {
-        "Path": "Services\\AssessmentService\\AssessmentService.Web\\AssessmentService.Web.csproj",
-        "Path": "Services\\NotificationService\\NotificationService.Web\\NotificationService.Web.csproj",
         "Path": "Services\\ProgresService\\ProgresService.Web\\ProgresService.Web.csproj",
         "Action": "Start",
         "DebugTarget": "https"
@@ -20,12 +18,22 @@
         "DebugTarget": "https"
       },
       {
-        "Path": "Services\\GatewayService\\GatewayService.Web\\GatewayService.Web.csproj",
+        "Path": "Services\\UserService\\UserService.Web\\UserService.Web.csproj",
         "Action": "Start",
         "DebugTarget": "https"
       },
       {
-        "Path": "Services\\UserService\\UserService.Web\\UserService.Web.csproj",
+        "Path": "Services\\CourseService\\CourseService.Web\\CourseService.Web.csproj",
+        "Action": "Start",
+        "DebugTarget": "https"
+      },
+      {
+        "Path": "Services\\AssessmentService\\AssessmentService.Web\\AssessmentService.Web.csproj",
+        "Action": "Start",
+        "DebugTarget": "https"
+      },
+      {
+        "Path": "Services\\NotificationService\\NotificationService.Web\\NotificationService.Web.csproj",
         "Action": "Start",
         "DebugTarget": "https"
       }

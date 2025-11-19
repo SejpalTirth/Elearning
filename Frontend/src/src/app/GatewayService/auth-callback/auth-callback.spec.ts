@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { Redirectpage } from './redirectpage';
+import { AuthCallback } from './auth-callback';
 
-describe('Redirectpage', () => {
-  let component: Redirectpage;
-  let fixture: ComponentFixture<Redirectpage>;
+describe('AuthCallback', () => {
+  let component: AuthCallback;
+  let fixture: ComponentFixture<AuthCallback>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [Redirectpage]
+      imports: [AuthCallback]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(Redirectpage);
+    fixture = TestBed.createComponent(AuthCallback);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

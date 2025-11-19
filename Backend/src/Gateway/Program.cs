@@ -1,59 +1,51 @@
-using System;
-using System.Net.Http;
 using GatewayService.BLL.Interface;
 using GatewayService.DAL.Data;
 using GatewayService.DAL.Repo;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// Register named HttpClient for AssessmentService
-builder.Services.AddHttpClient("AssessmentService", client =>
-{
-    client.BaseAddress = new Uri("https://localhost:7108/");
-// Add controllers
 var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
 var config = builder.Configuration;
 
-// DB & Repos
+
+services.AddControllers();
+services.AddEndpointsApiExplorer();
+services.AddSwaggerGen();
+
+
 services.AddDbContext<GatewayServiceContext>(opt =>
     opt.UseSqlServer(config.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddControllers();
 
-// Add Swagger
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+services.AddHttpClient();
 
-// HttpClient for forwarding requests to microservices
-builder.Services.AddHttpClient();
-builder.Services.AddHttpClient("NotificationService", client =>
+services.AddHttpClient("AssessmentService", client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7108");
+});
+
+services.AddHttpClient("NotificationService", client =>
 {
     client.BaseAddress = new Uri("https://localhost:7245");
 });
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// Named HttpClient for Progress Service
-builder.Services.AddHttpClient("ProgressService", client =>
+services.AddHttpClient("ProgressService", client =>
 {
     client.BaseAddress = new Uri("https://localhost:7175");
 });
+
 services.AddScoped<IUserRepository, UserRepository>();
 services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 services.AddScoped<IAuthService, AuthService>();
 
-// Authentication
+
 services.AddAuthentication(options =>
 {
-    options.DefaultScheme = "Cookies";
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
@@ -64,22 +56,20 @@ services.AddAuthentication(options =>
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
-        ValidIssuer = config.GetValue<string>("Jwt:Issuer"),
+        ValidIssuer = config["Jwt:Issuer"],
 
         ValidateAudience = true,
-        ValidAudience = config.GetValue<string>("Jwt:Audience"),
+        ValidAudience = config["Jwt:Audience"],
 
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(config.GetValue<string>("Jwt:Key"))
+            Encoding.UTF8.GetBytes(config["Jwt:Key"])
         ),
 
         ValidateLifetime = true
     };
 
-// Pipeline
-if (app.Environment.IsDevelopment())
-    // Added for debuggability
+    // Debugging support
     options.Events = new JwtBearerEvents
     {
         OnAuthenticationFailed = ctx =>
@@ -92,18 +82,14 @@ if (app.Environment.IsDevelopment())
 .AddGoogle(options =>
 {
     options.SignInScheme = "External";
-    options.ClientId = config.GetValue<string>("Authentication:Google:ClientId");
-    options.ClientSecret = config.GetValue<string>("Authentication:Google:ClientSecret");
+    options.ClientId = config["Authentication:Google:ClientId"];
+    options.ClientSecret = config["Authentication:Google:ClientSecret"];
     options.CallbackPath = "/signin-google";
     options.SaveTokens = true;
 
-app.UseHttpsRedirection();
-app.UseAuthorization();
-app.MapControllers();
     options.Scope.Add("email");
     options.Scope.Add("profile");
 
-    // Better error visibility
     options.Events.OnRemoteFailure = ctx =>
     {
         Console.WriteLine($"Google auth error: {ctx.Failure?.Message}");
@@ -115,14 +101,13 @@ app.MapControllers();
 .AddMicrosoftAccount(options =>
 {
     options.SignInScheme = "External";
-    options.ClientId = config.GetValue<string>("Authentication:Microsoft:ClientId");
-    options.ClientSecret = config.GetValue<string>("Authentication:Microsoft:ClientSecret");
+    options.ClientId = config["Authentication:Microsoft:ClientId"];
+    options.ClientSecret = config["Authentication:Microsoft:ClientSecret"];
     options.CallbackPath = "/signin-microsoft";
     options.SaveTokens = true;
 
     options.Scope.Add("User.Read");
 
-    // Better error visibility
     options.Events.OnRemoteFailure = ctx =>
     {
         Console.WriteLine($"Microsoft auth error: {ctx.Failure?.Message}");
@@ -132,18 +117,13 @@ app.MapControllers();
     };
 });
 
-// controllers
-services.AddControllers();
-
-// Swagger & CORS
-services.AddEndpointsApiExplorer();
-services.AddSwaggerGen();
 
 var app = builder.Build();
 
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.UseHttpsRedirection();
 app.UseRouting();
 
 app.UseCors(policy => policy
@@ -154,5 +134,7 @@ app.UseCors(policy => policy
 
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
+
 app.Run();
