@@ -1,0 +1,15 @@
+<div class="login-container">
+  <h2>Sign in to Continue</h2>
+
+  <button class="google-btn" (click)="loginWithGoogle()">
+    <img src="assets/google-logo.png" alt="Google Logo" class="logo" />
+    <span>Sign in with Google</span>
+  </button>
+
+  <button class="microsoft-btn" (click)="loginWithMicrosoft()">
+    <img src="assets/microsoft-logo.png" alt="Microsoft Logo" class="logo" />
+    <span>Sign in with Microsoft</span>
+  </button>
+
+  <p *ngIf="loginMessage" class="success-message">{{ loginMessage }}</p>
+</div>

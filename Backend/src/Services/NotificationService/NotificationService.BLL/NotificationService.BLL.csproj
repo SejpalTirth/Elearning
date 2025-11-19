@@ -26,4 +26,8 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\NotificationService.DAL\NotificationService.DAL.csproj" />
+  </ItemGroup>
+
 </Project>

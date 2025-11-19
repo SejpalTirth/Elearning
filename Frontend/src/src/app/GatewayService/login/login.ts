@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { CommonModule } from '@angular/common'; // Required for *ngIf
+import { CommonModule } from '@angular/common'; // ✅ Required for *ngIf
 
 @Component({
   selector: 'app-login',

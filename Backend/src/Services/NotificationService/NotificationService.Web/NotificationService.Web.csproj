@@ -22,8 +22,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
     <Folder Include="Validaors\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NotificationService.BLL\NotificationService.BLL.csproj" />
+    <ProjectReference Include="..\NotificationService.DAL\NotificationService.DAL.csproj" />
   </ItemGroup>
 
 </Project>
