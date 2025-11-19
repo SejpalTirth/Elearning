@@ -24,4 +24,9 @@
     <Folder Include="Validators\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\GatewayService.BLL\GatewayService.BLL.csproj" />
+    <ProjectReference Include="..\GatewayService.DAL\GatewayService.DAL.csproj" />
+  </ItemGroup>
+
 </Project>
