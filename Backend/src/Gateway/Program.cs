@@ -1,3 +1,5 @@
+using System;
+using System.Net.Http;
 using GatewayService.BLL.Interface;
 using GatewayService.DAL.Data;
 using GatewayService.DAL.Repo;
@@ -14,6 +16,15 @@ var config = builder.Configuration;
 services.AddDbContext<GatewayServiceContext>(opt =>
     opt.UseSqlServer(config.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// Named HttpClient for Progress Service
+builder.Services.AddHttpClient("ProgressService", client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7175");
+});
 services.AddScoped<IUserRepository, UserRepository>();
 services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 services.AddScoped<IAuthService, AuthService>();
@@ -45,6 +56,7 @@ services.AddAuthentication(options =>
         ValidateLifetime = true
     };
 
+if (app.Environment.IsDevelopment())
     // Added for debuggability
     options.Events = new JwtBearerEvents
     {
@@ -63,6 +75,9 @@ services.AddAuthentication(options =>
     options.CallbackPath = "/signin-google";
     options.SaveTokens = true;
 
+app.UseHttpsRedirection();
+app.UseAuthorization();
+app.MapControllers();
     options.Scope.Add("email");
     options.Scope.Add("profile");
 
