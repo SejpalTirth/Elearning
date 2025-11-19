@@ -1,15 +1,34 @@
+using AssessmentService.DAL;
+using AssessmentService.DAL.Repo;
+using AssessmentService.BLL.Interfaces;
+using AssessmentService.BLL.Services;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
+// Add services to the container
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Get connection string
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+// Register DbContext
+builder.Services.AddDbContext<AssessmentDbContext>(options =>
+    options.UseSqlServer(connectionString));
+
+// Register Repositories (DAL)
+builder.Services.AddScoped<IQuizRepository, QuizRepository>();
+builder.Services.AddScoped<ISubmissionRepository, SubmissionRepository>();
+builder.Services.AddScoped<IQuestionRepository, QuestionRepository>();
+
+// Register BLL Services
+builder.Services.AddScoped<IAssessmentService, AssessmentServiceImpl>();
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configure HTTP pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
