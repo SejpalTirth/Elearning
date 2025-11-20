@@ -15,7 +15,7 @@ export class CompleteProfileComponent implements OnInit {
 
   userId: string | null = null;
   name: string = "";
-  roleId: number = 3; // Default: Student
+  roleId: number = 3;
   loading = false;
 
   constructor(

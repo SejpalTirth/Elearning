@@ -39,7 +39,7 @@ export class AuthCallback implements OnInit {
 
       setTimeout(() => {
         this.router.navigate(['/home']);
-      }, 300);
+      }, 600);
       
       return;
     }
