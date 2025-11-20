@@ -9,5 +9,7 @@ namespace UserService.BLL.Interface
         Task<bool> AssignPermissionAsync(AssignPermissionRequest request);
         Task<List<string>> GetRolesAsync(Guid userId);
         Task<List<string>> GetPermissionsAsync(Guid userId);
+        Task<CompleteProfileResultDto> CompleteUserProfileAsync(CompleteProfileDto dto);
+
     }
 }

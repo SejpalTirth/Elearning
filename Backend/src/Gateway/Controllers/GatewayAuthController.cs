@@ -33,31 +33,61 @@ public class GatewayAuthController : ControllerBase
 
     // GOOGLE LOGIN
     [HttpGet("google-login")]
-    public IActionResult GoogleLogin()
+    public IActionResult GoogleLogin([FromQuery] string? returnUrl = "/")
     {
-        var returnUrl = "http://localhost:4200/gateway/auth/callback";
+        returnUrl = SanitizeReturnUrl(returnUrl);
 
         var properties = new AuthenticationProperties
         {
-            RedirectUri = Url.Action("ExternalResponse", new { returnUrl })
+            RedirectUri = Url.Action("ExternalResponse", new { returnUrl = "http://localhost:4200/gateway/auth/callback" })
         };
+
+        // IMPORTANT FIX
+        properties.Items["prompt"] = "select_account";
 
         return Challenge(properties, GoogleDefaults.AuthenticationScheme);
     }
 
 
+
     // MICROSOFT LOGIN
     [HttpGet("microsoft-login")]
-    public IActionResult MicrosoftLogin()
+    public IActionResult MicrosoftLogin([FromQuery] string? returnUrl = "/")
     {
-        var returnUrl = "http://localhost:4200/gateway/auth/callback";
+        returnUrl = SanitizeReturnUrl(returnUrl);
 
         var properties = new AuthenticationProperties
         {
-            RedirectUri = Url.Action("ExternalResponse", new { returnUrl })
+            RedirectUri = Url.Action("ExternalResponse", new { returnUrl = "http://localhost:4200/gateway/auth/callback" })
+
         };
 
+        // IMPORTANT FIX
+        properties.Items["prompt"] = "select_account";
+
         return Challenge(properties, "Microsoft");
+    }
+
+
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout([FromBody] string refreshToken)
+    {
+        try
+        {
+            // 1. Revoke refresh token in DB
+            await _authService.RevokeRefreshTokenAsync(refreshToken);
+
+            // 2. Clear external auth cookies
+            await HttpContext.SignOutAsync("External");
+            await HttpContext.SignOutAsync();
+
+            return Ok(new { message = "Logged out successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Logout failed");
+            return StatusCode(500, "Logout failed");
+        }
     }
 
 
@@ -65,9 +95,8 @@ public class GatewayAuthController : ControllerBase
     [HttpGet("external-response")]
     public async Task<IActionResult> ExternalResponse([FromQuery] string? returnUrl = null)
     {
-        // Angular callback URL (DEFAULT)
+        // Always fallback to Angular callback page
         returnUrl ??= "http://localhost:4200/gateway/auth/callback";
-
 
         var result = await HttpContext.AuthenticateAsync("External");
 
@@ -77,29 +106,30 @@ public class GatewayAuthController : ControllerBase
             return BadRequest("External authentication error");
         }
 
-        // Extract external provider
         var provider = result.Properties?.Items?[".AuthScheme"] ?? "Unknown";
-
-        // Extract provider user ID
         var providerUserId = result.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        // Extract email and name
         var email = result.Principal.FindFirst(ClaimTypes.Email)?.Value;
-        var name = result.Principal.FindFirst(ClaimTypes.Name)?.Value;
+        var name = result.Principal.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown User";
 
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(providerUserId))
             return BadRequest("Missing required external login fields.");
 
-        // Generate tokens
-        var tokens = await _authService.SignInExternalAsync(
-            provider,
-            providerUserId,
-            email,
-            name ?? "Unknown User"
-        );
+        var signInResult = await _authService.SignInExternalAsync(provider, providerUserId, email, name);
 
-        // Redirect to Angular with tokens
-        return Redirect($"{returnUrl}?token={tokens.AccessToken}&refresh={tokens.RefreshToken}");
+        if (signInResult.IsNewUser && signInResult.UserId.HasValue)
+        {
+            return Redirect($"{returnUrl}?isNewUser=true&userId={signInResult.UserId}");
+        }
+
+        if (signInResult.Tokens is null)
+        {
+            _logger.LogError("Sign-in returned no tokens for existing user {Email}", email);
+            return StatusCode(500, "Sign-in error");
+        }
+
+        return Redirect($"{returnUrl}?token={signInResult.Tokens.AccessToken}&refresh={signInResult.Tokens.RefreshToken}");
     }
+
+
 
 }
