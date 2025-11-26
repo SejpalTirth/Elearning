@@ -4,6 +4,7 @@ namespace AssessmentService.DAL.Repo
 {
     public interface IQuestionRepository
     {
-        Task<Questions?> GetQuestionByIdAsync(int questionId);
+        Task AddAsync(Question question);
+        Task SaveChangesAsync();
     }
 }

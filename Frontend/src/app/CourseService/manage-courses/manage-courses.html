@@ -1,0 +1,21 @@
+<div class="container">
+  <h2>Manage Courses</h2>
+
+  <div *ngIf="loading">Loading courses...</div>
+
+  <div *ngIf="!loading && courses.length === 0">
+    <p>No courses available.</p>
+  </div>
+
+  <div *ngFor="let c of courses" class="course-card">
+    <div class="info">
+      <h3>{{ c.title }}</h3>
+      <p>{{ c.description }}</p>
+    </div>
+
+    <div class="actions">
+      <button (click)="editCourse(c.id)" class="edit-btn">Edit</button>
+      <button (click)="deleteCourse(c.id)" class="delete-btn">Delete</button>
+    </div>
+  </div>
+</div>

@@ -5,28 +5,51 @@ namespace AssessmentService.DAL.Repo
 {
     public class QuizRepository : IQuizRepository
     {
-        private readonly AssessmentDbContext _context;
+        private readonly AssessmentDbContext _db;
 
-        public QuizRepository(AssessmentDbContext context)
+        public QuizRepository(AssessmentDbContext db)
         {
-            _context = context;
+            _db = db;
         }
 
-        public async Task<IEnumerable<Quizzes>> GetAllQuizzesAsync()
+        public async Task<IEnumerable<Quiz>> GetAllAsync()
         {
-            return await _context.Quizzes
+            return await _db.Quizzes
                 .Include(q => q.Questions)
-                .ThenInclude(q => q.Answers)
+                .ThenInclude(a => a.Answers)
                 .ToListAsync();
         }
 
-        public async Task<Quizzes?> GetQuizByIdAsync(int quizId)
+        public async Task<Quiz?> GetByModuleIdAsync(int moduleId)
         {
-            return await _context.Quizzes
-                .Include(q => q.Questions)
-                .ThenInclude(q => q.Answers)
-                .FirstOrDefaultAsync(q => q.Id == quizId);
-
+            return await _db.Quizzes
+               .Include(q => q.Questions)
+               .ThenInclude(a => a.Answers)
+               .FirstOrDefaultAsync(q => q.ModuleId == moduleId);
         }
+
+        public async Task<Quiz?> GetByIdWithDetailsAsync(int quizId)
+        {
+            return await _db.Quizzes
+                .Include(q => q.Questions)
+                .ThenInclude(a => a.Answers)
+                .FirstOrDefaultAsync(q => q.Id == quizId);
+        }
+
+        public async Task AddAsync(Quiz quiz)
+        {
+            await _db.Quizzes.AddAsync(quiz);
+        }
+
+        public async Task SaveChangesAsync()
+        {
+            await _db.SaveChangesAsync();
+        }
+
+        public async Task<Quiz?> GetByIdAsync(int id)
+        {
+            return await _db.Quizzes.FirstOrDefaultAsync(q => q.Id == id);
+        }
+            
     }
 }

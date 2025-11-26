@@ -44,10 +44,12 @@ namespace UserService.BLL.Service
             {
                 Id = user.Id,
                 Email = user.Email,
-                IsActive = (bool)user.IsActive,
-                Roles = roles,
-                Permissions = permissions
+                Name = user.Name,
+                IsActive = user.IsActive ?? false,
+                Roles = user.Roles.Select(r => r.Name).ToList(),
+                Permissions = user.Permissions.Select(p => p.Name).ToList()
             };
+
         }
 
         public async Task<bool> AssignRoleAsync(AssignRoleRequest request)

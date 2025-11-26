@@ -1,0 +1,46 @@
+<div *ngIf="loading" class="loading">
+  Loading quiz...
+</div>
+
+<div *ngIf="!loading && quiz" class="quiz-container">
+
+  <h2>{{ quiz.title }}</h2>
+  <p><strong>Time Limit:</strong> {{ quiz.timeLimitMinutes }} min</p>
+
+  <div *ngFor="let q of quiz.questions; let i = index" class="question-card">
+
+    <h4>
+      {{ i + 1 }}. 
+      {{ q.questionText || q.text || q.title || 'Question text not available' }}
+    </h4>
+
+    <small>Marks: {{ q.marks }}</small>
+
+    <div class="option" *ngFor="let opt of (q.answers || q.options)">
+
+      <label>
+        <input 
+          type="radio"
+          name="question_{{ q.id || q.questionId }}"
+          [value]="opt.id || opt.answerId"
+          [(ngModel)]="answers[i].selectedAnswerId"
+        />
+
+        {{ opt.answerText || opt.text }}
+      </label>
+      
+    </div>
+
+  </div>
+
+  <button class="submit-btn"
+          (click)="submit()"
+          [disabled]="submitting">
+    {{ submitting ? "Submitting..." : "Submit Quiz" }}
+  </button>
+
+</div>
+
+<div *ngIf="!loading && !quiz" class="no-quiz">
+  No quiz available for this module.
+</div>

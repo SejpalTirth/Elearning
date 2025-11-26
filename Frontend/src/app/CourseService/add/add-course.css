@@ -1,0 +1,132 @@
+.form-container {
+  max-width: 800px;
+  margin: 50px auto;
+  padding: 40px;
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 30px;
+  font-size: 2rem;
+  font-weight: bold;
+  color: #1E57F1;
+}
+
+label {
+  font-weight: 600;
+  margin-top: 20px;
+  display: block;
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #c7d2fe;
+  background: #f8fafc;
+}
+
+textarea {
+  min-height: 130px;
+}
+
+/* Drag Module Layout */
+.module-wrapper {
+  position: relative;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 15px;
+  padding: 20px;
+  background: #f1f5ff;
+  border-radius: 12px;
+  border: 1px solid #cdd6f6;
+}
+
+
+
+.drag-handle {
+  cursor: grab;
+  font-size: 22px;
+  padding: 5px;
+  color: #475569;
+}
+
+/* Floating Add Button */
+.add-module-btn {
+  width: 100%;
+  margin-top: 18px;
+  background: #1E57F1;
+  border: none;
+  color: white;
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 1rem;
+}
+
+/* Remove button */
+/* Remove button (moved to top-right corner cleanly) */
+.remove-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: #dc2626;
+  color: white;
+  padding: 10px 14px;
+  font-size: 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: none;
+  transition: 0.2s ease;
+}
+
+.remove-btn:hover {
+  background: #b91c1c;
+  transform: scale(1.08);
+}
+
+
+/* Drag ghost styling */
+.cdk-drag-preview {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  padding: 15px;
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.2;
+}
+
+.actions {
+  margin-top: 30px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.cancel-btn {
+  background: #e11d48;
+  color: white;
+  padding: 14px 20px;
+  border-radius: 10px;
+}
+
+.submit-btn {
+  background: #1E57F1;
+  color: white;
+  padding: 14px 20px;
+  border-radius: 10px;
+}
+
+.quiz-btn {
+  background: #d4d4d8;
+  color: #6b7280;
+  padding: 14px 20px;
+  border-radius: 10px;
+}

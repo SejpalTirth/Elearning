@@ -1,0 +1,25 @@
+<div class="modules-container">
+
+  <h2>Modules</h2>
+
+  <div *ngIf="loading" class="loading">Loading modules...</div>
+
+  <div *ngIf="!loading && modules.length === 0" class="empty">
+    No modules found for this course.
+  </div>
+
+  <div class="module-card"
+       *ngFor="let m of modules"
+       (click)="openModule(m.id)"
+       [class.completed]="m.isCompleted">
+
+    <div class="module-header">
+      <h3>{{ m.title }}</h3>
+
+      <span *ngIf="m.isCompleted" class="status completed-status">✔ Completed</span>
+      <span *ngIf="!m.isCompleted" class="status pending-status">Pending</span>
+    </div>
+
+  </div>
+
+</div>

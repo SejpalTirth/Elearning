@@ -1,0 +1,41 @@
+<div class="form-container" [formGroup]="form">
+
+  <h2>Edit Course</h2>
+
+  <label>Course Title</label>
+  <input formControlName="title" />
+
+  <label>Description</label>
+  <textarea formControlName="description"></textarea>
+
+  <label>Category</label>
+  <select formControlName="categoryId">
+    <option value="">Select</option>
+    <option *ngFor="let c of categories" [value]="c.id">{{ c.name }}</option>
+  </select>
+
+  <label style="margin-top:20px;">Modules</label>
+
+  <div formArrayName="modules" cdkDropList (cdkDropListDropped)="drop($event)">
+
+    <div class="module-wrapper" *ngFor="let m of modules.controls; let i = index" [formGroupName]="i" cdkDrag>
+      <div class="drag-handle" cdkDragHandle>☰</div>
+
+      <div class="module-fields">
+        <input formControlName="title" placeholder="Module title" />
+        <textarea formControlName="content"></textarea>
+      </div>
+
+      <button type="button" class="remove-btn" (click)="removeModule(i)" *ngIf="i > 0">✕</button>
+    </div>
+
+  </div>
+
+  <button class="add-module-btn" type="button" (click)="addModule()">+ Add Module</button>
+
+  <div class="actions">
+    <button class="cancel-btn" type="button" (click)="cancel()">Cancel</button>
+    <button class="submit-btn" type="button" (click)="save()">Save Changes</button>
+  </div>
+
+</div>

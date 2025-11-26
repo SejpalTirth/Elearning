@@ -1,0 +1,37 @@
+<div class="module-container" *ngIf="module">
+
+  <h1>{{ module.title }}</h1>
+
+  <div class="content-box">
+    <p>{{ module.content }}</p>
+  </div>
+
+  <div class="quiz-area" *ngIf="quizStatus">
+
+  <button 
+    *ngIf="!quizStatus.alreadyPassed && !quizStatus.attempted"
+    class="quiz-btn primary"
+    (click)="takeQuiz()">
+    Take Quiz
+  </button>
+
+  <button 
+    *ngIf="quizStatus.attempted && !quizStatus.alreadyPassed"
+    class="quiz-btn warning"
+    (click)="takeQuiz()">
+    Retake Quiz
+  </button>
+
+  <button 
+    *ngIf="quizStatus.alreadyPassed"
+    class="quiz-btn disabled"
+    disabled>
+    ✔ Completed
+  </button>
+
+</div>
+</div>
+
+<div *ngIf="!module" class="loading">
+  Loading module...
+</div>

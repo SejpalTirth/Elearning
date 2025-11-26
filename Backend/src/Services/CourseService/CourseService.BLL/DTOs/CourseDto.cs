@@ -1,15 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace CourseService.BLL.DTOs
+﻿namespace CourseService.BLL.DTOs
 {
+    public class ModuleDto
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Content { get; set; } = string.Empty;
+    }
+
     public class CourseDto
     {
-        public string Title { get; set; }
-        public string Description { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
         public int CategoryId { get; set; }
+        public string InstructorUserId { get; set; } = string.Empty;
+        public List<ModuleDto> Modules { get; set; } = new();
     }
 }

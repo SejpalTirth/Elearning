@@ -4,7 +4,12 @@ namespace AssessmentService.DAL.Repo
 {
     public interface IQuizRepository
     {
-        Task<IEnumerable<Quizzes>> GetAllQuizzesAsync();
-        Task<Quizzes?> GetQuizByIdAsync(int quizId);
+        Task<Quiz?> GetByModuleIdAsync(int moduleId);
+        Task AddAsync(Quiz quiz);
+        Task SaveChangesAsync();
+        Task<Quiz?> GetByIdWithDetailsAsync(int id);
+        Task<IEnumerable<Quiz>> GetAllAsync();
+        Task<Quiz?> GetByIdAsync(int id);
     }
+
 }

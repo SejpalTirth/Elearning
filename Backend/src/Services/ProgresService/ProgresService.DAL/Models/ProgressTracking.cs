@@ -16,4 +16,6 @@ public partial class ProgressTracking
     public decimal ProgressPercent { get; set; }
 
     public DateTime? LastUpdated { get; set; }
+    public bool IsCompleted { get; set; }
+
 }

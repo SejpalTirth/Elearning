@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using NotificationService.BLL.DTOs;
 using NotificationService.BLL.Interface;
 
 namespace NotificationService.Web.Controllers
@@ -45,6 +46,15 @@ namespace NotificationService.Web.Controllers
 
             return Ok("Test email sent!");
         }
+
+        [HttpPost("trigger")]
+        [Consumes("application/json")]
+        public async Task<IActionResult> TriggerNotification([FromBody] TriggerNotificationDto request)
+        {
+            await _service.HandleTriggeredNotificationAsync(request);
+            return Ok("Notification processed");
+        }
+
 
 
     }

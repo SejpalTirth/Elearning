@@ -1,0 +1,7 @@
+<!-- Show Login Header ONLY on login page -->
+<app-header *ngIf="isLoginPage()"></app-header>
+
+<!-- Show Shared Header for all logged-in pages -->
+<shared-header *ngIf="!isLoginPage()"></shared-header>
+
+<router-outlet></router-outlet>

@@ -1,0 +1,21 @@
+<div class="details-container" *ngIf="course">
+  
+  <div class="course-header">
+    <h1>{{ course.title }}</h1>
+    <p class="instructor">Instructor: {{ course.instructorName }}</p>
+  </div>
+
+  <div class="course-card">
+    <h3>Description</h3>
+    <p>{{ course.description }}</p>
+
+    <button class="enroll-btn" (click)="enrollOrContinue()">
+      {{ isEnrolled ? 'Continue Learning' : 'Enroll Now' }}
+    </button>
+  </div>
+
+</div>
+
+<div *ngIf="!course" class="loading">
+  Loading course details...
+</div>

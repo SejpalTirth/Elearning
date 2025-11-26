@@ -1,135 +1,125 @@
 using GatewayService.BLL.Interface;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 
 [ApiController]
 [Route("api/[controller]")]
 public class GatewayAuthController : ControllerBase
 {
-    private readonly IAuthService _authService;
-    private readonly ILogger<GatewayAuthController> _logger;
+    private readonly IAuthService _auth;
+    private readonly ILogger<GatewayAuthController> _log;
 
-    public GatewayAuthController(IAuthService authService, ILogger<GatewayAuthController> logger)
+    public GatewayAuthController(IAuthService auth, ILogger<GatewayAuthController> log)
     {
-        _authService = authService;
-        _logger = logger;
+        _auth = auth;
+        _log = log;
     }
 
-    // Helper to validate returnUrl and prevent open redirect attacks
-    private string SanitizeReturnUrl(string? returnUrl)
+    private string SafeReturn(string? url)
     {
-        if (string.IsNullOrWhiteSpace(returnUrl))
-            return "/";
-
-        if (Url.IsLocalUrl(returnUrl))
-            return returnUrl;
-
-        _logger.LogWarning("Blocked open redirect attempt to: {Url}", returnUrl);
-        return "/";
+        if (string.IsNullOrWhiteSpace(url)) return "/";
+        return Url.IsLocalUrl(url) ? url : "/";
     }
 
-    // GOOGLE LOGIN
+    // Google login
     [HttpGet("google-login")]
-    public IActionResult GoogleLogin([FromQuery] string? returnUrl = "/")
+    public IActionResult Google([FromQuery] string? returnUrl = "/")
     {
-        returnUrl = SanitizeReturnUrl(returnUrl);
+        returnUrl = SafeReturn(returnUrl);
 
-        var properties = new AuthenticationProperties
+        var redirectUri = Url.Action(nameof(ExternalResponse),
+                                     "GatewayAuth",
+                                     new { returnUrl },
+                                     Request.Scheme);
+
+        var props = new AuthenticationProperties
         {
-            RedirectUri = Url.Action("ExternalResponse", new { returnUrl = "http://localhost:4200/gateway/auth/callback" })
+            RedirectUri = redirectUri
         };
+        props.Items["prompt"] = "select_account";
 
-        // IMPORTANT FIX
-        properties.Items["prompt"] = "select_account";
-
-        return Challenge(properties, GoogleDefaults.AuthenticationScheme);
+        return Challenge(props, GoogleDefaults.AuthenticationScheme);
     }
 
-
-
-    // MICROSOFT LOGIN
+    // Microsoft login
     [HttpGet("microsoft-login")]
-    public IActionResult MicrosoftLogin([FromQuery] string? returnUrl = "/")
+    public IActionResult Microsoft([FromQuery] string? returnUrl = "/")
     {
-        returnUrl = SanitizeReturnUrl(returnUrl);
+        returnUrl = SafeReturn(returnUrl);
 
-        var properties = new AuthenticationProperties
+        var redirectUri = Url.Action(nameof(ExternalResponse),
+                                     "GatewayAuth",
+                                     new { returnUrl },
+                                     Request.Scheme);
+
+        var props = new AuthenticationProperties
         {
-            RedirectUri = Url.Action("ExternalResponse", new { returnUrl = "http://localhost:4200/gateway/auth/callback" })
-
+            RedirectUri = redirectUri
         };
+        props.Items["prompt"] = "select_account";
 
-        // IMPORTANT FIX
-        properties.Items["prompt"] = "select_account";
-
-        return Challenge(properties, "Microsoft");
+        return Challenge(props, "Microsoft");
     }
 
+    // Callback
+    [HttpGet("external-response")]
+    public async Task<IActionResult> ExternalResponse([FromQuery] string? returnUrl)
+    {
+        returnUrl = "http://localhost:4200/gateway/auth/callback";
+
+        var external = await HttpContext.AuthenticateAsync("External");
+
+        if (!external.Succeeded)
+            return BadRequest("External authentication failed");
+
+        var provider = external.Properties.Items[".AuthScheme"] ?? "External";
+        var sub = external.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var email = external.Principal.FindFirst(ClaimTypes.Email)?.Value;
+        var name = external.Principal.FindFirst(ClaimTypes.Name)?.Value;
+
+        if (sub == null || email == null)
+            return BadRequest("Invalid external data");
+
+        var result = await _auth.SignInExternalAsync(provider, sub, email, name);
+
+        if (result.IsNewUser && result.UserId.HasValue)
+        {
+            await HttpContext.SignOutAsync("External");
+            return Redirect($"{returnUrl}?isNewUser=true&userId={result.UserId}");
+        }
+
+        // Create cookie
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, result.UserId?.ToString() ?? sub),
+            new Claim(ClaimTypes.Name, name ?? ""),
+            new Claim(ClaimTypes.Email, email ?? "")
+        };
+
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
+        await HttpContext.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            new ClaimsPrincipal(identity),
+            new AuthenticationProperties { IsPersistent = true });
+
+        await HttpContext.SignOutAsync("External");
+
+        if (result.Tokens != null)
+            return Redirect($"{returnUrl}?token={result.Tokens.AccessToken}&refresh={result.Tokens.RefreshToken}");
+
+        return Redirect(returnUrl);
+    }
 
     [HttpPost("logout")]
-    public async Task<IActionResult> Logout([FromBody] string refreshToken)
+    public async Task<IActionResult> Logout([FromBody] string refresh)
     {
-        try
-        {
-            // 1. Revoke refresh token in DB
-            await _authService.RevokeRefreshTokenAsync(refreshToken);
-
-            // 2. Clear external auth cookies
-            await HttpContext.SignOutAsync("External");
-            await HttpContext.SignOutAsync();
-
-            return Ok(new { message = "Logged out successfully" });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Logout failed");
-            return StatusCode(500, "Logout failed");
-        }
+        await _auth.RevokeRefreshTokenAsync(refresh);
+        await HttpContext.SignOutAsync();
+        await HttpContext.SignOutAsync("External");
+        return Ok(new { message = "Logged out" });
     }
-
-
-    // CALLBACK FROM GOOGLE/MICROSOFT
-    [HttpGet("external-response")]
-    public async Task<IActionResult> ExternalResponse([FromQuery] string? returnUrl = null)
-    {
-        // Always fallback to Angular callback page
-        returnUrl ??= "http://localhost:4200/gateway/auth/callback";
-
-        var result = await HttpContext.AuthenticateAsync("External");
-
-        if (!result.Succeeded)
-        {
-            _logger.LogError("External authentication failed. Details: {Error}", result.Failure?.Message);
-            return BadRequest("External authentication error");
-        }
-
-        var provider = result.Properties?.Items?[".AuthScheme"] ?? "Unknown";
-        var providerUserId = result.Principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        var email = result.Principal.FindFirst(ClaimTypes.Email)?.Value;
-        var name = result.Principal.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown User";
-
-        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(providerUserId))
-            return BadRequest("Missing required external login fields.");
-
-        var signInResult = await _authService.SignInExternalAsync(provider, providerUserId, email, name);
-
-        if (signInResult.IsNewUser && signInResult.UserId.HasValue)
-        {
-            return Redirect($"{returnUrl}?isNewUser=true&userId={signInResult.UserId}");
-        }
-
-        if (signInResult.Tokens is null)
-        {
-            _logger.LogError("Sign-in returned no tokens for existing user {Email}", email);
-            return StatusCode(500, "Sign-in error");
-        }
-
-        return Redirect($"{returnUrl}?token={signInResult.Tokens.AccessToken}&refresh={signInResult.Tokens.RefreshToken}");
-    }
-
-
-
 }

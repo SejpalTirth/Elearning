@@ -7,34 +7,48 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// Read connection string
-var connectionString = builder.Configuration.GetConnectionString("DefaultString");
-
-// Register DbContext
-builder.Services.AddDbContext<CourseContext>(options =>
-    options.UseSqlServer(connectionString));
-
-// Register repositories
-builder.Services.AddScoped<ICourseRepository, CourseRepository>();
-builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
-
-// Register services
-builder.Services.AddScoped<ICourseService, Courseservice>();
-
+// Add services
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
 });
 
+// Swagger
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// Connection string
+var connectionString = builder.Configuration.GetConnectionString("DefaultString");
+
+// DbContext
+builder.Services.AddDbContext<CourseContext>(options =>
+    options.UseSqlServer(connectionString));
+
+builder.Services.AddScoped<ICourseRepository, CourseRepository>();
+builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
+builder.Services.AddScoped<IModuleRepository, ModuleRepository>();
+builder.Services.AddScoped<ICourseService, Courseservice>();
+builder.Services.AddScoped<IModuleService, ModuleService>();
+
+// HttpClient Registrations
+builder.Services.AddHttpClient("UserService", client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7130");
+});
+
+builder.Services.AddHttpClient("AssessmentService", client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7108");
+});
+builder.Services.AddHttpClient("ProgressService", client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7175");
+});
+
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Middleware
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -42,9 +56,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();

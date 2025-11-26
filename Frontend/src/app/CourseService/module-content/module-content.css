@@ -1,0 +1,24 @@
+.quiz-btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: none;
+  font-size: 16px;
+  margin-top: 20px;
+}
+
+.quiz-btn.primary {
+  background: #2962ff;
+  color: white;
+}
+
+.quiz-btn.warning {
+  background: orange;
+  color: white;
+}
+
+.quiz-btn.disabled {
+  background: grey;
+  color: #eee;
+  cursor: not-allowed;
+}

@@ -4,7 +4,12 @@ namespace AssessmentService.DAL.Repo
 {
     public interface ISubmissionRepository
     {
-        Task<QuizSubmissions> AddSubmissionAsync(QuizSubmissions submission);
+        Task AddAsync(QuizSubmission submission);
         Task SaveChangesAsync();
+        Task<QuizSubmission?> GetBestSubmissionAsync(int quizId, Guid userId);
+
+        // NEW
+        Task<QuizSubmission?> GetByIdAsync(Guid id);
     }
+
 }

@@ -1,10 +1,5 @@
 ﻿using CourseService.DAL.Models;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CourseService.DAL.Repo
 {
@@ -63,5 +58,12 @@ namespace CourseService.DAL.Repo
         {
             return await _context.SaveChangesAsync() > 0;
         }
+
+        public async Task<bool> IsUserEnrolledAsync(string userId, int courseId)
+        {
+            return await _context.Enrollments
+                .AnyAsync(e => e.UserId == userId && e.CourseId == courseId);
+        }
+
     }
 }

@@ -1,0 +1,15 @@
+<div class="course-container">
+
+  <h2 class="title">Available Courses</h2>
+
+  <div *ngIf="loading" class="loading">Loading courses...</div>
+
+  <div class="grid" *ngIf="!loading">
+    <div class="course-card" *ngFor="let c of courses" (click)="openCourse(c.id)">
+      <h3>{{ c.title }}</h3>
+      <p>{{ c.description }}</p>
+      <span class="instructor">{{ c.instructor?.name }}</span>
+    </div>
+  </div>
+
+</div>

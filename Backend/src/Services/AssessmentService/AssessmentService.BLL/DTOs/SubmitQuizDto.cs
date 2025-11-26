@@ -2,8 +2,8 @@
 {
     public class SubmitQuizDto
     {
-        public int QuizId { get; set; }
         public Guid UserId { get; set; }
+        public int QuizId { get; set; }
         public List<SubmitAnswerDto> Answers { get; set; } = new();
     }
 

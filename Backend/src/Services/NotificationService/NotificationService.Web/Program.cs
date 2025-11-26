@@ -3,11 +3,18 @@ using NotificationService.DAL.Data;
 using NotificationService.DAL.Repo;
 using NotificationService.BLL.Interface;
 using NotificationService.BLL.Service;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Allow enums to be passed as strings ("Enrollment")
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
