@@ -19,6 +19,20 @@ builder.Services.AddDbContext<ProgressDbContext>(options =>
 // Register Repository + Service
 builder.Services.AddScoped<IProgressRepository, ProgressRepository>();
 builder.Services.AddScoped<IProgressService, ProgressServiceImpl>();
+builder.Services.AddHttpClient("UserService", c =>
+{
+    c.BaseAddress = new Uri("https://localhost:7130/");
+});
+
+builder.Services.AddHttpClient("NotificationService", c =>
+{
+    c.BaseAddress = new Uri("https://localhost:7245/");
+});
+builder.Services.AddHttpClient("CourseService", c =>
+{
+    c.BaseAddress = new Uri("https://localhost:7190/");
+});
+
 
 var app = builder.Build();
 

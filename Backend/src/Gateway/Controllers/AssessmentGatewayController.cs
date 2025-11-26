@@ -1,5 +1,6 @@
 ﻿using Gateway.DTOs;
 using Microsoft.AspNetCore.Mvc;
+using System.Net.Http;
 using System.Net.Http.Json;
 
 namespace Gateway.Controllers
@@ -9,52 +10,77 @@ namespace Gateway.Controllers
     public class AssessmentGatewayController : ControllerBase
     {
         private readonly IHttpClientFactory _httpClientFactory;
+        private const string BaseUrl = "api/assessment";
 
         public AssessmentGatewayController(IHttpClientFactory httpClientFactory)
         {
             _httpClientFactory = httpClientFactory;
         }
 
-        [HttpGet("quizzes")]
-        public async Task<IActionResult> GetAllQuizzes()
+        private void ForwardAuth(HttpRequestMessage request)
+        {
+            if (Request.Headers.TryGetValue("Authorization", out var auth))
+            {
+                request.Headers.TryAddWithoutValidation("Authorization", auth.ToString());
+            }
+        }
+
+        private async Task<IActionResult> Forward(HttpRequestMessage request)
+        {
+            var client = _httpClientFactory.CreateClient("AssessmentService");
+            ForwardAuth(request);
+
+            var response = await client.SendAsync(request);
+            var content = await response.Content.ReadAsStringAsync();
+
+            if (!content.StartsWith("{") && !content.StartsWith("["))
+                return StatusCode((int)response.StatusCode, new { message = content });
+
+            return Content(content, "application/json");
+        }
+
+        // ========================
+        // GET: Quiz for module
+        // ========================
+        [HttpGet("quiz/module/{moduleId:int}")]
+        public async Task<IActionResult> GetQuizForModule(int moduleId)
         {
             var client = _httpClientFactory.CreateClient("AssessmentService");
 
-            var response = await client.GetAsync("api/assessment");
+            if (!Request.Headers.TryGetValue("Authorization", out var token))
+                return Unauthorized("Missing access token.");
+
+            client.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer",
+                token.ToString().Replace("Bearer ", ""));
+
+            var response = await client.GetAsync($"api/assessment/module/{moduleId}");
+            var raw = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
-                return StatusCode((int)response.StatusCode, await response.Content.ReadAsStringAsync());
+                return StatusCode((int)response.StatusCode, raw);
 
-            var quizzes = await response.Content.ReadFromJsonAsync<List<QuizDto>>();
-            return Ok(quizzes);
+            return Content(raw, "application/json");
         }
 
-        [HttpGet("quizzes/{id}")]
-        public async Task<IActionResult> GetQuizById(int id)
-        {
-            var client = _httpClientFactory.CreateClient("AssessmentService");
-
-            var response = await client.GetAsync($"api/assessment/{id}");
-
-            if (!response.IsSuccessStatusCode)
-                return StatusCode((int)response.StatusCode, await response.Content.ReadAsStringAsync());
-
-            var quiz = await response.Content.ReadFromJsonAsync<QuizDto>();
-            return Ok(quiz);
-        }
-
+        // Submit Quiz
         [HttpPost("submit")]
-        public async Task<IActionResult> SubmitQuiz([FromBody] SubmitQuizDto dto)
+        public Task<IActionResult> SubmitQuiz([FromBody] object dto) =>
+            Forward(new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl}/submit")
+            {
+                Content = JsonContent.Create(dto)
+            });
+
+        // Get result
+        [HttpGet("result/{submissionId:guid}")]
+        public async Task<IActionResult> GetSubmissionResult(Guid submissionId)
         {
             var client = _httpClientFactory.CreateClient("AssessmentService");
 
-            var response = await client.PostAsJsonAsync("api/assessment/submit", dto);
+            var response = await client.GetAsync($"api/assessment/result/{submissionId}");
+            var result = await response.Content.ReadAsStringAsync();
 
-            if (!response.IsSuccessStatusCode)
-                return StatusCode((int)response.StatusCode, await response.Content.ReadAsStringAsync());
-
-            var result = await response.Content.ReadFromJsonAsync<SubmissionResultDto>();
-            return Ok(result);
+            return Content(result, "application/json");
         }
     }
 }

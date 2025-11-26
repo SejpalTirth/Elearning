@@ -1,7 +1,8 @@
-﻿using NotificationService.BLL.Interface;
+﻿using NotificationService.BLL.DTOs;
+using NotificationService.BLL.Interface;
 using NotificationService.BLL.Models;
-using NotificationService.DAL.Repo;
 using NotificationService.DAL.Models;
+using NotificationService.DAL.Repo;
 
 namespace NotificationService.BLL.Service
 {
@@ -35,10 +36,13 @@ namespace NotificationService.BLL.Service
             var template = await _repo.GetTemplateByNameAsync(templateName);
             if (template == null) throw new Exception("Template not found");
 
+            // Apply model replacements to both subject AND body
+            var subject = EmailTemplateRenderer.Render(template.Subject, model);
             var body = EmailTemplateRenderer.Render(template.BodyTemplate, model);
 
-            await SendEmailAsync(userId, template.Subject, body);
+            await SendEmailAsync(userId, subject, body);
         }
+
 
         public async Task<List<NotificationDto>> GetUserNotificationsAsync(Guid userId)
         {
@@ -66,5 +70,33 @@ namespace NotificationService.BLL.Service
             });
         }
 
+        public async Task HandleTriggeredNotificationAsync(TriggerNotificationDto dto)
+        {
+            string templateName = dto.Type switch
+            {
+                NotificationType.Enrollment => "EnrollmentEmail",
+                NotificationType.ModuleCompleted => "ModuleCompletedEmail",
+                NotificationType.CourseCompleted => "CourseCompletedEmail",
+                _ => throw new Exception("Unknown notification type")
+            };
+
+            var template = await _repo.GetTemplateByNameAsync(templateName);
+            if (template == null) throw new Exception($"Template '{templateName}' not found.");
+
+            // Apply replacement to BOTH subject and body
+            string subject = EmailTemplateRenderer.Render(template.Subject, dto.Data);
+            string body = EmailTemplateRenderer.Render(template.BodyTemplate, dto.Data);
+
+            await _email.SendAsync(dto.Email, subject, body);
+
+            await _repo.SaveNotificationAsync(new Notification
+            {
+                UserId = dto.UserId,
+                Title = subject,
+                Body = body,
+                IsRead = false,
+                SentAt = DateTime.UtcNow
+            });
+        }
     }
 }

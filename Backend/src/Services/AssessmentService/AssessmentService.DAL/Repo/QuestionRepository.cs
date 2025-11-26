@@ -1,22 +1,24 @@
 ﻿using AssessmentService.DAL.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace AssessmentService.DAL.Repo
 {
     public class QuestionRepository : IQuestionRepository
     {
-        private readonly AssessmentDbContext _context;
+        private readonly AssessmentDbContext _db;
 
-        public QuestionRepository(AssessmentDbContext context)
+        public QuestionRepository(AssessmentDbContext db)
         {
-            _context = context;
+            _db = db;
         }
 
-        public async Task<Questions?> GetQuestionByIdAsync(int questionId)
+        public async Task AddAsync(Question question)
         {
-            return await _context.Questions
-                .Include(q => q.Answers)
-                .FirstOrDefaultAsync(q => q.Id == questionId);
+            await _db.Questions.AddAsync(question);
+        }
+
+        public async Task SaveChangesAsync()
+        {
+            await _db.SaveChangesAsync();
         }
     }
 }

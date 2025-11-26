@@ -1,0 +1,69 @@
+.container {
+  width: 80%;
+  margin: 50px auto;
+  text-align: center;
+}
+
+h2 {
+  font-size: 26px;
+  color: #1E57F1;
+  margin-bottom: 25px;
+}
+
+.loading, .empty {
+  font-size: 18px;
+  color: #6b7280;
+  margin-top: 30px;
+}
+
+.course-card {
+  background: #f5f7ff;
+  border: 1px solid #cdd6f6;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 18px;
+  text-align: left;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: bold;
+  color: #1E57F1;
+}
+
+.meta {
+  margin: 8px 0;
+  color: #555;
+}
+
+.actions {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
+}
+
+.view-btn, .edit-btn {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.view-btn {
+  background: #10b981;
+  color: white;
+}
+
+.edit-btn {
+  background: #1E57F1;
+  color: white;
+}
+
+.view-btn:hover {
+  background: #0a9167;
+}
+
+.edit-btn:hover {
+  background: #1645c7;
+}

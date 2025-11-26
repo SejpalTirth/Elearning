@@ -1,9 +1,4 @@
 ﻿using CourseService.DAL.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CourseService.DAL.Repo
 {
@@ -16,5 +11,7 @@ namespace CourseService.DAL.Repo
         Task AddAsync(Enrollment enrollment);
         Task RemoveAsync(int id);
         Task<bool> SaveChangesAsync();
+        Task<bool> IsUserEnrolledAsync(string userId, int courseId);
+
     }
 }

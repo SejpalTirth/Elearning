@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 
 namespace Gateway.Controllers
 {
@@ -41,7 +40,16 @@ namespace Gateway.Controllers
             return Content(content, "application/json");
         }
 
-        // Get user notifications
+        // Trigger Notification (Enrollment, Module Done, Course Done)
+        [HttpPost("trigger")]
+        public async Task<IActionResult> Trigger([FromBody] object request)
+        {
+            var response = await _client.PostAsJsonAsync("/api/notification/trigger", request);
+            var content = await response.Content.ReadAsStringAsync();
+            return Content(content, "application/json");
+        }
+
+        // Get User Notifications
         [HttpGet("{userId}")]
         public async Task<IActionResult> GetUserNotifications(Guid userId)
         {

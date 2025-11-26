@@ -1,0 +1,30 @@
+<nav class="navbar">
+
+  <div class="logo">
+    <a routerLink="/">E-Learning</a>
+  </div>
+
+  <div class="menu" *ngIf="loggedIn">
+
+    <a routerLink="/home">Home</a>
+    <a routerLink="/courses">Courses</a>
+    <a routerLink="/courses/my-learning">My Learning</a>
+
+    <a *ngIf="role === 'Instructor'" routerLink="/courses/add/new">Add Course</a>
+    <a *ngIf="role === 'Instructor'" routerLink="/courses/manage">Edit Course</a>
+
+    <a *ngIf="role === 'Admin'" routerLink="/courses/manage-courses">Manage Courses</a>
+    <a *ngIf="role === 'Admin'" routerLink="/manage-users">Manage Users</a>
+
+
+    <div class="user-box" (click)="toggleDropdown()">
+      <span class="user-name">{{ userName }}</span>
+
+      <div class="dropdown" *ngIf="dropdownOpen">
+        <button (click)="logout()">Logout</button>
+      </div>
+    </div>
+
+  </div>
+
+</nav>

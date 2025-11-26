@@ -1,0 +1,180 @@
+/* === MAIN FORM CONTAINER === */
+.form-container {
+  max-width: 820px;
+  margin: 50px auto;
+  padding: 45px;
+  background: #ffffff;
+  border-radius: 18px;
+  border: 1px solid #d8e3ff;
+  box-shadow: 0px 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* === TITLE === */
+h2 {
+  text-align: center;
+  font-size: 2.2rem;
+  margin-bottom: 25px;
+  font-weight: 700;
+  color: #1E57F1;
+}
+
+/* === LABELS === */
+label {
+  display: block;
+  font-weight: 600;
+  margin-top: 20px;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+/* === INPUT + TEXTAREA + SELECT === */
+input,
+textarea,
+select {
+  width: 100%;
+  padding: 14px;
+  font-size: 1rem;
+  border-radius: 12px;
+  border: 1px solid #cdd6f6;
+  background: #f8faff;
+  transition: 0.25s ease;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: #1E57F1;
+  background: #fff;
+  box-shadow: 0px 0px 0px 3px rgba(30, 87, 241, 0.18);
+  outline: none;
+}
+
+textarea {
+  min-height: 150px;
+  resize: vertical;
+}
+
+/* === MODULE SECTION === */
+.module-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 14px;
+  background: #f3f6ff;
+  border: 1px solid #cdd6f6;
+  transition: 0.2s;
+}
+
+.module-wrapper:hover {
+  border-color: #1E57F1;
+  background: #eef3ff;
+}
+
+/* === DRAG HANDLE === */
+.drag-handle {
+  font-size: 22px;
+  cursor: grab;
+  padding: 6px;
+  color: #475569;
+  user-select: none;
+}
+
+/* === MODULE INPUTS === */
+.module-fields {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* === REMOVE MODULE BUTTON === */
+.remove-btn {
+  background: #e11d48;
+  color: #fff;
+  border: none;
+  padding: 10px 14px;
+  font-size: 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.remove-btn:hover {
+  background: #be123c;
+  transform: scale(1.05);
+}
+
+/* === ADD MODULE BUTTON === */
+.add-module-btn {
+  width: 100%;
+  margin-top: 20px;
+  background: #1E57F1;
+  color: #fff;
+  border: none;
+  padding: 14px;
+  font-size: 1.1rem;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.add-module-btn:hover {
+  background: #1646c7;
+  transform: scale(1.02);
+}
+
+/* === DRAG PREVIEW AND PLACEHOLDER === */
+.cdk-drag-preview {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 14px;
+  box-shadow: 0px 6px 25px rgba(0, 0, 0, 0.2);
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.2;
+}
+
+/* === ACTION BUTTONS === */
+.actions {
+  margin-top: 30px;
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.cancel-btn,
+.submit-btn {
+  flex: 1;
+  padding: 16px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: 0.25s;
+}
+
+/* Cancel Button */
+.cancel-btn {
+  background: #e11d48;
+  color: #fff;
+}
+
+.cancel-btn:hover {
+  background: #be123c;
+  transform: scale(1.02);
+}
+
+/* Save Button */
+.submit-btn {
+  background: #1E57F1;
+  color: #fff;
+}
+
+.submit-btn:hover {
+  background: #1646c7;
+  transform: scale(1.02);
+}

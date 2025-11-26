@@ -11,7 +11,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Get connection string
+// Get connection string from appsettings.json
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 // Register DbContext
@@ -20,8 +20,8 @@ builder.Services.AddDbContext<AssessmentDbContext>(options =>
 
 // Register Repositories (DAL)
 builder.Services.AddScoped<IQuizRepository, QuizRepository>();
-builder.Services.AddScoped<ISubmissionRepository, SubmissionRepository>();
 builder.Services.AddScoped<IQuestionRepository, QuestionRepository>();
+builder.Services.AddScoped<ISubmissionRepository, SubmissionRepository>();
 
 // Register BLL Services
 builder.Services.AddScoped<IAssessmentService, AssessmentServiceImpl>();

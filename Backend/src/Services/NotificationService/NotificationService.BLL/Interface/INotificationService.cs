@@ -1,4 +1,5 @@
-﻿using NotificationService.BLL.Models;
+﻿using NotificationService.BLL.DTOs;
+using NotificationService.BLL.Models;
 
 namespace NotificationService.BLL.Interface
 {
@@ -8,5 +9,6 @@ namespace NotificationService.BLL.Interface
         Task SendEmailByTemplateAsync(Guid userId, string templateName, object model);
         Task<List<NotificationDto>> GetUserNotificationsAsync(Guid userId);
         Task SendEmailDirectAsync(string email, string subject, string body);
+        Task HandleTriggeredNotificationAsync(TriggerNotificationDto dto);
     }
 }

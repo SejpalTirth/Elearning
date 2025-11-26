@@ -1,19 +1,17 @@
 ﻿using CourseService.BLL.DTOs;
 using CourseService.DAL.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CourseService.BLL.Interface
 {
     public interface ICourseService
     {
-        Task<IEnumerable<Course>> GetAllAsync();
-        Task<Course?> GetByIdAsync(int id);
+        Task<IEnumerable<CourseResponseDto>> GetAllAsync();
+        Task<CourseResponseDto?> GetByIdAsync(int id);
         Task<Course> CreateAsync(CourseDto dto);
-        Task<Course> UpdateAsync(int id, CourseDto dto);
+        Task<Course?> UpdateAsync(int id, UpdateCourseDto dto);
         Task<bool> EnrollUserAsync(EnrollRequestDto dto);
+        Task<IEnumerable<Course>> GetUserEnrolledCoursesAsync(string userId);
+        Task<IEnumerable<Course>> GetCoursesByInstructorAsync(Guid instructorId);
+        Task<bool> DeleteAsync(int id);
     }
 }

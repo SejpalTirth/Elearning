@@ -5,6 +5,6 @@ namespace ProgressService.BLL.Interface
     public interface IProgressService
     {
         Task<List<ProgressDto>> GetUserProgressAsync(Guid userId);
-        Task<SummaryDto> GetSummaryAsync(Guid userId);
+        Task MarkModuleCompletedAsync(Guid userId, int courseId, int moduleId);
     }
 }

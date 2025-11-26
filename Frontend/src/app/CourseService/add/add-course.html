@@ -1,0 +1,52 @@
+<div class="form-container" [formGroup]="form">
+
+  <h2>Create New Course</h2>
+
+  <label>Course Title</label>
+  <input formControlName="title" placeholder="Enter course title" />
+
+  <label>Description</label>
+  <textarea formControlName="description" placeholder="Enter course description"></textarea>
+
+  <label>Category</label>
+  <select formControlName="categoryId" class="category-dropdown">
+    <option value="">Select a category</option>
+    <option *ngFor="let c of categories" [value]="c.id">
+      {{ c.name }}
+    </option>
+  </select>
+
+  <label style="margin-top: 25px;">Modules</label>
+
+  <!-- Drag + drop container -->
+  <div formArrayName="modules" cdkDropList (cdkDropListDropped)="drop($event)">
+
+    <div class="module-wrapper" *ngFor="let m of modules.controls; let i = index" [formGroupName]="i" cdkDrag>
+
+      <div class="drag-handle" cdkDragHandle>☰</div>
+
+      <div class="module-fields">
+        <input formControlName="title" placeholder="Module title" />
+        <textarea formControlName="content" placeholder="Module content"></textarea>
+      </div>
+
+      <button *ngIf="i > 0"
+              type="button"
+              class="remove-btn"
+              (click)="removeModule(i)">
+        ✕
+      </button>
+
+    </div>
+
+  </div>
+
+  <!-- Add module button moved below -->
+  <button type="button" class="add-module-btn" (click)="addModule()">+ Add Module</button>
+
+  <div class="actions">
+    <button class="cancel-btn" type="button" (click)="cancel()">Cancel</button>
+    <button class="submit-btn" type="button" (click)="submit()">Create Course</button>
+    <!-- <button class="quiz-btn" disabled>Add Quizzes (Coming Soon)</button> -->
+  </div>
+</div>

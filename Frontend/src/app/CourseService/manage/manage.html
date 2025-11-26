@@ -1,0 +1,23 @@
+<div class="container">
+
+  <h2>Your Courses</h2>
+
+  <div *ngIf="loading" class="loading">Loading...</div>
+  <div *ngIf="!loading && courses.length === 0" class="empty">
+    You haven't created any courses yet.
+  </div>
+
+  <div *ngIf="courses.length > 0">
+    <div class="course-card" *ngFor="let c of courses">
+      
+      <div class="title">{{ c.title }}</div>
+      <div class="meta">Category: {{ c.categoryName || 'Uncategorized' }}</div>
+
+      <div class="actions">
+        <button class="view-btn" (click)="viewCourse(c.id)">View</button>
+        <button class="edit-btn" (click)="editCourse(c.id)">Edit</button>
+      </div>
+    </div>
+  </div>
+
+</div>
