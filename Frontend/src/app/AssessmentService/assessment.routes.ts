@@ -10,5 +10,10 @@ export const ASSESSMENT_ROUTES: Routes = [
     path: 'result/:submissionId',
     loadComponent: () =>
       import('./quiz-result/quiz-result').then(m => m.QuizResultComponent)
+  },
+  {
+    path: 'add-quiz/:courseId',
+    loadComponent: () =>
+      import('./add-quiz/add-quiz.component').then(m => m.AddQuizComponent)
   }
 ];

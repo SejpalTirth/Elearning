@@ -49,8 +49,53 @@ namespace AssessmentService.BLL.Services
 
         public async Task<object> AddQuestionAsync(int quizId, CreateQuestionDto dto)
         {
-            return new { message = "Question creation will be implemented later." };
+            // 1. Validate quiz exists
+            var quiz = await _quizRepo.GetByIdAsync(quizId);
+            if (quiz == null)
+                return new { message = "Quiz not found." };
+
+            // 2. Validate at least 2 options
+            if (dto.Options == null || dto.Options.Count < 2)
+                return new { message = "A question must have at least 2 options." };
+
+            // 3. Validate correct answer index
+            if (dto.CorrectAnswerIndex < 0 || dto.CorrectAnswerIndex >= dto.Options.Count)
+                return new { message = "CorrectAnswerIndex is out of range." };
+
+            // 4. Create Question object
+            var question = new Question
+            {
+                QuizId = quizId,
+                QuestionText = dto.Text,
+                QuestionType = "MCQ",
+                Marks = dto.Marks
+            };
+
+            // Add answers to question
+            foreach (var (option, index) in dto.Options.Select((o, i) => (o, i)))
+            {
+                question.Answers.Add(new Answer
+                {
+                    AnswerText = option,
+                    IsCorrect = index == dto.CorrectAnswerIndex
+                });
+            }
+
+            // 5. Save question
+            await _questionRepo.AddAsync(question);
+            await _questionRepo.SaveChangesAsync();
+
+            // 6. Update quiz total marks
+            quiz.TotalMarks = (quiz.TotalMarks ?? 0) + dto.Marks;
+            await _quizRepo.SaveChangesAsync();
+
+            return new
+            {
+                message = "Question added successfully.",
+                questionId = question.Id
+            };
         }
+
 
         // ---------------------------------------------------------
         // GET QUIZ FOR MODULE (STUDENT)

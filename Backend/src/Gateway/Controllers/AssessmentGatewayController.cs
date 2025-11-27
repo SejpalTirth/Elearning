@@ -1,7 +1,4 @@
-﻿using Gateway.DTOs;
-using Microsoft.AspNetCore.Mvc;
-using System.Net.Http;
-using System.Net.Http.Json;
+﻿using Microsoft.AspNetCore.Mvc;
 
 namespace Gateway.Controllers
 {
@@ -39,6 +36,7 @@ namespace Gateway.Controllers
             return Content(content, "application/json");
         }
 
+
         // ========================
         // GET: Quiz for module
         // ========================
@@ -63,7 +61,10 @@ namespace Gateway.Controllers
             return Content(raw, "application/json");
         }
 
+
+        // ========================
         // Submit Quiz
+        // ========================
         [HttpPost("submit")]
         public Task<IActionResult> SubmitQuiz([FromBody] object dto) =>
             Forward(new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl}/submit")
@@ -71,7 +72,10 @@ namespace Gateway.Controllers
                 Content = JsonContent.Create(dto)
             });
 
-        // Get result
+
+        // ========================
+        // Get Result
+        // ========================
         [HttpGet("result/{submissionId:guid}")]
         public async Task<IActionResult> GetSubmissionResult(Guid submissionId)
         {
@@ -82,5 +86,30 @@ namespace Gateway.Controllers
 
             return Content(result, "application/json");
         }
+
+        // ---------------------------
+        // CREATE QUIZ
+        // ---------------------------
+        [HttpPost("quiz")]
+        public Task<IActionResult> CreateQuiz([FromBody] object dto) =>
+            Forward(new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl}/quiz")
+            {
+                Content = JsonContent.Create(dto)
+            });
+
+        // ---------------------------
+        // ADD QUESTION TO QUIZ
+        // ---------------------------
+        [HttpPost("quiz/{quizId:int}/questions")]
+        public Task<IActionResult> AddQuestion(int quizId, [FromBody] object dto)
+        {
+            return Forward(new HttpRequestMessage(
+                HttpMethod.Post, $"{BaseUrl}/quiz/{quizId}/questions")
+            {
+                Content = JsonContent.Create(dto)
+            });
+        }
+
+
     }
 }
