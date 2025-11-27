@@ -1,0 +1,61 @@
+<div class="quiz-wrapper">
+
+  <h2>Create Quiz</h2>
+
+  <!-- QUIZ CREATION SECTION -->
+  <div [formGroup]="quizForm" class="quiz-form">
+
+    <label>Module</label>
+    <select formControlName="moduleId">
+      <option value="">Select module</option>
+      <option *ngFor="let m of modules" [value]="m.id">{{ m.title }}</option>
+    </select>
+
+    <label>Quiz Title</label>
+    <input formControlName="title" placeholder="Enter quiz title">
+
+    <label>Time Limit (minutes)</label>
+    <input type="number" formControlName="timeLimitMinutes">
+
+    <button class="btn-primary" (click)="createQuiz()" [disabled]="quizCreated">
+      Create Quiz
+    </button>
+  </div>
+
+
+  <!-- QUESTION CREATION SECTION -->
+  <div *ngIf="quizCreated" class="question-section">
+
+    <h3>Add Question</h3>
+
+    <div [formGroup]="questionForm" class="question-form">
+
+      <label>Question Text</label>
+      <textarea formControlName="text" placeholder="Enter question"></textarea>
+
+      <label>Marks</label>
+      <input type="number" formControlName="marks">
+
+      <label>Options</label>
+
+      <div formArrayName="options" class="options-container">
+        <div *ngFor="let opt of options.controls; let i = index">
+          <input [formControlName]="i" placeholder="Option {{ i + 1 }}">
+        </div>
+      </div>
+
+      <label>Correct Answer</label>
+      <select formControlName="correctAnswerIndex">
+        <option *ngFor="let opt of options.controls; let i = index" [value]="i">
+          Option {{ i + 1 }}
+        </option>
+      </select>
+
+      <button class="btn-success" (click)="addQuestion()">Add Question</button>
+      <button class="btn-secondary" (click)="exit()">Finish & Exit</button>
+
+    </div>
+
+  </div>
+
+</div>

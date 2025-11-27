@@ -10,18 +10,22 @@ export class AssessmentApiService {
 
   constructor(private http: HttpClient) {}
 
-  // Get quiz for module
   getQuizForModule(moduleId: number){
-  return this.http.get(`${this.baseUrl}/quiz/module/${moduleId}`);
+    return this.http.get(`${this.baseUrl}/quiz/module/${moduleId}`);
   }
 
+  createQuiz(payload: any) {
+    return this.http.post(`${this.baseUrl}/quiz`, payload);
+  }
 
-  // Submit quiz
+  addQuestion(quizId: number, payload: any) {
+    return this.http.post(`${this.baseUrl}/quiz/${quizId}/questions`, payload);
+  }
+
   submitQuiz(payload: any) {
     return this.http.post(`${this.baseUrl}/submit`, payload);
   }
 
-  // Get stored result (optional)
   getResult(submissionId: string) {
     return this.http.get(`${this.baseUrl}/result/${submissionId}`);
   }

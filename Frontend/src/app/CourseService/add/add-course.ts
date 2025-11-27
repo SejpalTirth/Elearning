@@ -17,8 +17,10 @@ import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-
   styleUrls: ['./add-course.css']
 })
 export class AddCourseComponent implements OnInit {
+  
   form: FormGroup;
   categories: any[] = [];
+  userId = "";
 
   constructor(
     private fb: FormBuilder,
@@ -67,17 +69,38 @@ export class AddCourseComponent implements OnInit {
   }
 
   submit() {
-    const instructorUserId = localStorage.getItem('userId');
+
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      this.userId = payload["sub"];
+    } catch {
+      console.warn("Invalid token");
+    }
 
     const dto = {
       ...this.form.value,
-      instructorUserId
+      instructorUserId: this.userId
     };
 
+    console.log("DTO sent to gateway:", dto);
+
     this.courseApi.addCourse(dto).subscribe({
-      next: () => {
-        alert('Course created 🎉');
-        this.router.navigate(['/courses']);
+      next: (res: any) => {
+
+        console.log("Course created response:", res);
+
+        const courseId = res?.id;
+
+        if (!courseId) {
+          alert("Course created, but no course ID returned.");
+          return;
+        }
+
+        // 🎯 PHASE 1 MAIN LOGIC: Redirect to Add-Quiz page with course ID
+        this.router.navigate([ '/assessment/add-quiz', courseId ]);
       },
       error: err => {
         console.error(err);

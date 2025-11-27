@@ -19,7 +19,7 @@ export class CourseApiService {
   }
 
   addCourse(payload: any): Observable<any> {
-    return this.http.post<any>(this.baseUrl, payload, { withCredentials: true });
+    return this.http.post<any>(this.baseUrl, payload);
   }
 
   updateCourse(id: number, payload: any): Observable<any> {
