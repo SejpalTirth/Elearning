@@ -3,9 +3,8 @@ using ProgresService.DAL.Models;
 using ProgresService.DAL.Repo;
 using ProgressService.BLL.Service;
 using System.Net;
-using System.Net.Http;
+using System.Text;
 using System.Text.Json;
-using Xunit;
 
 namespace ProgressService.Tests
 {
@@ -39,22 +38,29 @@ namespace ProgressService.Tests
 
                 var match = _responses.FirstOrDefault(r => url.Contains(r.UrlContains));
 
-                if (match.Response != null)
+                if (_responses.Any(r => url.Contains(r.UrlContains)))
                 {
-                    var json = JsonSerializer.Serialize(match.Response);
+                    var response = match.Response;
+
+                    // IMPORTANT FIX: if null response, return JSON literal "null"
+                    string json = response == null
+                        ? "null"
+                        : JsonSerializer.Serialize(response);
+
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
                     {
-                        Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json")
+                        Content = new StringContent(json, Encoding.UTF8, "application/json")
                     });
                 }
 
-                // Return empty JSON to avoid 404
+                // Fallback
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
                 {
-                    Content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json")
+                    Content = new StringContent("{}", Encoding.UTF8, "application/json")
                 });
             }
         }
+
 
         // ----------------------------------------------------------
         // TEST: GetUserProgressAsync DTO mapping
@@ -110,15 +116,7 @@ namespace ProgressService.Tests
             fake.AddJsonResponse("api/courses/", new { Title = "Dummy Course" });
 
             // User endpoint returns null fields -> triggers your Exception
-            fake.AddJsonResponse("api/users/", new
-            {
-                id = Guid.NewGuid(),
-                email = (string)null,       // Simulate user not found / missing email
-                name = (string)null,        // Optional
-                isActive = false,           // Optional, can indicate inactive user
-                roles = Array.Empty<string>(),
-                permissions = Array.Empty<string>()
-            });
+            fake.AddJsonResponse("api/users/", null);
 
 
             var httpClient = new HttpClient(fake) { BaseAddress = new Uri("http://fake/") };

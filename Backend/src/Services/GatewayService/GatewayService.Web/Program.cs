@@ -1,3 +1,6 @@
+using GatewayService.DAL.Data;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -8,6 +11,10 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var connectionstring = builder.Configuration.GetConnectionString("DefaultString");
+
+builder.Services.AddDbContext<GatewayServiceContext>(options =>
+    options.UseSqlServer(connectionstring));
+
 
 var app = builder.Build();
 
