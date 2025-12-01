@@ -2,6 +2,7 @@
 using GatewayService.DAL.Models;
 using GatewayService.DAL.Repo;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace LMS.Tests.GatewayService
 {
@@ -12,8 +13,15 @@ namespace LMS.Tests.GatewayService
 
         public UserRepositoryTests()
         {
+            // 🔥 Isolated EF InMemory provider (prevents SQL Server conflict)
+            var services = new ServiceCollection();
+            services.AddEntityFrameworkInMemoryDatabase();
+
+            var provider = services.BuildServiceProvider();
+
             var options = new DbContextOptionsBuilder<GatewayServiceContext>()
                 .UseInMemoryDatabase(Guid.NewGuid().ToString())
+                .UseInternalServiceProvider(provider)     // KEY FIX
                 .Options;
 
             _context = new GatewayServiceContext(options);

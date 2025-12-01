@@ -2,6 +2,7 @@
 using GatewayService.DAL.Models;
 using GatewayService.DAL.Repo;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace LMS.Tests.GatewayService
 {
@@ -12,14 +13,22 @@ namespace LMS.Tests.GatewayService
 
         public RefreshTokenRepositoryTests()
         {
+            // 🔥 Create isolated DI container for InMemory provider
+            var services = new ServiceCollection();
+            services.AddEntityFrameworkInMemoryDatabase();
+
+            var provider = services.BuildServiceProvider();
+
+            // 🔥 Build DbContextOptions with isolated provider
             var options = new DbContextOptionsBuilder<GatewayServiceContext>()
-                .UseInMemoryDatabase(Guid.NewGuid().ToString())
+                .UseInMemoryDatabase(Guid.NewGuid().ToString()) // fresh DB for each run
+                .UseInternalServiceProvider(provider)            // IMPORTANT FIX
                 .Options;
 
             _context = new GatewayServiceContext(options);
             _repo = new RefreshTokenRepository(_context);
 
-            // Seed a user for FK
+            // Seed a user (needed for FK)
             _context.Users.Add(new User
             {
                 Id = Guid.NewGuid(),
