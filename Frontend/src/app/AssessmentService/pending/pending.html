@@ -1,0 +1,31 @@
+<div class="wrapper" *ngIf="course">
+
+  <h2>Pending Course Tasks</h2>
+
+  <div class="box">
+    <p><strong>Course:</strong> {{ course.title }}</p>
+
+    <p *ngIf="pendingModules.length === 0">
+      All modules have quizzes 🎉
+    </p>
+
+    <div *ngIf="pendingModules.length > 0">
+      <p><strong>Modules missing quizzes:</strong></p>
+
+      <ul>
+        <li *ngFor="let m of pendingModules">
+          Module ID: {{ m }}
+        </li>
+      </ul>
+
+      <button class="btn" (click)="continueQuiz()">
+        Continue Quiz Creation →
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<div class="empty" *ngIf="!course">
+  <h3>No pending tasks 🎉</h3>
+</div>

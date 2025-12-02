@@ -1,3 +1,63 @@
+/* ---------------------------------------- */
+/* Blended, Minimal, Matching Theme Card    */
+/* ---------------------------------------- */
+
+.unfinished-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 20px;
+}
+
+.unfinished-card {
+  width: 70%;
+  max-width: 600px;
+  background: rgba(255, 255, 255, 0.75); /* Match welcome card style */
+  border-radius: 18px;
+  padding: 22px 28px;
+  backdrop-filter: blur(10px);           /* SAME blur effect */
+  box-shadow: 0 8px 18px rgba(0,0,0,0.12); /* Softer shadow */
+  border: 1px solid rgba(255, 255, 255, 0.5); /* Soft border like glass card */
+}
+
+.unfinished-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0d47a1; /* SAME blue tone as Welcome card */
+  margin-bottom: 6px;
+}
+
+.unfinished-subtitle {
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 15px;
+}
+
+.course-name {
+  font-weight: 600;
+  color: #1e57e7; /* Same blue as Explore Courses button */
+}
+
+/* Button matches theme */
+.continue-btn {
+  background: #1e57e7;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: 0.25s ease-in-out;
+}
+
+.continue-btn:hover {
+  background: #0d47a1;
+  transform: translateY(-2px);
+}
+
+
+
 .home-container {
   height: calc(100vh - 80px); /* subtract navbar height */
   display: flex;

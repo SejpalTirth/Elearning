@@ -83,5 +83,21 @@ namespace CourseService.DAL.Repo
                 .Include(c => c.Modules)
                 .ToListAsync();
         }
+
+        public async Task<Course?> GetFirstUnpublishedCourse(Guid instructorUserId)
+        {
+            return await _db.Courses
+                .Where(c => c.InstructorUserId == instructorUserId && c.IsDeleted == true)
+                .OrderBy(c => c.Id)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<Course?> GetLatestUnfinishedCourseAsync(Guid instructorId)
+        {
+            return await _db.Courses
+                .Where(c => c.InstructorUserId == instructorId && c.IsDeleted == true)
+                .OrderByDescending(c => c.Id)   // use Id instead of CreatedAt
+                .FirstOrDefaultAsync();
+        }
     }
 }

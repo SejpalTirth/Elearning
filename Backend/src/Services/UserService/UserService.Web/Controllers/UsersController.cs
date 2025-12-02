@@ -9,11 +9,14 @@ namespace UserService.Web.Controllers
     public class UsersController : ControllerBase
     {
         private readonly IUserAuthService _service;
+        private readonly IUserService _userService;
 
-        public UsersController(IUserAuthService service)
+        public UsersController(IUserAuthService authService, IUserService userService)
         {
-            _service = service;
+            _service = authService;
+            _userService = userService;
         }
+
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetUser(Guid id)
@@ -35,5 +38,13 @@ namespace UserService.Web.Controllers
 
             return Ok(new { success = true });
         }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAllUsers()
+        {
+            var users = await _userService.GetAll();
+            return Ok(users);
+        }
+
     }
 }

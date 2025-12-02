@@ -20,4 +20,3 @@ public partial class Course
 
     public virtual ICollection<Module> Modules { get; set; } = new List<Module>();
 }
-

@@ -112,4 +112,9 @@ export class AddCourseComponent implements OnInit {
   cancel() {
     this.router.navigate(['/courses']);
   }
+
+  getCourseId(): number | undefined {
+  return undefined;
+  }
+
 }

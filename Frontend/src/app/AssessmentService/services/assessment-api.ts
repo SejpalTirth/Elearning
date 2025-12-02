@@ -10,16 +10,13 @@ export class AssessmentApiService {
 
   constructor(private http: HttpClient) {}
 
-  getQuizForModule(moduleId: number){
+
+  // =====================================================
+  //  STUDENT + COMMON
+  // =====================================================
+
+  getQuizForModule(moduleId: number) {
     return this.http.get(`${this.baseUrl}/quiz/module/${moduleId}`);
-  }
-
-  createQuiz(payload: any) {
-    return this.http.post(`${this.baseUrl}/quiz`, payload);
-  }
-
-  addQuestion(quizId: number, payload: any) {
-    return this.http.post(`${this.baseUrl}/quiz/${quizId}/questions`, payload);
   }
 
   submitQuiz(payload: any) {
@@ -29,4 +26,31 @@ export class AssessmentApiService {
   getResult(submissionId: string) {
     return this.http.get(`${this.baseUrl}/result/${submissionId}`);
   }
+
+
+  // =====================================================
+  //  INSTRUCTOR — QUIZ CREATION
+  // =====================================================
+
+  createQuiz(payload: any) {
+    return this.http.post(`${this.baseUrl}/quiz`, payload);
+  }
+
+  addQuestion(quizId: number, payload: any) {
+    return this.http.post(`${this.baseUrl}/quiz/${quizId}/questions`, payload);
+  }
+
+
+  // =====================================================
+  // NEW — QUIZ STATUS CHECKS (For Course Locking Flow)
+  // =====================================================
+
+  getQuizStatus(courseId: number) {
+    return this.http.get(`${this.baseUrl}/course/${courseId}/quiz-status`);
+  }
+
+  getUnquizzedModules(courseId: number) {
+  return this.http.get<number[]>(`${this.baseUrl}/unquizzed-modules/${courseId}`);
+  }
+
 }

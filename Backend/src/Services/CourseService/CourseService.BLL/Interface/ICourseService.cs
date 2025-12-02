@@ -13,5 +13,11 @@ namespace CourseService.BLL.Interface
         Task<IEnumerable<Course>> GetUserEnrolledCoursesAsync(string userId);
         Task<IEnumerable<Course>> GetCoursesByInstructorAsync(Guid instructorId);
         Task<bool> DeleteAsync(int id);
+        Task<bool> PublishCourseIfReadyAsync(int courseId);
+        Task<Course?> GetUnpublishedCourseAsync(Guid instructorUserId);
+        Task<object?> GetUnfinishedCourseAsync(Guid instructorId);
+        Task<bool> ContinueUnfinishedCourseAsync(int courseId);
+
+
     }
 }

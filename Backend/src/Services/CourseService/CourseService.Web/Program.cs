@@ -27,7 +27,7 @@ builder.Services.AddDbContext<CourseContext>(options =>
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<IEnrollmentRepository, EnrollmentRepository>();
 builder.Services.AddScoped<IModuleRepository, ModuleRepository>();
-builder.Services.AddScoped<ICourseService, Courseservice>();
+builder.Services.AddScoped<ICourseService, CourseServiceimpl>();
 builder.Services.AddScoped<IModuleService, ModuleService>();
 
 // HttpClient Registrations

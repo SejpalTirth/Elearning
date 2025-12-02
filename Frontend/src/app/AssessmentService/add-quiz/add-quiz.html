@@ -2,6 +2,12 @@
 
   <h2>Create Quiz</h2>
 
+  <!-- AUTO SELECTED MODULE DISPLAY -->
+  <div *ngIf="currentModuleId" class="selected-module">
+    <strong>Current Module:</strong>
+    {{ modules | moduleTitle : currentModuleId }}
+  </div>
+
   <!-- QUIZ CREATION SECTION -->
   <div [formGroup]="quizForm" class="quiz-form">
 
@@ -17,13 +23,16 @@
     <label>Time Limit (minutes)</label>
     <input type="number" formControlName="timeLimitMinutes">
 
-    <button class="btn-primary" (click)="createQuiz()" [disabled]="quizCreated">
+    <button
+      class="btn-primary"
+      (click)="createQuiz()"
+      [disabled]="quizCreated"
+    >
       Create Quiz
     </button>
   </div>
 
-
-  <!-- QUESTION CREATION SECTION -->
+  <!-- QUESTION CREATION -->
   <div *ngIf="quizCreated" class="question-section">
 
     <h3>Add Question</h3>

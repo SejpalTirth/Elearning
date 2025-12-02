@@ -148,6 +148,55 @@ namespace CourseService.Web.Controllers
             return deleted ? NoContent() : NotFound();
         }
 
+        [HttpPut("publish/{courseId:int}")]
+        public async Task<IActionResult> PublishCourse(int courseId)
+        {
+            bool success = await _courseService.PublishCourseIfReadyAsync(courseId);
+            if (!success)
+                return BadRequest("All modules must have a quiz before publishing.");
+
+            return Ok("Course published successfully.");
+        }
+
+        // POST /api/courses/{id}/publish
+        [HttpPost("{id:int}/publish")]
+        public async Task<IActionResult> TryPublishCourse(int id)
+        {
+            var result = await _courseService.PublishCourseIfReadyAsync(id);
+            return Ok(new { published = result });
+        }
+
+        // GET: api/courses/instructor/unpublished/{instructorUserId}
+        [HttpGet("instructor/unpublished/{instructorUserId}")]
+        public async Task<IActionResult> GetUnpublishedCourse(Guid instructorUserId)
+        {
+            var course = await _courseService.GetUnpublishedCourseAsync(instructorUserId);
+            if (course == null)
+                return Ok(null);
+
+            return Ok(new { courseId = course.Id });
+        }
+
+        // ================== GET UNFINISHED COURSE FOR INSTRUCTOR ==================
+        [HttpGet("unfinished/{instructorId:guid}")]
+        public async Task<IActionResult> GetUnfinishedCourse(Guid instructorId)
+        {
+            var course = await _courseService.GetUnfinishedCourseAsync(instructorId);
+            if (course == null)
+                return NotFound();
+
+            return Ok(course);
+        }
+
+        // ================== CONTINUE COURSE (UNDELETE) ==================
+        [HttpPost("continue/{courseId:int}")]
+        public async Task<IActionResult> ContinueCourse(int courseId)
+        {
+            var result = await _courseService.ContinueUnfinishedCourseAsync(courseId);
+            return Ok(result);
+        }
+
+
         // Local helper type for reading UserService response
         private class UserInfo
         {

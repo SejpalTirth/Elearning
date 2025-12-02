@@ -1,4 +1,5 @@
-﻿using CourseService.BLL.DTOs;
+﻿// CourseService.BLL.Service/CourseService.cs
+using CourseService.BLL.DTOs;
 using CourseService.BLL.Interface;
 using CourseService.DAL.Models;
 using CourseService.DAL.Repo;
@@ -6,16 +7,14 @@ using System.Net.Http.Json;
 
 namespace CourseService.BLL.Service
 {
-    public class Courseservice : ICourseService
+    public class CourseServiceimpl : ICourseService
     {
         private readonly ICourseRepository _repo;
         private readonly IEnrollmentRepository _enrollRepo;
         private readonly IModuleRepository _moduleRepo;
+        private readonly IHttpClientFactory _httpFactory;
 
-        private readonly HttpClient _userHttp;
-        private readonly HttpClient _progressHttp;
-
-        public Courseservice(
+        public CourseServiceimpl(
             ICourseRepository repo,
             IEnrollmentRepository enrollRepo,
             IModuleRepository moduleRepo,
@@ -24,9 +23,7 @@ namespace CourseService.BLL.Service
             _repo = repo;
             _enrollRepo = enrollRepo;
             _moduleRepo = moduleRepo;
-
-            _userHttp = httpClientFactory.CreateClient("UserService");
-            _progressHttp = httpClientFactory.CreateClient("ProgressService");
+            _httpFactory = httpClientFactory;
         }
 
         // ------------------- GET ALL -------------------
@@ -38,7 +35,6 @@ namespace CourseService.BLL.Service
             foreach (var c in courses)
             {
                 var instructor = await FetchInstructorAsync(c.InstructorUserId ?? Guid.Empty);
-
                 var modules = await _moduleRepo.GetByCourseIdAsync(c.Id);
 
                 result.Add(new CourseResponseDto
@@ -94,7 +90,8 @@ namespace CourseService.BLL.Service
                 Title = dto.Title,
                 Description = dto.Description,
                 CategoryId = dto.CategoryId,
-                InstructorUserId = Guid.Parse(dto.InstructorUserId)
+                InstructorUserId = Guid.Parse(dto.InstructorUserId),
+                IsDeleted = true // hide until quizzes done
             };
 
             await _repo.AddAsync(course);
@@ -130,7 +127,6 @@ namespace CourseService.BLL.Service
             course.Description = dto.Description;
             course.CategoryId = dto.CategoryId;
 
-            // Replace modules
             if (dto.Modules != null)
             {
                 course.Modules.Clear();
@@ -170,7 +166,7 @@ namespace CourseService.BLL.Service
             return true;
         }
 
-        // ------------------- DELETE COURSE (Updated With Progress Deletion) -------------------
+        // ------------------- DELETE COURSE (soft delete) -------------------
         public async Task<bool> DeleteAsync(int id)
         {
             var course = await _repo.GetByIdWithModulesAsync(id);
@@ -184,13 +180,13 @@ namespace CourseService.BLL.Service
             return true;
         }
 
-
         // ------------------- FETCH INSTRUCTOR FROM USER SERVICE -------------------
         private async Task<InstructorDto> FetchInstructorAsync(Guid id)
         {
             try
             {
-                var user = await _userHttp.GetFromJsonAsync<UserAuthDto>($"api/users/{id}");
+                var client = _httpFactory.CreateClient("UserService");
+                var user = await client.GetFromJsonAsync<UserAuthDto>($"api/users/{id}");
 
                 return user == null
                     ? new InstructorDto { Id = id, Name = "Unknown Instructor" }
@@ -217,6 +213,76 @@ namespace CourseService.BLL.Service
         public async Task<IEnumerable<Course>> GetCoursesByInstructorAsync(Guid instructorId)
         {
             return await _repo.GetByInstructorIdAsync(instructorId);
+        }
+
+        // ------------------- PUBLISH CHECK -------------------
+        public async Task<bool> PublishCourseIfReadyAsync(int courseId)
+        {
+            var course = await _repo.GetByIdAsync(courseId);
+            if (course == null)
+                return false;
+
+            var modules = await _moduleRepo.GetByCourseIdAsync(courseId);
+            if (modules == null || !modules.Any())
+                return false;
+
+            using var http = new HttpClient();
+            http.BaseAddress = new Uri("https://localhost:7249"); // AssessmentService
+
+            var missing = await http.GetFromJsonAsync<List<int>>(
+                $"/api/assessment/unquizzed-modules/{courseId}"
+            );
+
+            if (missing != null && missing.Any())
+                return false;
+
+            // PUBLISH
+            course.IsDeleted = false;
+
+            await _repo.UpdateAsync(course);
+            await _repo.SaveChangesAsync();
+
+            return true;
+        }
+
+
+        // get first unpublished course for instructor (used on Home)
+        public async Task<Course?> GetUnpublishedCourseAsync(Guid instructorUserId)
+        {
+            return await _repo.GetFirstUnpublishedCourse(instructorUserId);
+        }
+
+        public async Task<object?> GetUnfinishedCourseAsync(Guid instructorId)
+        {
+            var course = await _repo.GetLatestUnfinishedCourseAsync(instructorId);
+            if (course == null) return null;
+
+            return new
+            {
+                course.Id,
+                course.Title,
+                course.Description,
+                course.CategoryId
+            };
+        }
+
+        public async Task<bool> ContinueUnfinishedCourseAsync(int courseId)
+        {
+            var course = await _repo.GetByIdAsync(courseId);
+            if (course == null) return false;
+
+            course.IsDeleted = false; // restore visibility
+            await _repo.UpdateAsync(course);
+            await _repo.SaveChangesAsync();
+
+            return true;
+        }
+
+        // helper DTOs used in this service
+        private class InstructorDto
+        {
+            public Guid Id { get; set; }
+            public string Name { get; set; } = string.Empty;
         }
     }
 }

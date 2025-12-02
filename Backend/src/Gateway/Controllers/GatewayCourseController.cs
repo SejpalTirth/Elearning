@@ -1,5 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using static System.Net.WebRequestMethods;
+﻿// Gateway/Controllers/GatewayCourseController.cs
+using Microsoft.AspNetCore.Mvc;
+using System.Net.Http.Json;
 
 namespace Gateway.Controllers
 {
@@ -34,7 +35,6 @@ namespace Gateway.Controllers
             return Content(raw, "application/json");
         }
 
-
         // ---------------- CRUD ----------------
         [HttpGet]
         public Task<IActionResult> GetAll() =>
@@ -49,62 +49,57 @@ namespace Gateway.Controllers
             Forward(new HttpRequestMessage(HttpMethod.Post, BaseUrl) { Content = JsonContent.Create(dto) });
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> Update(int id, [FromBody] object dto)
-        {
-            var json = System.Text.Json.JsonSerializer.Serialize(dto);
+        public Task<IActionResult> Update(int id, [FromBody] object dto) =>
+            Forward(new HttpRequestMessage(HttpMethod.Put, $"{BaseUrl}/{id}") { Content = JsonContent.Create(dto) });
 
-            var req = new HttpRequestMessage(HttpMethod.Put, $"{BaseUrl}/{id}")
-            {
-                Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json")
-            };
-
-            return await Forward(req);
-        }
-
-
+        [HttpDelete("{id:int}")]
+        public Task<IActionResult> Delete(int id) =>
+            Forward(new HttpRequestMessage(HttpMethod.Delete, $"{BaseUrl}/{id}"));
 
         // ---------------- Instructor Filter ----------------
         [HttpGet("instructor/{id:guid}")]
         public Task<IActionResult> GetByInstructor(Guid id) =>
             Forward(new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/instructor/{id}"));
 
-
         // ---------------- Enrollment ----------------
         [HttpPost("enroll")]
         public Task<IActionResult> Enroll([FromBody] object dto) =>
             Forward(new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl}/enroll") { Content = JsonContent.Create(dto) });
-
 
         // ---------------- My Learning (GET Enrolled Courses) ----------------
         [HttpGet("enrolled/{userId:guid}")]
         public Task<IActionResult> GetEnrolledCourses(Guid userId) =>
             Forward(new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/enrolled/{userId}"));
 
-
         // ---------------- Modules ----------------
         [HttpGet("{courseId:int}/modules")]
         public Task<IActionResult> GetModules(int courseId) =>
             Forward(new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/{courseId}/modules"));
 
+        [HttpGet("module/{id:int}")]
+        public Task<IActionResult> GetModule(int id) =>
+            Forward(new HttpRequestMessage(HttpMethod.Get, $"api/modules/{id}"));
 
         // ---------------- Categories ----------------
         [HttpGet("categories")]
         public Task<IActionResult> GetCategories() =>
             Forward(new HttpRequestMessage(HttpMethod.Get, $"api/categories"));
 
-        [HttpDelete("{id:int}")]
-        public Task<IActionResult> Delete(int id) =>
-        Forward(new HttpRequestMessage(HttpMethod.Delete, $"{BaseUrl}/{id}"));
+        // ---------------- Publish + Unfinished workflow ----------------
+        [HttpPut("publish/{courseId:int}")]
+        public Task<IActionResult> PublishCourse(int courseId) =>
+            Forward(new HttpRequestMessage(HttpMethod.Put, $"{BaseUrl}/publish/{courseId}"));
 
+        [HttpPost("{courseId:int}/publish")]
+        public Task<IActionResult> TryPublishCourse(int courseId) =>
+            Forward(new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl}/{courseId}/publish"));
 
-        [HttpGet("module/{id}")]
-        public Task<IActionResult> GetModule(int id)
-        {
-            var request = new HttpRequestMessage(HttpMethod.Get, $"api/modules/{id}");
-            return Forward(request);
-        }
+        [HttpGet("unfinished/{instructorId:guid}")]
+        public Task<IActionResult> GetUnfinished(Guid instructorId) =>
+            Forward(new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/unfinished/{instructorId}"));
 
-
-
+        [HttpPost("continue/{courseId:int}")]
+        public Task<IActionResult> Continue(int courseId) =>
+            Forward(new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl}/continue/{courseId}"));
     }
 }

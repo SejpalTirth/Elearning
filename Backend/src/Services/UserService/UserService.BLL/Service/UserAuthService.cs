@@ -14,6 +14,9 @@ namespace UserService.BLL.Service
             _context = context;
         }
 
+        // --------------------------------------------------
+        // Get User Authorization (existing)
+        // --------------------------------------------------
         public async Task<UserAuthDto?> GetUserAuthorizationAsync(Guid userId)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
@@ -46,12 +49,14 @@ namespace UserService.BLL.Service
                 Email = user.Email,
                 Name = user.Name,
                 IsActive = user.IsActive ?? false,
-                Roles = user.Roles.Select(r => r.Name).ToList(),
-                Permissions = user.Permissions.Select(p => p.Name).ToList()
+                Roles = roles,
+                Permissions = permissions
             };
-
         }
 
+        // --------------------------------------------------
+        // Assign Role (existing)
+        // --------------------------------------------------
         public async Task<bool> AssignRoleAsync(AssignRoleRequest request)
         {
             bool exists = await _context.UserRoles
@@ -69,6 +74,9 @@ namespace UserService.BLL.Service
             return true;
         }
 
+        // --------------------------------------------------
+        // Assign Permission (existing)
+        // --------------------------------------------------
         public async Task<bool> AssignPermissionAsync(AssignPermissionRequest request)
         {
             bool exists = await _context.RolePermissions
@@ -86,6 +94,9 @@ namespace UserService.BLL.Service
             return true;
         }
 
+        // --------------------------------------------------
+        // Get Roles by UserId (existing)
+        // --------------------------------------------------
         public async Task<List<string>> GetRolesAsync(Guid userId)
         {
             var roleIds = await _context.UserRoles
@@ -99,6 +110,9 @@ namespace UserService.BLL.Service
                 .ToListAsync();
         }
 
+        // --------------------------------------------------
+        // Get Permissions by UserId (existing)
+        // --------------------------------------------------
         public async Task<List<string>> GetPermissionsAsync(Guid userId)
         {
             var roleIds = await _context.UserRoles
@@ -118,6 +132,9 @@ namespace UserService.BLL.Service
                 .ToListAsync();
         }
 
+        // --------------------------------------------------
+        // Complete Profile (existing)
+        // --------------------------------------------------
         public async Task<CompleteProfileResultDto> CompleteUserProfileAsync(CompleteProfileDto dto)
         {
             if (dto.RoleId == 1)
@@ -162,6 +179,53 @@ namespace UserService.BLL.Service
             await _context.SaveChangesAsync();
 
             return new CompleteProfileResultDto { Success = true };
+        }
+
+        // --------------------------------------------------
+        // NEW: Replace all old roles with a new role
+        // --------------------------------------------------
+        public async Task<bool> UpdateUserRoleAsync(UpdateUserRoleRequest request)
+        {
+            // 1️⃣ Remove old roles
+            var oldRoles = await _context.UserRoles
+                .Where(ur => ur.UserId == request.UserId)
+                .ToListAsync();
+
+            if (oldRoles.Any())
+                _context.UserRoles.RemoveRange(oldRoles);
+
+            // 2️⃣ Add new role
+            await _context.UserRoles.AddAsync(new UserRole
+            {
+                UserId = request.UserId,
+                RoleId = request.RoleId
+            });
+
+            // 3️⃣ Update string column for compatibility
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.UserId);
+            if (user != null)
+            {
+                var role = await _context.Roles.FirstOrDefaultAsync(r => r.Id == request.RoleId);
+                if (role != null)
+                {
+                    user.Role = role.Name;
+                }
+            }
+
+            // 4️⃣ Save
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        // --------------------------------------------------
+        // NEW: Clean way to get user roles
+        // --------------------------------------------------
+        public async Task<List<string>> GetUserRolesAsync(Guid userId)
+        {
+            return await _context.UserRoles
+                .Where(ur => ur.UserId == userId)
+                .Select(ur => ur.Role.Name)
+                .ToListAsync();
         }
     }
 }

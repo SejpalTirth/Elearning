@@ -1,4 +1,6 @@
 import { Routes } from '@angular/router';
+import { CourseQuizGuard } from './guards/course-quiz.guard';
+import { UnfinishedCourseGuard } from './guards/unfinished-course.guard';
 
 export const COURSE_ROUTES: Routes = [
 
@@ -8,10 +10,20 @@ export const COURSE_ROUTES: Routes = [
   { path: ':id/modules', loadComponent: () => import('./modules-list/modules-list').then(m => m.ModulesListComponent) },
 
   // Add course (Instructor)
-  { path: 'add/new', loadComponent: () => import('./add/add-course').then(m => m.AddCourseComponent) },
+  {
+    path: 'add/new',
+    loadComponent: () => import('./add/add-course').then(m => m.AddCourseComponent),
+    canActivate: [ UnfinishedCourseGuard ],
+    canDeactivate: [ CourseQuizGuard ]
+  },
 
   // Edit existing course (Instructor)
-  { path: 'edit/:id', loadComponent: () => import('./edit/edit').then(m => m.EditCourseComponent) },
+  {
+    path: 'edit/:id',
+    loadComponent: () => import('./edit/edit').then(m => m.EditCourseComponent),
+    canActivate: [ UnfinishedCourseGuard ],
+    canDeactivate: [ CourseQuizGuard ]
+  },
 
   // Instructor manage OWN courses
   { path: 'manage', loadComponent: () => import('./manage/manage').then(m => m.ManageCoursesComponent) },

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Renderer2 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CourseApiService } from '../services/course-api';
 import { CommonModule } from '@angular/common';
@@ -17,10 +17,14 @@ export class CourseDetailsComponent implements OnInit {
   isEnrolled = false;
   userId = "";
 
+  isLoading = false;      // overlay loader + block UI
+  btnLoading = false;     // loader inside button
+
   constructor(
     private route: ActivatedRoute,
     private courseApi: CourseApiService,
-    private router: Router
+    private router: Router,
+    private renderer: Renderer2     // NEW: disable nav click
   ) {}
 
   ngOnInit(): void {
@@ -37,16 +41,13 @@ export class CourseDetailsComponent implements OnInit {
 
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
-      this.userId = payload["sub"];  // logged in user
-    } catch {
-      console.warn("Invalid token");
-    }
+      this.userId = payload["sub"];
+    } catch {}
   }
 
   loadCourse(id: number) {
     this.courseApi.getById(id).subscribe({
-      next: (res) => this.course = res,
-      error: (err) => console.error(err)
+      next: (res) => this.course = res
     });
   }
 
@@ -56,28 +57,51 @@ export class CourseDetailsComponent implements OnInit {
     this.courseApi.getEnrolledCourses(this.userId).subscribe({
       next: (courses) => {
         this.isEnrolled = courses.some(c => c.id === this.courseId);
-      },
-      error: (err) => console.error(err)
+      }
     });
+  }
+
+  // ❗ Disable navbar clicks
+  disableNavbarClicks() {
+    const nav = document.querySelector("nav");
+    if (nav) this.renderer.setStyle(nav, "pointer-events", "none");
+  }
+
+  // ❗ Enable navbar clicks
+  enableNavbarClicks() {
+    const nav = document.querySelector("nav");
+    if (nav) this.renderer.setStyle(nav, "pointer-events", "auto");
   }
 
   enrollOrContinue() {
     if (this.isEnrolled) {
-      // Already enrolled → Continue Learning
       this.router.navigate([`/courses/${this.courseId}/modules`]);
       return;
     }
 
-    // Not enrolled → Enroll now
+    // Start loading
+    this.btnLoading = true;
+    this.isLoading = true;
+    this.disableNavbarClicks();     //  block navbar clicks
+
     this.courseApi.enroll({
       courseId: this.courseId,
       userId: this.userId
     }).subscribe({
       next: () => {
         this.isEnrolled = true;
-        this.router.navigate([`/courses/${this.courseId}/modules`]);
+
+        // Small delay for smooth UX
+        setTimeout(() => {
+          this.enableNavbarClicks();     // ✔ re-enable navbar
+          this.router.navigate([`/courses/${this.courseId}/modules`]);
+        }, 800);
       },
-      error: (err) => console.error(err)
+      error: () => {
+        this.enableNavbarClicks();
+        this.btnLoading = false;
+        this.isLoading = false;
+      }
     });
   }
 }

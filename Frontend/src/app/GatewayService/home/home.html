@@ -1,3 +1,23 @@
+<!-- If instructor has unfinished course -->
+<!-- Show unfinished course only for instructors -->
+<div *ngIf="unfinishedCourse" class="unfinished-wrapper">
+  <div class="unfinished-card">
+    
+    <h2 class="unfinished-title">Continue Creating Your Course</h2>
+
+    <p class="unfinished-subtitle">
+      You were working on:
+      <span class="course-name">{{ unfinishedCourse.title }}</span>
+    </p>
+
+    <button class="continue-btn" (click)="continueCourse()">
+      Continue Quiz Creation →
+    </button>
+
+  </div>
+</div>
+
+
 <div class="home-container">
 
   <div class="welcome-card">

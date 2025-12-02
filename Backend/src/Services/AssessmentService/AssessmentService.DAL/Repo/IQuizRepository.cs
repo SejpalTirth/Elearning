@@ -10,6 +10,8 @@ namespace AssessmentService.DAL.Repo
         Task<Quiz?> GetByIdWithDetailsAsync(int id);
         Task<IEnumerable<Quiz>> GetAllAsync();
         Task<Quiz?> GetByIdAsync(int id);
+        Task<List<int>> GetModuleIdsWithQuizAsync(List<int> moduleIds);
+
     }
 
 }

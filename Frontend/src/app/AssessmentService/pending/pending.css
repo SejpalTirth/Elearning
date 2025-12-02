@@ -1,0 +1,49 @@
+.wrapper {
+  max-width: 700px;
+  margin: 40px auto;
+  padding: 10px;
+}
+
+h2 {
+  color: #1e57e7;
+  margin-bottom: 15px;
+}
+
+.box {
+  background: white;
+  padding: 18px 20px;
+  border-radius: 10px;
+  border: 1px solid #e5e5e5;
+}
+
+ul {
+  margin-top: 10px;
+  padding-left: 20px;
+}
+
+li {
+  margin-bottom: 4px;
+}
+
+.btn {
+  margin-top: 15px;
+  padding: 10px 18px;
+  background: #1e57e7;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn:hover {
+  background: #0d47a1;
+  transform: translateY(-2px);
+}
+
+.empty {
+  text-align: center;
+  margin-top: 60px;
+  font-size: 1.2rem;
+  color: #444;
+}

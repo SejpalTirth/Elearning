@@ -54,7 +54,14 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./AssessmentService/assessment.routes')
             .then(m => m.ASSESSMENT_ROUTES)
+      },
+
+      {
+      path: 'manage-users',
+      loadChildren: () =>
+        import('./UserService/user.routes').then(m => m.USER_ROUTES)
       }
+
     ]
   },
 
