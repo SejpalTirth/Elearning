@@ -4,8 +4,6 @@ namespace UserService.DAL.Models
 {
     public partial class UserContext : DbContext
     {
-        public UserContext() { }
-
         public UserContext(DbContextOptions<UserContext> options)
             : base(options) { }
 
@@ -21,8 +19,13 @@ namespace UserService.DAL.Models
 
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-            => optionsBuilder.UseSqlServer(
-                "Server=SYN-009738\\SQLEXPRESS;Database=Elearning;Trusted_Connection=True;Encrypt=False;TrustServerCertificate=True");
+        {
+            if (!optionsBuilder.IsConfigured)
+            {
+                optionsBuilder.UseSqlServer(
+                    "Server=SYN-009738\\SQLEXPRESS;Database=Elearning;Trusted_Connection=True;Encrypt=False;TrustServerCertificate=True");
+            }
+        }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

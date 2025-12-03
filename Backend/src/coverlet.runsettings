@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+
+          <!-- EXCLUDE DTOs across all projects -->
+          <ExcludeByFile>**/DTOs/*.cs</ExcludeByFile>
+
+          <!-- EXCLUDE Models across all projects -->
+          <ExcludeByFile>**/Models/*.cs</ExcludeByFile>
+
+          <!-- EXCLUDE Program.cs (user file) -->
+          <ExcludeByFile>**/Program.cs</ExcludeByFile>
+
+          <!-- EXCLUDE Program.g.cs (generated minimal hosting file) -->
+          <ExcludeByFile>**/Program.g.cs</ExcludeByFile>
+
+          <!-- EXCLUDE Program.g.cs inside obj folder (REQUIRED for .NET 6/7/8 minimal hosting) -->
+          <ExcludeByFile>**/obj/**/Program.g.cs</ExcludeByFile>
+
+          <!-- EXCLUDE Entity Framework migrations -->
+          <ExcludeByFile>**/Migrations/*.cs</ExcludeByFile>
+
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

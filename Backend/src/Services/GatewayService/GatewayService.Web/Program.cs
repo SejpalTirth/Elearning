@@ -1,17 +1,38 @@
+using GatewayService.DAL.Data;
+using GatewayService.DAL.Repo;
+using GatewayService.BLL.Interface;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// ----------------------
+// Database
+// ----------------------
+var connectionString = builder.Configuration.GetConnectionString("DefaultString");
 
+// DbContext
+builder.Services.AddDbContext<GatewayServiceContext>(options =>
+    options.UseSqlServer(connectionString));
+
+// ----------------------
+// DI for Repositories + Services
+// ----------------------
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+// ----------------------
+// Controllers + Swagger
+// ----------------------
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var connectionstring = builder.Configuration.GetConnectionString("DefaultString");
-
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// ----------------------
+// Pipeline
+// ----------------------
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -19,9 +40,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();
