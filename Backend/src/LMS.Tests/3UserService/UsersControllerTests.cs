@@ -10,11 +10,17 @@ namespace LMS.Tests.UserService
     {
         private readonly Mock<IUserAuthService> _serviceMock;
         private readonly UsersController _controller;
+        private readonly Mock<IUserService> _userServiceMock;
 
         public UsersControllerTests()
         {
             _serviceMock = new Mock<IUserAuthService>();
-            _controller = new UsersController(_serviceMock.Object);
+            _userServiceMock = new Mock<IUserService>();
+
+            _controller = new UsersController(
+                _serviceMock.Object,
+                _userServiceMock.Object
+            );
         }
 
         // -----------------------------------------------------

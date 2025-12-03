@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using UserService.BLL.DTOs;
 using UserService.BLL.Interface;
+using UserService.DAL.Models;
 using UserService.Web.Controllers;
 
 namespace LMS.Tests.UserService
@@ -10,11 +12,19 @@ namespace LMS.Tests.UserService
     {
         private readonly Mock<IUserAuthService> _serviceMock;
         private readonly RolesController _controller;
+        private readonly UserContext _fakeContext;
 
         public RolesControllerTests()
         {
             _serviceMock = new Mock<IUserAuthService>();
-            _controller = new RolesController(_serviceMock.Object);
+
+            var options = new DbContextOptionsBuilder<UserContext>()
+                .UseInMemoryDatabase("RolesControllerTestsDb")
+                .Options;
+
+            _fakeContext = new UserContext(options);
+
+            _controller = new RolesController(_serviceMock.Object, _fakeContext);
         }
 
         // -----------------------------------------------------
@@ -34,7 +44,7 @@ namespace LMS.Tests.UserService
             _serviceMock.Verify(s => s.AssignRoleAsync(req), Times.Once);
 
             Assert.NotNull(result);
-            Assert.Equal("Role Assigned", result!.Value);
+            Assert.Equal("Role assigned successfully", result!.Value);
         }
 
         // -----------------------------------------------------
@@ -45,7 +55,7 @@ namespace LMS.Tests.UserService
         {
             var id = Guid.NewGuid();
 
-            _serviceMock.Setup(s => s.GetRolesAsync(id))
+            _serviceMock.Setup(s => s.GetUserRolesAsync(id))
                 .ReturnsAsync(new List<string> { "Teacher", "Admin" });
 
             var result = await _controller.GetRoles(id) as OkObjectResult;

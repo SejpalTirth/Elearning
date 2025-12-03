@@ -138,7 +138,7 @@ namespace LMS.Tests.Gateway
 
             // Act
             var dto = new { answers = new[] { 1, 2 } };
-            var result = await controller.SubmitQuiz(dto);
+            var result = await controller.Submit(dto);
 
             // Assert: result should be a StatusCodeObjectResult containing message
             var status = Assert.IsType<ObjectResult>(result);
@@ -168,7 +168,7 @@ namespace LMS.Tests.Gateway
             var controller = CreateControllerWithClient(client, authHeader: "Bearer abc");
 
             // Act
-            var result = await controller.SubmitQuiz(new { foo = "bar" });
+            var result = await controller.Submit(new { foo = "bar" });
 
             // Assert
             var content = Assert.IsType<ContentResult>(result);
@@ -194,7 +194,7 @@ namespace LMS.Tests.Gateway
             var controller = CreateControllerWithClient(client);
 
             // Act
-            var result = await controller.GetSubmissionResult(id);
+            var result = await controller.Result(id);
 
             // Assert
             var content = Assert.IsType<ContentResult>(result);

@@ -12,18 +12,21 @@ namespace LMS.Tests.AssessmentService
         private readonly Mock<IQuizRepository> _quizRepoMock;
         private readonly Mock<ISubmissionRepository> _submissionRepoMock;
         private readonly Mock<IQuestionRepository> _questionRepoMock;
-        private readonly AssessmentServiceImpl _service;
+        private readonly Mock<IHttpClientFactory> _httpFactoryMock;
 
+        private readonly AssessmentServiceImpl _service;
         public AssessmentServiceImplTests()
         {
             _quizRepoMock = new Mock<IQuizRepository>();
             _submissionRepoMock = new Mock<ISubmissionRepository>();
             _questionRepoMock = new Mock<IQuestionRepository>();
+            _httpFactoryMock = new Mock<IHttpClientFactory>();
 
             _service = new AssessmentServiceImpl(
                 _quizRepoMock.Object,
                 _submissionRepoMock.Object,
-                _questionRepoMock.Object
+                _questionRepoMock.Object,
+                _httpFactoryMock.Object  // <-- required now
             );
         }
 
@@ -112,7 +115,7 @@ namespace LMS.Tests.AssessmentService
 
             using var doc = ToJsonDoc(res);
             Assert.True(doc.RootElement.TryGetProperty("message", out var msg));
-            Assert.Equal("A question must have at least 2 options.", msg.GetString());
+            Assert.Equal("A question must have minimum 2 options.", msg.GetString());
 
             _questionRepoMock.Verify(r => r.AddAsync(It.IsAny<Question>()), Times.Never);
         }

@@ -95,7 +95,7 @@ namespace LMS.Tests.CourseServiceTests
                     new Module { Id = 20, Title = "Intro" }
                 });
 
-            var service = new Courseservice(
+            var service = new CourseServiceimpl(
                 _courseRepo.Object,
                 _enrollRepo.Object,
                 _moduleRepo.Object,
@@ -136,7 +136,7 @@ namespace LMS.Tests.CourseServiceTests
                     new Module { Id = 10, Title = "Algebra", Content = "A+" }
                 });
 
-            var service = new Courseservice(
+            var service = new CourseServiceimpl(
                 _courseRepo.Object,
                 _enrollRepo.Object,
                 _moduleRepo.Object,
@@ -174,7 +174,7 @@ namespace LMS.Tests.CourseServiceTests
                 .Callback<Course>(c => capturedCourse = c)
                 .Returns(Task.CompletedTask);
 
-            var service = new Courseservice(
+            var service = new CourseServiceimpl(
                 _courseRepo.Object,
                 _enrollRepo.Object,
                 _moduleRepo.Object,
@@ -221,7 +221,7 @@ namespace LMS.Tests.CourseServiceTests
                 }
             };
 
-            var service = new Courseservice(
+            var service = new CourseServiceimpl(
                 _courseRepo.Object,
                 _enrollRepo.Object,
                 _moduleRepo.Object,
@@ -244,7 +244,7 @@ namespace LMS.Tests.CourseServiceTests
             _enrollRepo.Setup(r => r.IsUserEnrolledAsync("u1", 5))
                 .ReturnsAsync(false);
 
-            var service = new Courseservice(
+            var service = new CourseServiceimpl(
                 _courseRepo.Object,
                 _enrollRepo.Object,
                 _moduleRepo.Object,
@@ -272,7 +272,7 @@ namespace LMS.Tests.CourseServiceTests
             _courseRepo.Setup(r => r.GetByIdWithModulesAsync(1))
                 .ReturnsAsync(course);
 
-            var service = new Courseservice(
+            var service = new CourseServiceimpl(
                 _courseRepo.Object,
                 _enrollRepo.Object,
                 _moduleRepo.Object,

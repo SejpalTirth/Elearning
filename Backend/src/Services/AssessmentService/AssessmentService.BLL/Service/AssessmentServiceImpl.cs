@@ -156,7 +156,7 @@ namespace AssessmentService.BLL.Services
             quiz.TotalMarks = (quiz.TotalMarks ?? 0) + dto.Marks;
             await _quizRepo.SaveChangesAsync();
 
-            return new { message = "Question added.", questionId = question.Id };
+            return new { message = "Question added successfully.", questionId = question.Id };
         }
 
         // GET QUIZ FOR MODULE

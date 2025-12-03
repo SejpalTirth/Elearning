@@ -95,7 +95,7 @@ namespace LMS.Tests.Gateway
 
             var controller = CreateController();
 
-            var result = await controller.Get(5);
+            var result = await controller.GetById(5);
             var content = Assert.IsType<ContentResult>(result);
 
             Assert.Equal("{\"id\":5}", content.Content);
@@ -169,7 +169,7 @@ namespace LMS.Tests.Gateway
 
             var controller = CreateController();
 
-            var result = await controller.Get(999);
+            var result = await controller.GetById(999);
             var bad = Assert.IsType<ObjectResult>(result);
 
             var dict = bad.Value!.GetType()
