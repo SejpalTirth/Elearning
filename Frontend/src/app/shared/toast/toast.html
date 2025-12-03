@@ -1,0 +1,10 @@
+<div class="toast-wrapper">
+  <div 
+    class="toast" 
+    *ngFor="let t of toastService.toasts" 
+    [class.success]="t.type === 'success'"
+    [class.error]="t.type === 'error'"
+  >
+    {{ t.message }}
+  </div>
+</div>

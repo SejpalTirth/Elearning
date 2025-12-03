@@ -1,0 +1,76 @@
+.page-title {
+  text-align: center;
+  margin-top: 30px;
+  font-size: 1.9rem;
+  color: #1a1a1a;
+  font-weight: 700;
+}
+
+.pending-card {
+  width: 60%;
+  margin: 30px auto;
+  padding: 30px;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  border: 1px solid #e5e5e5;
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+.course-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 15px;
+  color: #1a1a1a;
+}
+
+.subtext {
+  font-size: 1.1rem;
+  color: #555;
+  margin-bottom: 12px;
+}
+
+.module-list {
+  margin-left: 18px;
+  margin-bottom: 25px;
+  color: #333;
+}
+
+.action-btn {
+  width: 100%;
+  padding: 12px;
+  background: #1e57e7;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: 600;
+  transition: 0.2s ease-in-out;
+}
+
+.action-btn:hover {
+  background: #0d47a1;
+  transform: translateY(-2px);
+}
+
+.action-btn.publish {
+  background: #1bbf43;
+}
+
+.action-btn.publish:hover {
+  background: #159e36;
+}
+
+.empty-state {
+  text-align: center;
+  margin-top: 80px;
+  color: #444;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

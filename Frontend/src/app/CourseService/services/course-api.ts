@@ -57,5 +57,16 @@ export class CourseApiService {
   return this.http.delete(`${this.baseUrl}/${id}`, { withCredentials: true });
   }
 
+  publishCourse(courseId: number) {
+  return this.http.post(`${this.baseUrl}/publish/${courseId}`, {});
+  }
+
+  getInstructorUnpublishedCourse(userId: string) {
+  return this.http.get(`${this.baseUrl}/instructor/unpublished/${userId}`);
+  }
+  getInstructorDraftCourse() {
+  return this.http.get(`${this.baseUrl}/instructor/draft`);
+  }
+
 
 }

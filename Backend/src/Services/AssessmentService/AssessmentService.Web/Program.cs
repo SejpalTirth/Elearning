@@ -18,6 +18,14 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<AssessmentDbContext>(options =>
     options.UseSqlServer(connectionString));
 
+// In AssessmentService.Web Program.cs or similar
+builder.Services.AddHttpClient("CourseService", c =>
+{
+    c.BaseAddress = new Uri("https://localhost:7190/");
+    c.Timeout = TimeSpan.FromSeconds(10);
+});
+
+
 // Register Repositories (DAL)
 builder.Services.AddScoped<IQuizRepository, QuizRepository>();
 builder.Services.AddScoped<IQuestionRepository, QuestionRepository>();

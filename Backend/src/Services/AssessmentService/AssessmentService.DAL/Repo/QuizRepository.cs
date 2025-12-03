@@ -50,6 +50,15 @@ namespace AssessmentService.DAL.Repo
         {
             return await _db.Quizzes.FirstOrDefaultAsync(q => q.Id == id);
         }
-            
+
+        public async Task<List<int>> GetModuleIdsWithQuizAsync(List<int> moduleIds)
+        {
+            return await _db.Quizzes
+                .Where(q => moduleIds.Contains(q.ModuleId.Value))
+                .Select(q => q.ModuleId.Value)
+                .ToListAsync();
+        }
+
+
     }
 }

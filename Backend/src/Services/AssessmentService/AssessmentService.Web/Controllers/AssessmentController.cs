@@ -79,5 +79,28 @@ namespace AssessmentService.Web.Controllers
 
             return Ok(result);
         }
+
+        [HttpGet("course/{courseId}/quiz-status")]
+        public async Task<IActionResult> GetQuizStatus(int courseId)
+        {
+            var result = await _assessmentService.GetQuizStatusForCourseAsync(courseId);
+            return Ok(result);
+        }
+
+        [HttpGet("unquizzed-modules/{courseId:int}")]
+        public async Task<IActionResult> GetModulesWithoutQuiz(int courseId)
+        {
+            var result = await _assessmentService.GetModulesWithoutQuizByCourseAsync(courseId);
+            return Ok(result);
+        }
+
+        [HttpGet("course-status/{courseId:int}")]
+        public async Task<IActionResult> GetCourseQuizStatus(int courseId)
+        {
+            var result = await _assessmentService.GetQuizStatusForCourseAsync(courseId);
+            return Ok(result);
+        }
+
+
     }
 }

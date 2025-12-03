@@ -1,0 +1,33 @@
+<h2 class="page-title">Pending Tasks</h2>
+
+<div class="pending-card" *ngIf="course">
+
+  <h3 class="course-title">{{ course.title }}</h3>
+
+  <!-- CASE 1 — MODULES NEED QUIZZES -->
+  <div *ngIf="pendingModules.length > 0">
+    <p class="subtext">These modules need quizzes:</p>
+
+    <ul class="module-list">
+      <li *ngFor="let m of pendingModules">Module ID: {{ m }}</li>
+    </ul>
+
+    <button class="action-btn" (click)="continueQuiz()">
+      Continue Quiz Creation →
+    </button>
+  </div>
+
+  <!-- CASE 2 — ALL QUIZZES DONE, READY TO PUBLISH -->
+  <div *ngIf="pendingModules.length === 0 && allQuizzesDone">
+    <p class="subtext">All quizzes are completed! 🎉</p>
+
+    <button class="action-btn publish" (click)="publishCourse()">
+      Publish Course 🚀
+    </button>
+  </div>
+
+</div>
+
+<div *ngIf="!course" class="empty-state">
+  <p>No pending tasks 🎉</p>
+</div>

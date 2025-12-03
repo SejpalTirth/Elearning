@@ -1,0 +1,39 @@
+<h2>Manage Users</h2>
+
+<div *ngIf="loading">Loading users...</div>
+
+<table *ngIf="!loading" border="1" cellpadding="8">
+  <tr>
+    <th>Name</th>
+    <th>Email</th>
+    <th>Role</th>
+    <th>Action</th>
+  </tr>
+
+  <tr *ngFor="let user of users">
+    <td>{{ user.name }}</td>
+    <td>{{ user.email }}</td>
+    <td>{{ user.role }}</td>
+    <td>
+      <button (click)="openRoleModal(user)">Change Role</button>
+    </td>
+  </tr>
+</table>
+
+<!-- Modal -->
+<div class="modal" *ngIf="selectedUser">
+  <div class="modal-content">
+
+    <h3>Change role for: {{ selectedUser.name }}</h3>
+
+    <select [(ngModel)]="selectedRoleId">
+      <option value="">Select Role</option>
+      <option *ngFor="let r of roles" [value]="r.id">{{ r.name }}</option>
+    </select>
+
+    <div class="modal-actions">
+      <button (click)="updateRole()" [disabled]="updating">Update</button>
+      <button (click)="selectedUser = null">Cancel</button>
+    </div>
+  </div>
+</div>

@@ -4,16 +4,18 @@ import { CommonModule } from '@angular/common';
 
 import { HeaderComponent } from './GatewayService/header/header';
 import { SharedHeaderComponent } from './shared/header/header';
+import { ToastContainerComponent } from "./shared/toast/toast";
 
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [
-    CommonModule,       // REQUIRED for *ngIf
+    CommonModule, // REQUIRED for *ngIf
     RouterOutlet,
     HeaderComponent,
-    SharedHeaderComponent
-  ],
+    SharedHeaderComponent,
+    ToastContainerComponent
+],
   templateUrl: './app.html'
 })
 export class App {

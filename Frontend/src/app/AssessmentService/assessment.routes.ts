@@ -1,4 +1,6 @@
 import { Routes } from '@angular/router';
+import { CourseQuizGuard } from 'app/CourseService/guards/course-quiz.guard';
+import { Pending } from './pending/pending';
 
 export const ASSESSMENT_ROUTES: Routes = [
   {
@@ -13,7 +15,11 @@ export const ASSESSMENT_ROUTES: Routes = [
   },
   {
     path: 'add-quiz/:courseId',
-    loadComponent: () =>
-      import('./add-quiz/add-quiz.component').then(m => m.AddQuizComponent)
+    loadComponent: () => import('./add-quiz/add-quiz.component').then(m => m.AddQuizComponent),
+    canDeactivate: [CourseQuizGuard]   // ← IMPORTANT
+  },
+  {
+  path: 'pending',
+  component: Pending
   }
 ];

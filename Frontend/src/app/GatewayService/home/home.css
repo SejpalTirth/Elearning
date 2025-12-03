@@ -1,5 +1,5 @@
 .home-container {
-  height: calc(100vh - 80px); /* subtract navbar height */
+  height: calc(100vh - 80px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -8,12 +8,12 @@
   animation: fadeIn 0.6s ease-in-out;
 }
 
-/* Modern Glass Card */
+/* Modern Welcome Card */
 .welcome-card {
   background: rgba(255, 255, 255, 0.85);
   border-radius: 18px;
-  padding: 50px 60px;
-  width: 520px;
+  padding: 40px 50px;
+  width: 480px;
   text-align: center;
   backdrop-filter: blur(12px);
   box-shadow: 0 10px 25px rgba(0,0,0,0.15);
@@ -34,7 +34,7 @@
 .subtitle {
   color: #444;
   font-size: 1.1rem;
-  margin-bottom: 30px;
+  margin-bottom: 25px;
 }
 
 /* Button */

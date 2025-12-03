@@ -1,14 +1,15 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, FormArray, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormArray, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AssessmentApiService } from '../services/assessment-api';
 import { CourseApiService } from '../../CourseService/services/course-api';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ModuleTitlePipe } from './module-title.pipe';
 
 @Component({
   selector: 'app-add-quiz',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, ModuleTitlePipe],
   templateUrl: './add-quiz.html',
   styleUrls: ['./add-quiz.css']
 })
@@ -22,6 +23,9 @@ export class AddQuizComponent implements OnInit {
   createdQuizId = 0;
   courseId = 0;
 
+  currentModuleId: number | null = null;
+  currentModuleTitle: string = "";
+
   constructor(
     private fb: FormBuilder,
     private assessmentApi: AssessmentApiService,
@@ -32,23 +36,25 @@ export class AddQuizComponent implements OnInit {
 
   ngOnInit(): void {
 
-    // PHASE 1: get courseId from route
     this.courseId = Number(this.route.snapshot.paramMap.get('courseId'));
 
-    // PHASE 2: load modules for this course
+    // Load course modules
     this.courseApi.getModules(this.courseId).subscribe({
-      next: (res: any[]) => (this.modules = res),
+      next: (res: any[]) => {
+        this.modules = res;
+        this.loadNextPendingModule();
+      },
       error: (err) => console.error('Module Load Error:', err)
     });
 
-    // PHASE 3: quiz create form
+    // Quiz Details form
     this.quizForm = this.fb.group({
       moduleId: [''],
       title: [''],
       timeLimitMinutes: [10]
     });
 
-    // ⭐ PHASE 4: first question form
+    // First Question form
     this.questionForm = this.fb.group({
       text: [''],
       marks: [1],
@@ -66,15 +72,37 @@ export class AddQuizComponent implements OnInit {
     return this.questionForm.get('options') as FormArray;
   }
 
-  createQuiz() {
-    const dto = this.quizForm.value;
+  // AUTO SELECT NEXT MODULE WITHOUT QUIZ
+  loadNextPendingModule() {
+    this.assessmentApi.getUnquizzedModules(this.courseId).subscribe({
+      next: (missing: number[]) => {
+        if (!missing || missing.length === 0) {
+          this.currentModuleId = null;
+          this.currentModuleTitle = "";
+          return;
+        }
 
-    this.assessmentApi.createQuiz(dto).subscribe({
+        this.currentModuleId = missing[0];
+
+        const moduleObj = this.modules.find(x => x.id === this.currentModuleId);
+        this.currentModuleTitle = moduleObj ? moduleObj.title : "";
+
+        // Prefill form automatically
+        this.quizForm.patchValue({
+          moduleId: this.currentModuleId,
+          title: `${this.currentModuleTitle} Quiz`
+        });
+      },
+      error: err => console.error(err)
+    });
+  }
+
+  createQuiz() {
+    this.assessmentApi.createQuiz(this.quizForm.value).subscribe({
       next: (res: any) => {
         if (res.quizId) {
           this.quizCreated = true;
           this.createdQuizId = res.quizId;
-          alert("Quiz created. Add your first question now.");
         }
       },
       error: (err) => console.error('Quiz Create Error:', err)
@@ -82,12 +110,8 @@ export class AddQuizComponent implements OnInit {
   }
 
   addQuestion() {
-    const dto = this.questionForm.value;
-
-    this.assessmentApi.addQuestion(this.createdQuizId, dto).subscribe({
+    this.assessmentApi.addQuestion(this.createdQuizId, this.questionForm.value).subscribe({
       next: () => {
-        alert("Question added!");
-
         this.questionForm.reset({
           text: '',
           marks: 1,
@@ -98,9 +122,18 @@ export class AddQuizComponent implements OnInit {
       error: (err) => console.error('Add Question Error:', err)
     });
   }
+
   exit() {
-  this.router.navigate(['/courses']);
-}
+    this.assessmentApi.getUnquizzedModules(this.courseId).subscribe({
+      next: (missing) => {
+        if (missing && missing.length > 0) {
+          alert("You must complete quizzes for all modules before exiting.");
+          return;
+        }
 
-
+        // All quizzes done → redirect
+        this.router.navigate(['/courses']);
+      }
+    });
+  }
 }

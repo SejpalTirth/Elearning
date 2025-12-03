@@ -5,13 +5,25 @@ namespace CourseService.BLL.Interface
 {
     public interface ICourseService
     {
+        // Main course operations
         Task<IEnumerable<CourseResponseDto>> GetAllAsync();
         Task<CourseResponseDto?> GetByIdAsync(int id);
         Task<Course> CreateAsync(CourseDto dto);
         Task<Course?> UpdateAsync(int id, UpdateCourseDto dto);
+        Task<bool> DeleteAsync(int id);
+
+        // Enrollment
         Task<bool> EnrollUserAsync(EnrollRequestDto dto);
         Task<IEnumerable<Course>> GetUserEnrolledCoursesAsync(string userId);
+
+        // Instructor-specific
         Task<IEnumerable<Course>> GetCoursesByInstructorAsync(Guid instructorId);
-        Task<bool> DeleteAsync(int id);
+
+        // Publish logic
+        Task<bool> PublishCourseIfReadyAsync(int courseId);
+
+        // Pending task system (final)
+        Task<object?> GetUnfinishedCourseAsync(Guid instructorId); // works with gateway forwarding
+        Task<bool> ContinueUnfinishedCourseAsync(int courseId);
     }
 }

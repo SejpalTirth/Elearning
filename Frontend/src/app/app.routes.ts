@@ -54,7 +54,18 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./AssessmentService/assessment.routes')
             .then(m => m.ASSESSMENT_ROUTES)
+      },
+      {
+        path: 'assessment/pending',
+        loadComponent: () =>
+        import('./AssessmentService/pending/pending').then(m => m.Pending)
+      },
+      {
+      path: 'manage-users',
+      loadChildren: () =>
+        import('./UserService/user.routes').then(m => m.USER_ROUTES)
       }
+
     ]
   },
 

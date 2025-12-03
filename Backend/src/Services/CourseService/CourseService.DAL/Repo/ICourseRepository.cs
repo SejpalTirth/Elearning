@@ -13,5 +13,9 @@ namespace CourseService.DAL.Repo
         Task SaveChangesAsync();
         Task<IEnumerable<Course>> GetByIdsAsync(List<int> ids);
         Task<IEnumerable<Course>> GetByInstructorIdAsync(Guid instructorId);
+        Task<Course?> GetFirstUnpublishedCourse(Guid instructorUserId);
+        Task<Course?> GetLatestUnfinishedCourseAsync(Guid instructorId);
+        Task<Course?> GetByIdAllowDeletedAsync(int id);
+
     }
 }
