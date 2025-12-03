@@ -16,6 +16,7 @@ export class Pending implements OnInit {
   userId: string = '';
   course: any = null;
   pendingModules: number[] = [];
+  allQuizzesDone: boolean = false;
 
   private courseGateway = "https://localhost:7249/api/GatewayCourse";
   private assessmentGateway = "https://localhost:7249/api/AssessmentGateway";
@@ -36,6 +37,7 @@ export class Pending implements OnInit {
     this.loadUnfinishedCourse();
   }
 
+  // STEP 1 — Fetch unfinished course (soft-deleted course)
   loadUnfinishedCourse() {
     this.http.get(`${this.courseGateway}/unfinished/${this.userId}`).subscribe({
       next: (res: any) => {
@@ -50,11 +52,11 @@ export class Pending implements OnInit {
       },
       error: () => {
         this.course = null;
-        this.toastService.showError("Failed to load pending tasks.");
       }
     });
   }
 
+  // STEP 2 — Check which modules need quizzes
   loadPendingModules(courseId: number) {
     this.http.get<number[]>(`${this.assessmentGateway}/unquizzed-modules/${courseId}`)
       .subscribe({
@@ -62,14 +64,38 @@ export class Pending implements OnInit {
           this.pendingModules = moduleIds || [];
 
           if (this.pendingModules.length > 0) {
+            this.allQuizzesDone = false;
             this.toastService.showError("Some modules still need quizzes.");
+            return;
           }
+
+          // ALL QUIZZES DONE → ready to publish
+          this.allQuizzesDone = true;
+          this.toastService.showSuccess("Course is ready to publish.");
+        },
+        error: () => {
+          this.allQuizzesDone = false;
         }
       });
   }
 
   continueQuiz() {
-    if (!this.course) return;
     this.router.navigate(['/assessment/add-quiz', this.course.id]);
   }
+
+  publishCourse() {
+  if (!this.course) return;
+
+  this.http.post(`${this.courseGateway}/${this.course.id}/publish`, {})
+    .subscribe({
+      next: () => {
+        this.toastService.showSuccess("Course published successfully! 🚀");
+        this.router.navigate(['/home']);
+      },
+      error: () => {
+        this.toastService.showError("Failed to publish the course.");
+      }
+    });
+}
+
 }

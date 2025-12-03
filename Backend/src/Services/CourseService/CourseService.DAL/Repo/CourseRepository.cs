@@ -99,5 +99,13 @@ namespace CourseService.DAL.Repo
                 .OrderByDescending(c => c.Id)   // use Id instead of CreatedAt
                 .FirstOrDefaultAsync();
         }
+
+        public async Task<Course?> GetByIdAllowDeletedAsync(int id)
+        {
+            return await _db.Courses
+                .Include(c => c.Modules)
+                .FirstOrDefaultAsync(c => c.Id == id);
+        }
+
     }
 }

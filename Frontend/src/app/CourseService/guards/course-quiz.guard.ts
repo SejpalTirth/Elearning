@@ -9,12 +9,6 @@ import { Observable, of } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { catchError, map } from 'rxjs/operators';
 
-/**
- * CanDeactivate guard used for AddCourseComponent and EditCourseComponent.
- * - Expects the component to expose a numeric `courseId` property (or a getCourseId() method).
- * - Calls AssessmentService endpoint to find modules without quiz for that course.
- * - If there are missing modules, redirect to the assessment add-quiz page and block navigation.
- */
 export interface CourseEditor {
   // Guard will try component.courseId first, then component.getCourseId()
   courseId?: number;
@@ -27,7 +21,7 @@ export interface CourseEditor {
 export class CourseQuizGuard implements CanDeactivate<CourseEditor> {
 
   // Make sure this matches your AssessmentService base URL + endpoint
-  private assessmentUnquizzedUrl = 'https://localhost:7249/api/assessment/unquizzed-modules'; 
+  private assessmentUnquizzedUrl = 'https://localhost:7249/api/AssessmentGateway/unquizzed-modules'; 
   // If you use different base or gateway, update the above string.
 
   constructor(private http: HttpClient, private router: Router) {}

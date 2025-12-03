@@ -55,7 +55,11 @@ export const routes: Routes = [
           import('./AssessmentService/assessment.routes')
             .then(m => m.ASSESSMENT_ROUTES)
       },
-
+      {
+        path: 'assessment/pending',
+        loadComponent: () =>
+        import('./AssessmentService/pending/pending').then(m => m.Pending)
+      },
       {
       path: 'manage-users',
       loadChildren: () =>

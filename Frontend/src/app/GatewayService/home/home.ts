@@ -6,6 +6,7 @@ import { ToastService } from 'app/shared/toast.service';
 
 @Component({
   selector: 'app-home',
+  standalone: true,
   imports: [CommonModule],
   templateUrl: './home.html',
   styleUrls: ['./home.css']
@@ -14,10 +15,9 @@ export class Home implements OnInit {
 
   userName: string | null = null;
   role: string | null = null;
-  userId: string | null = null;
-  unfinishedCourse: any = null;
 
-  private gatewayUrl = 'https://localhost:7249/api/GatewayCourse';
+  private gatewayCourseUrl = 'https://localhost:7249/api/GatewayCourse';
+  private gatewayAssessmentUrl = 'https://localhost:7249/api/AssessmentGateway';
 
   constructor(
     private router: Router,
@@ -28,13 +28,13 @@ export class Home implements OnInit {
   ngOnInit(): void {
     this.loadUserInfo();
 
-    // Load unfinished course only for instructors
+    // Only instructors should see pending task reminders
     if (this.role === 'Instructor') {
-      this.loadUnfinishedCourse();
+      this.checkForPendingTasks();
     }
   }
 
-  // ------------------ LOAD USER INFO FROM JWT ------------------
+  // ------------------ Load User Info From JWT ------------------
   loadUserInfo() {
     const token = localStorage.getItem('token');
 
@@ -48,37 +48,50 @@ export class Home implements OnInit {
 
       this.userName = payload['name'] || 'User';
       this.role = payload['role'] || null;
-      this.userId = payload['sub'] || null;   // <-- FIX ADDED HERE
 
     } catch (err) {
-      console.error("Failed to decode token", err);
+      console.error('JWT Decode Failed:', err);
       this.router.navigate(['/']);
     }
   }
 
-  // ------------------ LOAD UNFINISHED COURSE ------------------
-  loadUnfinishedCourse() {
-    if (!this.userId) return; // safety check
+  // ------------------ Check If Instructor Has Unfinished Course ------------------
+  checkForPendingTasks() {
+    const token = localStorage.getItem('token');
+    if (!token) return;
 
-    this.http.get(`${this.gatewayUrl}/unfinished/${this.userId}`).subscribe({
-      next: (res: any) => {
-        if (res && res.id) {
-          this.toastService.showError(
-            "You have an unfinished course. Continue quiz creation!"
-          );
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const userId = payload.sub;
+
+    // STEP 1 — Fetch unfinished course
+    this.http.get<any>(`${this.gatewayCourseUrl}/unfinished/${userId}`).subscribe({
+      next: (course) => {
+        if (!course || !course.id) {
+          return; // no unfinished course
         }
+
+        const courseId = course.id;
+
+        // STEP 2 — Check quiz status
+        this.http.get<number[]>(
+          `${this.gatewayAssessmentUrl}/unquizzed-modules/${courseId}`
+        ).subscribe({
+          next: (modules) => {
+            if (modules && modules.length > 0) {
+              // Modules missing quizzes → SHOW TOAST
+              this.toastService.showError(
+                "You have pending course tasks — quizzes need to be completed."
+              );
+            }
+          },
+          error: () => {}
+        });
       },
       error: () => {}
     });
   }
 
-  continueCourse() {
-    if (!this.unfinishedCourse) return;
-
-    const courseId = this.unfinishedCourse.id;
-    this.router.navigate(['/assessment/add-quiz', courseId]);
-  }
-
+  // ------------------ Navigation ------------------
   goToCourses() {
     this.router.navigate(['/courses']);
   }

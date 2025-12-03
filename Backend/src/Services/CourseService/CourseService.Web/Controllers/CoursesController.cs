@@ -65,23 +65,20 @@ namespace CourseService.Web.Controllers
             return updated == null ? NotFound() : Ok(updated);
         }
 
-        // ---------------- ENROLL (with email trigger) ----------------
+        // ---------------- ENROLL USER ----------------
         [HttpPost("enroll")]
         public async Task<IActionResult> Enroll([FromBody] EnrollRequestDto dto)
         {
-            // 1) Enroll user in course (existing logic)
             bool success = await _courseService.EnrollUserAsync(dto);
             if (!success)
                 return BadRequest("User already enrolled.");
 
-            // 2) Load course details
             var course = await _courseService.GetByIdAsync(dto.CourseId);
             if (course == null)
                 return Ok("Enrollment successful (course not found for email).");
 
             try
             {
-                // 3) Call UserService to get user info
                 using var userClient = new HttpClient
                 {
                     BaseAddress = new Uri("https://localhost:7130")
@@ -89,15 +86,12 @@ namespace CourseService.Web.Controllers
 
                 var user = await userClient.GetFromJsonAsync<UserInfo>($"/api/users/{dto.UserId}");
                 if (user == null || string.IsNullOrWhiteSpace(user.Email))
-                {
                     return Ok("Enrollment successful (user email not found).");
-                }
 
                 var displayName = string.IsNullOrWhiteSpace(user.Name)
                     ? user.Email.Split('@')[0]
                     : user.Name;
 
-                // 4) Build notification trigger payload
                 var triggerPayload = new
                 {
                     userId = user.Id,
@@ -110,7 +104,6 @@ namespace CourseService.Web.Controllers
                     }
                 };
 
-                // 5) Call NotificationService
                 using var notificationClient = new HttpClient
                 {
                     BaseAddress = new Uri("https://localhost:7245")
@@ -120,7 +113,6 @@ namespace CourseService.Web.Controllers
             }
             catch (Exception ex)
             {
-                // Do not fail enrollment if email fails
                 Console.WriteLine($"[Enrollment Email Error] {ex.Message}");
             }
 
@@ -148,47 +140,29 @@ namespace CourseService.Web.Controllers
             return deleted ? NoContent() : NotFound();
         }
 
-        [HttpPut("publish/{courseId:int}")]
+        // ---------------- COURSE PUBLISH ----------------
+        [HttpPost("{courseId:int}/publish")]
         public async Task<IActionResult> PublishCourse(int courseId)
         {
             bool success = await _courseService.PublishCourseIfReadyAsync(courseId);
+
             if (!success)
                 return BadRequest("All modules must have a quiz before publishing.");
 
             return Ok("Course published successfully.");
         }
 
-        // POST /api/courses/{id}/publish
-        [HttpPost("{id:int}/publish")]
-        public async Task<IActionResult> TryPublishCourse(int id)
-        {
-            var result = await _courseService.PublishCourseIfReadyAsync(id);
-            return Ok(new { published = result });
-        }
 
-        // GET: api/courses/instructor/unpublished/{instructorUserId}
-        [HttpGet("instructor/unpublished/{instructorUserId}")]
-        public async Task<IActionResult> GetUnpublishedCourse(Guid instructorUserId)
-        {
-            var course = await _courseService.GetUnpublishedCourseAsync(instructorUserId);
-            if (course == null)
-                return Ok(null);
-
-            return Ok(new { courseId = course.Id });
-        }
 
         // ================== GET UNFINISHED COURSE FOR INSTRUCTOR ==================
         [HttpGet("unfinished/{instructorId:guid}")]
         public async Task<IActionResult> GetUnfinishedCourse(Guid instructorId)
         {
             var course = await _courseService.GetUnfinishedCourseAsync(instructorId);
-            if (course == null)
-                return NotFound();
-
             return Ok(course);
         }
 
-        // ================== CONTINUE COURSE (UNDELETE) ==================
+        // ================== CONTINUE COURSE ==================
         [HttpPost("continue/{courseId:int}")]
         public async Task<IActionResult> ContinueCourse(int courseId)
         {
@@ -196,8 +170,6 @@ namespace CourseService.Web.Controllers
             return Ok(result);
         }
 
-
-        // Local helper type for reading UserService response
         private class UserInfo
         {
             public Guid Id { get; set; }
