@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AutoFixture;
+using Microsoft.AspNetCore.Mvc;
 using Moq;
 using UserService.BLL.DTOs;
 using UserService.BLL.Interface;
@@ -10,11 +11,20 @@ namespace LMS.Tests.UserService
     {
         private readonly Mock<IUserAuthService> _serviceMock;
         private readonly PermissionsController _controller;
+        private readonly Fixture _fixture;
 
         public PermissionsControllerTests()
         {
             _serviceMock = new Mock<IUserAuthService>();
             _controller = new PermissionsController(_serviceMock.Object);
+
+            _fixture = new Fixture();
+
+            // Recursion guard (safe default for DTOs)
+            _fixture.Behaviors.OfType<ThrowingRecursionBehavior>()
+                .ToList()
+                .ForEach(b => _fixture.Behaviors.Remove(b));
+            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
         }
 
         // -----------------------------------------------------
@@ -23,11 +33,10 @@ namespace LMS.Tests.UserService
         [Fact]
         public async Task AssignPermission_ShouldCallService_AndReturnOk()
         {
-            var req = new AssignPermissionRequest
-            {
-                RoleId = 2,
-                PermissionId = 5
-            };
+            var req = _fixture.Build<AssignPermissionRequest>()
+                .With(r => r.RoleId, 2)
+                .With(r => r.PermissionId, 5)
+                .Create();
 
             var result = await _controller.AssignPermission(req) as OkObjectResult;
 
@@ -45,15 +54,21 @@ namespace LMS.Tests.UserService
         {
             var userId = Guid.NewGuid();
 
+            var permissions = _fixture.CreateMany<string>(2).ToList();
+
             _serviceMock.Setup(s => s.GetPermissionsAsync(userId))
-                .ReturnsAsync(new List<string> { "Create", "Edit" });
+                .ReturnsAsync(permissions);
 
             var result = await _controller.GetPermissions(userId) as OkObjectResult;
 
             Assert.NotNull(result);
+
             var list = Assert.IsType<List<string>>(result!.Value);
-            Assert.Equal(2, list.Count);
-            Assert.Contains("Create", list);
+            Assert.Equal(permissions.Count, list.Count);
+
+            // verify same contents
+            foreach (var item in permissions)
+                Assert.Contains(item, list);
         }
     }
 }

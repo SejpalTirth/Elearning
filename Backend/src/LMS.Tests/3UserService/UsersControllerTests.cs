@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AutoFixture;
+using Microsoft.AspNetCore.Mvc;
 using Moq;
+using System.Text.Json;
 using UserService.BLL.DTOs;
 using UserService.BLL.Interface;
 using UserService.Web.Controllers;
@@ -8,19 +10,19 @@ namespace LMS.Tests.UserService
 {
     public class UsersControllerTests
     {
-        private readonly Mock<IUserAuthService> _serviceMock;
         private readonly UsersController _controller;
-        private readonly Mock<IUserService> _userServiceMock;
+        private readonly Mock<IUserAuthService> _authMock;
+        private readonly Mock<IUserService> _userMock;
+        private readonly Fixture _fixture;
 
         public UsersControllerTests()
         {
-            _serviceMock = new Mock<IUserAuthService>();
-            _userServiceMock = new Mock<IUserService>();
+            _authMock = new Mock<IUserAuthService>();
+            _userMock = new Mock<IUserService>();
 
-            _controller = new UsersController(
-                _serviceMock.Object,
-                _userServiceMock.Object
-            );
+            _controller = new UsersController(_authMock.Object, _userMock.Object);
+
+            _fixture = new Fixture();
         }
 
         // -----------------------------------------------------
@@ -29,13 +31,14 @@ namespace LMS.Tests.UserService
         [Fact]
         public async Task GetUser_ShouldReturnUser_WhenExists()
         {
-            var id = Guid.NewGuid();
-            var dto = new UserAuthDto { Id = id, Email = "test@mail.com" };
+            var dto = _fixture.Build<UserAuthDto>()
+                .With(x => x.Email, "test@mail.com")
+                .Create();
 
-            _serviceMock.Setup(s => s.GetUserAuthorizationAsync(id))
+            _authMock.Setup(s => s.GetUserAuthorizationAsync(dto.Id))
                 .ReturnsAsync(dto);
 
-            var result = await _controller.GetUser(id) as OkObjectResult;
+            var result = await _controller.GetUser(dto.Id) as OkObjectResult;
 
             Assert.NotNull(result);
             Assert.Equal(dto, result!.Value);
@@ -46,7 +49,7 @@ namespace LMS.Tests.UserService
         {
             var id = Guid.NewGuid();
 
-            _serviceMock.Setup(s => s.GetUserAuthorizationAsync(id))
+            _authMock.Setup(s => s.GetUserAuthorizationAsync(id))
                 .ReturnsAsync((UserAuthDto?)null);
 
             var result = await _controller.GetUser(id);
@@ -60,32 +63,30 @@ namespace LMS.Tests.UserService
         [Fact]
         public async Task CompleteProfile_ShouldReturnOk_WhenSuccess()
         {
-            var dto = new CompleteProfileDto
-            {
-                UserId = Guid.NewGuid(),
-                RoleId = 2,
-                Name = "Kira"
-            };
+            var dto = _fixture.Build<CompleteProfileDto>()
+                .With(x => x.RoleId, 2)
+                .With(x => x.Name, "Kira")
+                .Create();
 
-            _serviceMock.Setup(s => s.CompleteUserProfileAsync(dto))
+            _authMock.Setup(s => s.CompleteUserProfileAsync(dto))
                 .ReturnsAsync(new CompleteProfileResultDto { Success = true });
 
             var result = await _controller.CompleteProfile(dto) as OkObjectResult;
 
             Assert.NotNull(result);
 
-            var dict = result!.Value.GetType()
-                .GetProperties()
-                .ToDictionary(p => p.Name, p => p.GetValue(result.Value));
+            // Convert anonymous object → JSON → Dictionary
+            var json = JsonSerializer.Serialize(result!.Value);
+            var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(json)!;
 
-            Assert.True((bool)dict["success"]);
+            Assert.True(bool.Parse(dict["success"]!.ToString()!));
         }
 
 
         [Fact]
         public async Task CompleteProfile_ShouldReturnBadRequest_WhenValidationFails()
         {
-            var dto = new CompleteProfileDto();
+            var dto = new CompleteProfileDto(); // invalid
 
             _controller.ModelState.AddModelError("Name", "Required");
 
@@ -97,29 +98,30 @@ namespace LMS.Tests.UserService
         [Fact]
         public async Task CompleteProfile_ShouldReturnBadRequest_WhenServiceFails()
         {
-            var dto = new CompleteProfileDto
+            var dto = _fixture.Build<CompleteProfileDto>()
+                .With(x => x.RoleId, 1)
+                .With(x => x.Name, "Test")
+                .Create();
+
+            var failResult = new CompleteProfileResultDto
             {
-                UserId = Guid.NewGuid(),
-                RoleId = 1,
-                Name = "Test"
+                Success = false,
+                Message = "Cannot assign Admin"
             };
 
-            _serviceMock.Setup(s => s.CompleteUserProfileAsync(dto))
-                .ReturnsAsync(new CompleteProfileResultDto
-                {
-                    Success = false,
-                    Message = "Cannot assign Admin"
-                });
+            _authMock.Setup(s => s.CompleteUserProfileAsync(dto))
+                .ReturnsAsync(failResult);
 
             var result = await _controller.CompleteProfile(dto) as BadRequestObjectResult;
 
             Assert.NotNull(result);
 
-            var dict = result!.Value.GetType()
-                .GetProperties()
-                .ToDictionary(p => p.Name, p => p.GetValue(result.Value));
+            // Convert anonymous object → JSON → Dictionary
+            var json = JsonSerializer.Serialize(result!.Value);
+            var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(json)!;
 
-            Assert.Equal("Cannot assign Admin", dict["message"]);
+            Assert.Equal("Cannot assign Admin", dict["message"]!.ToString());
         }
+
     }
 }

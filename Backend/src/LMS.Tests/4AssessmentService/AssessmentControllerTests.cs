@@ -16,13 +16,14 @@ namespace LMS.Tests.AssessmentService
 
         public AssessmentControllerTests()
         {
-            _serviceMock = new Mock<IAssessmentService>();
-            _controller = new AssessmentController(_serviceMock.Object);
+            _serviceMock = new Mock<IAssessmentService>(MockBehavior.Strict);
 
-            // Allow controller to modify HttpContext
-            _controller.ControllerContext = new ControllerContext
+            _controller = new AssessmentController(_serviceMock.Object)
             {
-                HttpContext = new DefaultHttpContext()
+                ControllerContext = new ControllerContext
+                {
+                    HttpContext = new DefaultHttpContext()
+                }
             };
         }
 
@@ -42,6 +43,7 @@ namespace LMS.Tests.AssessmentService
 
             Assert.NotNull(result);
             Assert.Equal(200, result!.StatusCode);
+            Assert.Equal(99, result.Value!.GetType().GetProperty("quizId")!.GetValue(result.Value));
         }
 
         // -------------------------------------------------
@@ -69,20 +71,20 @@ namespace LMS.Tests.AssessmentService
         }
 
         // -------------------------------------------------
-        // GET QUIZ FOR MODULE
+        // GET QUIZ FOR MODULE — NO AUTH
         // -------------------------------------------------
-
         [Fact]
         public async Task GetQuizForModule_ShouldReturnUnauthorized_WhenMissingAuthorization()
         {
-            // No "Authorization" header added
-
             var result = await _controller.GetQuizForModule(20);
 
             var unauthorized = Assert.IsType<UnauthorizedObjectResult>(result);
             Assert.Equal("Missing access token.", unauthorized.Value);
         }
 
+        // -------------------------------------------------
+        // BAD TOKEN FORMAT
+        // -------------------------------------------------
         [Fact]
         public async Task GetQuizForModule_ShouldReturnUnauthorized_WhenTokenInvalid()
         {
@@ -94,10 +96,12 @@ namespace LMS.Tests.AssessmentService
             Assert.Equal("Invalid token format", unauthorized.Value);
         }
 
+        // -------------------------------------------------
+        // TOKEN WITHOUT SUB CLAIM
+        // -------------------------------------------------
         [Fact]
         public async Task GetQuizForModule_ShouldReturnUnauthorized_WhenSubClaimMissing()
         {
-            // Create JWT with NO "sub" claim
             var token = new JwtSecurityToken(
                 claims: new[] { new Claim("name", "test") }
             );
@@ -112,6 +116,9 @@ namespace LMS.Tests.AssessmentService
             Assert.Equal("Token missing required 'sub' claim.", unauthorized.Value);
         }
 
+        // -------------------------------------------------
+        // TOKEN VALID → RETURN OK
+        // -------------------------------------------------
         [Fact]
         public async Task GetQuizForModule_ShouldReturnOk_WhenTokenAndDataValid()
         {
@@ -177,7 +184,7 @@ namespace LMS.Tests.AssessmentService
         {
             _serviceMock
                 .Setup(s => s.GetSubmissionResultAsync(It.IsAny<Guid>()))
-                .ReturnsAsync(new { result = "OK" });
+                .ReturnsAsync(new { status = "OK" });
 
             var result = await _controller.GetSubmissionResult(Guid.NewGuid()) as OkObjectResult;
 

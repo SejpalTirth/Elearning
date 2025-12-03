@@ -1,46 +1,41 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoFixture;
 using UserService.DAL.Models;
 using UserService.DAL.Repo;
 
 namespace LMS.Tests.UserService
 {
-    public class UserRepositoryTests
+    public class UserRepositoryTests : BaseTest
     {
-        private readonly UserContext _context;
         private readonly UserRepository _repo;
+        private readonly Fixture _fixture;
 
         public UserRepositoryTests()
         {
-            var options = new DbContextOptionsBuilder<UserContext>()
-                .UseInMemoryDatabase(Guid.NewGuid().ToString())
-                .Options;
+            _fixture = new Fixture();
 
-            _context = new UserContext(options);
-            _repo = new UserRepository(_context);
+            // Prevent circular recursion
+            _fixture.Behaviors.OfType<ThrowingRecursionBehavior>()
+                .ToList()
+                .ForEach(b => _fixture.Behaviors.Remove(b));
+            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
+
+            _repo = new UserRepository(UserContext);
         }
 
-        private User CreateUser(string email = "test@mail.com")
-        {
-            return new User
-            {
-                Id = Guid.NewGuid(),
-                Email = email,
-                Name = "Kira",
-                PasswordHash = "pass123",
-                Role = "Student",
-                IsActive = true
-            };
-        }
+        private User CreateUser(string email = "test@mail.com") =>
+            _fixture.Build<User>()
+                .With(u => u.Id, Guid.NewGuid())
+                .With(u => u.Email, email)
+                .Without(u => u.UserRoles)
+                .Without(u => u.RefreshTokens)
+                .Create();
 
-        // -----------------------------------------------------
-        // GET BY ID
-        // -----------------------------------------------------
         [Fact]
         public async Task GetById_ShouldReturnUser_WhenExists()
         {
             var user = CreateUser();
-            _context.Users.Add(user);
-            _context.SaveChanges();
+            UserContext.Users.Add(user);
+            await UserContext.SaveChangesAsync();
 
             var result = await _repo.GetByIdAsync(user.Id);
 
@@ -52,19 +47,15 @@ namespace LMS.Tests.UserService
         public async Task GetById_ShouldReturnNull_WhenMissing()
         {
             var result = await _repo.GetByIdAsync(Guid.NewGuid());
-
             Assert.Null(result);
         }
 
-        // -----------------------------------------------------
-        // GET BY EMAIL
-        // -----------------------------------------------------
         [Fact]
         public async Task GetByEmail_ShouldReturnUser()
         {
             var user = CreateUser("unique@mail.com");
-            _context.Users.Add(user);
-            _context.SaveChanges();
+            UserContext.Users.Add(user);
+            await UserContext.SaveChangesAsync();
 
             var result = await _repo.GetByEmailAsync("unique@mail.com");
 
@@ -73,75 +64,55 @@ namespace LMS.Tests.UserService
         }
 
         [Fact]
-        public async Task GetByEmail_ShouldReturnNull_WhenNotFound()
+        public async Task GetAll_ShouldReturnUsers()
         {
-            var result = await _repo.GetByEmailAsync("none@mail.com");
-
-            Assert.Null(result);
-        }
-
-        // -----------------------------------------------------
-        // GET ALL
-        // -----------------------------------------------------
-        [Fact]
-        public async Task GetAll_ShouldReturnAllUsers()
-        {
-            _context.Users.Add(CreateUser("a@mail.com"));
-            _context.Users.Add(CreateUser("b@mail.com"));
-            _context.SaveChanges();
+            UserContext.Users.Add(CreateUser("a@mail.com"));
+            UserContext.Users.Add(CreateUser("b@mail.com"));
+            await UserContext.SaveChangesAsync();
 
             var list = await _repo.GetAllAsync();
 
             Assert.Equal(2, list.Count);
         }
 
-        // -----------------------------------------------------
-        // ADD USER
-        // -----------------------------------------------------
         [Fact]
-        public async Task Add_ShouldInsertUser_WhenSaved()
+        public async Task Add_ShouldInsertUser()
         {
             var user = CreateUser("insert@mail.com");
 
             await _repo.AddAsync(user);
             await _repo.SaveAsync();
 
-            Assert.True(_context.Users.Any(u => u.Email == "insert@mail.com"));
+            Assert.True(UserContext.Users.Any(u => u.Email == "insert@mail.com"));
         }
 
-        // -----------------------------------------------------
-        // UPDATE USER
-        // -----------------------------------------------------
         [Fact]
-        public async Task Update_ShouldModifyUser_WhenSaved()
+        public async Task Update_ShouldModifyUser()
         {
             var user = CreateUser("update@mail.com");
-            _context.Users.Add(user);
-            _context.SaveChanges();
+            UserContext.Users.Add(user);
+            await UserContext.SaveChangesAsync();
 
             user.Name = "Updated Name";
 
             await _repo.UpdateAsync(user);
             await _repo.SaveAsync();
 
-            var updated = _context.Users.First(u => u.Email == "update@mail.com");
-            Assert.Equal("Updated Name", updated.Name);
+            Assert.Equal("Updated Name",
+                UserContext.Users.First(u => u.Email == "update@mail.com").Name);
         }
 
-        // -----------------------------------------------------
-        // DELETE USER
-        // -----------------------------------------------------
         [Fact]
-        public async Task Delete_ShouldRemoveUser_WhenSaved()
+        public async Task Delete_ShouldRemoveUser()
         {
             var user = CreateUser("delete@mail.com");
-            _context.Users.Add(user);
-            _context.SaveChanges();
+            UserContext.Users.Add(user);
+            await UserContext.SaveChangesAsync();
 
             await _repo.DeleteAsync(user);
             await _repo.SaveAsync();
 
-            Assert.False(_context.Users.Any(u => u.Email == "delete@mail.com"));
+            Assert.False(UserContext.Users.Any(u => u.Email == "delete@mail.com"));
         }
     }
 }

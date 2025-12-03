@@ -1,4 +1,5 @@
-﻿using Gateway.Web.Controllers;
+﻿using AutoFixture;
+using Gateway.Web.Controllers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -10,12 +11,20 @@ namespace LMS.Tests.Gateway
 {
     public class ProgressGatewayControllerTests
     {
+        private readonly Fixture _fixture;
         private readonly Mock<IHttpClientFactory> _factoryMock;
         private readonly Mock<HttpMessageHandler> _handlerMock;
         private readonly HttpClient _client;
 
         public ProgressGatewayControllerTests()
         {
+            _fixture = new Fixture();
+            _fixture.Behaviors
+                .OfType<ThrowingRecursionBehavior>()
+                .ToList()
+                .ForEach(b => _fixture.Behaviors.Remove(b));
+            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
+
             _handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
 
             _client = new HttpClient(_handlerMock.Object)
@@ -30,16 +39,18 @@ namespace LMS.Tests.Gateway
 
         private ProgressGatewayController CreateController()
         {
-            var controller = new ProgressGatewayController(_factoryMock.Object);
-
-            controller.ControllerContext = new ControllerContext
+            return new ProgressGatewayController(_factoryMock.Object)
             {
-                HttpContext = new DefaultHttpContext()
+                ControllerContext = new ControllerContext
+                {
+                    HttpContext = new DefaultHttpContext()
+                }
             };
-
-            return controller;
         }
 
+        // ---------------------------------------------------------------------
+        // Response helper
+        // ---------------------------------------------------------------------
         private void SetupJsonResponse(string json, HttpStatusCode code = HttpStatusCode.OK)
         {
             _handlerMock.Protected()
@@ -54,9 +65,9 @@ namespace LMS.Tests.Gateway
                 });
         }
 
-        // ---------------------------------------------------------------
+        // ---------------------------------------------------------------------
         // GET USER PROGRESS
-        // ---------------------------------------------------------------
+        // ---------------------------------------------------------------------
         [Fact]
         public async Task GetUserProgress_ShouldCallCorrectUrl_AndReturnContent()
         {
@@ -67,8 +78,8 @@ namespace LMS.Tests.Gateway
             var userId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
 
             var result = await controller.GetUserProgress(userId);
-            var content = Assert.IsType<ContentResult>(result);
 
+            var content = Assert.IsType<ContentResult>(result);
             Assert.Equal(expectedJson, content.Content);
 
             _handlerMock.Protected().Verify(
@@ -76,13 +87,14 @@ namespace LMS.Tests.Gateway
                 Times.Once(),
                 ItExpr.Is<HttpRequestMessage>(req =>
                     req.Method == HttpMethod.Get &&
-                    req.RequestUri!.ToString().EndsWith("/api/progress/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")),
+                    req.RequestUri!.ToString()
+                        .EndsWith("/api/progress/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")),
                 ItExpr.IsAny<CancellationToken>());
         }
 
-        // ---------------------------------------------------------------
+        // ---------------------------------------------------------------------
         // COMPLETE MODULE
-        // ---------------------------------------------------------------
+        // ---------------------------------------------------------------------
         [Fact]
         public async Task CompleteModule_ShouldPost_ToCorrectUrl_AndReturnResponse()
         {
@@ -90,11 +102,17 @@ namespace LMS.Tests.Gateway
             SetupJsonResponse(expectedJson);
 
             var controller = CreateController();
-            var payload = new { userId = "abc", moduleId = 7 };
+
+            // AutoFixture for payload
+            var payload = new
+            {
+                userId = _fixture.Create<string>(),
+                moduleId = _fixture.Create<int>()
+            };
 
             var result = await controller.CompleteModule(payload);
-            var content = Assert.IsType<ContentResult>(result);
 
+            var content = Assert.IsType<ContentResult>(result);
             Assert.Equal(expectedJson, content.Content);
 
             _handlerMock.Protected().Verify(

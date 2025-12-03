@@ -1,3 +1,4 @@
+using AutoFixture;
 using Microsoft.EntityFrameworkCore;
 using UserService.BLL.DTOs;
 using UserService.BLL.Service;
@@ -9,9 +10,24 @@ namespace LMS.Tests.UserService
     {
         private readonly UserContext _context;
         private readonly UserAuthService _service;
+        private readonly Fixture _fixture;
+
+        private readonly Role _adminRole;
+        private readonly Role _teacherRole;
+        private readonly Permission _permCreate;
+        private readonly Permission _permEdit;
+        private readonly User _seedUser;
 
         public UserAuthServiceTests()
         {
+            _fixture = new Fixture();
+
+            // Prevent circular navigation exceptions
+            _fixture.Behaviors.OfType<ThrowingRecursionBehavior>()
+                .ToList()
+                .ForEach(b => _fixture.Behaviors.Remove(b));
+            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
+
             var options = new DbContextOptionsBuilder<UserContext>()
                 .UseInMemoryDatabase(Guid.NewGuid().ToString())
                 .EnableSensitiveDataLogging()
@@ -19,16 +35,16 @@ namespace LMS.Tests.UserService
 
             _context = new UserContext(options);
 
-            // Seed roles
-            var adminRole = new Role { Id = 1, Name = "Admin" };
-            var teacherRole = new Role { Id = 2, Name = "Teacher" };
+            // -----------------------------------------
+            // Seed required entities (no navigation!)
+            // -----------------------------------------
+            _adminRole = new Role { Id = 1, Name = "Admin" };
+            _teacherRole = new Role { Id = 2, Name = "Teacher" };
 
-            // Seed permissions
-            var perm1 = new Permission { Id = 1, Name = "Create" };
-            var perm2 = new Permission { Id = 2, Name = "Edit" };
+            _permCreate = new Permission { Id = 1, Name = "Create" };
+            _permEdit = new Permission { Id = 2, Name = "Edit" };
 
-            // Seed user (NO navigation props!)
-            var user = new User
+            _seedUser = new User
             {
                 Id = Guid.NewGuid(),
                 Email = "test@mail.com",
@@ -36,21 +52,23 @@ namespace LMS.Tests.UserService
                 IsActive = true
             };
 
-            _context.Users.Add(user);
+            _context.Users.Add(_seedUser);
 
-            _context.Roles.AddRange(adminRole, teacherRole);
-            _context.Permissions.AddRange(perm1, perm2);
+            _context.Roles.AddRange(_adminRole, _teacherRole);
+            _context.Permissions.AddRange(_permCreate, _permEdit);
 
+            // Teacher role assigned
             _context.UserRoles.Add(new UserRole
             {
-                UserId = user.Id,
-                RoleId = teacherRole.Id
+                UserId = _seedUser.Id,
+                RoleId = _teacherRole.Id
             });
 
+            // Teacher has "Create" permission
             _context.RolePermissions.Add(new RolePermission
             {
-                RoleId = teacherRole.Id,
-                PermissionId = perm1.Id
+                RoleId = _teacherRole.Id,
+                PermissionId = _permCreate.Id
             });
 
             _context.SaveChanges();
@@ -64,19 +82,16 @@ namespace LMS.Tests.UserService
         [Fact]
         public async Task AssignRole_ShouldAssign_WhenNotExists()
         {
-            var user = _context.Users.First();
-
-            var request = new AssignRoleRequest
-            {
-                UserId = user.Id,
-                RoleId = 1 // admin
-            };
+            var request = _fixture.Build<AssignRoleRequest>()
+                .With(r => r.UserId, _seedUser.Id)
+                .With(r => r.RoleId, _adminRole.Id)
+                .Create();
 
             var result = await _service.AssignRoleAsync(request);
 
             Assert.True(result);
-            Assert.True(_context.UserRoles.Any(ur =>
-                ur.UserId == user.Id && ur.RoleId == 1));
+            Assert.Contains(_context.UserRoles,
+                ur => ur.UserId == _seedUser.Id && ur.RoleId == _adminRole.Id);
         }
 
         // -----------------------------------------------------
@@ -85,17 +100,16 @@ namespace LMS.Tests.UserService
         [Fact]
         public async Task AssignPermission_ShouldAssign_WhenNotExists()
         {
-            var request = new AssignPermissionRequest
-            {
-                RoleId = 2, // teacher
-                PermissionId = 2 // edit
-            };
+            var request = _fixture.Build<AssignPermissionRequest>()
+                .With(r => r.RoleId, _teacherRole.Id)
+                .With(r => r.PermissionId, _permEdit.Id)
+                .Create();
 
             var result = await _service.AssignPermissionAsync(request);
 
             Assert.True(result);
-            Assert.True(_context.RolePermissions.Any(rp =>
-                rp.RoleId == 2 && rp.PermissionId == 2));
+            Assert.Contains(_context.RolePermissions,
+                rp => rp.RoleId == _teacherRole.Id && rp.PermissionId == _permEdit.Id);
         }
 
         // -----------------------------------------------------
@@ -104,9 +118,7 @@ namespace LMS.Tests.UserService
         [Fact]
         public async Task GetRoles_ShouldReturnList()
         {
-            var user = _context.Users.First();
-
-            var res = await _service.GetRolesAsync(user.Id);
+            var res = await _service.GetRolesAsync(_seedUser.Id);
 
             Assert.Single(res);
             Assert.Contains("Teacher", res);
@@ -118,9 +130,7 @@ namespace LMS.Tests.UserService
         [Fact]
         public async Task GetPermissions_ShouldReturnList()
         {
-            var user = _context.Users.First();
-
-            var res = await _service.GetPermissionsAsync(user.Id);
+            var res = await _service.GetPermissionsAsync(_seedUser.Id);
 
             Assert.Single(res);
             Assert.Contains("Create", res);
@@ -132,14 +142,10 @@ namespace LMS.Tests.UserService
         [Fact]
         public async Task CompleteProfile_ShouldReturnSuccess()
         {
-            var user = _context.Users.First();
-
-            var dto = new CompleteProfileDto
-            {
-                UserId = user.Id,
-                Name = "Updated",
-                RoleId = 2 // Teacher
-            };
+            var dto = _fixture.Build<CompleteProfileDto>()
+                .With(x => x.UserId, _seedUser.Id)
+                .With(x => x.RoleId, _teacherRole.Id)
+                .Create();
 
             var result = await _service.CompleteUserProfileAsync(dto);
 
@@ -149,14 +155,10 @@ namespace LMS.Tests.UserService
         [Fact]
         public async Task CompleteProfile_ShouldRejectAdminRole()
         {
-            var user = _context.Users.First();
-
-            var dto = new CompleteProfileDto
-            {
-                UserId = user.Id,
-                Name = "New Name",
-                RoleId = 1 // Admin role is blocked
-            };
+            var dto = _fixture.Build<CompleteProfileDto>()
+                .With(x => x.UserId, _seedUser.Id)
+                .With(x => x.RoleId, _adminRole.Id) // forbidden
+                .Create();
 
             var result = await _service.CompleteUserProfileAsync(dto);
 
