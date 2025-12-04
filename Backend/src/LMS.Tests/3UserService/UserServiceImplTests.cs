@@ -1,4 +1,6 @@
-﻿using AutoMapper;
+﻿using AutoFixture;
+using AutoFixture.AutoMoq;
+using AutoMapper;
 using Moq;
 using UserService.BLL.DTOs;
 using UserService.BLL.Service;
@@ -9,22 +11,34 @@ namespace LMS.Tests.UserService
 {
     public class UserServiceImplTests
     {
+        private readonly IFixture _fixture;
         private readonly Mock<IUserRepository> _repoMock;
         private readonly IMapper _mapper;
         private readonly UserServiceImpl _service;
 
         public UserServiceImplTests()
         {
-            _repoMock = new Mock<IUserRepository>();
+            _fixture = new Fixture().Customize(new AutoMoqCustomization());
 
+            // Fix AutoFixture recursion by switching behavior
+            _fixture.Behaviors
+                .OfType<ThrowingRecursionBehavior>()
+                .ToList()
+                .ForEach(b => _fixture.Behaviors.Remove(b));
+
+            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
+
+            // AutoMapper config
             var config = new MapperConfiguration(cfg =>
             {
                 cfg.CreateMap<User, UserDto>();
             });
 
             _mapper = config.CreateMapper();
+            _repoMock = new Mock<IUserRepository>();
             _service = new UserServiceImpl(_repoMock.Object, _mapper);
         }
+
 
         // -----------------------------------------------------
         // GET ALL
@@ -32,10 +46,13 @@ namespace LMS.Tests.UserService
         [Fact]
         public async Task GetAll_ShouldReturnMappedList()
         {
-            _repoMock.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<User>
-            {
-                new User { Id = Guid.NewGuid(), Email = "a@mail.com" }
-            });
+            var users = _fixture.Build<User>()
+                .With(u => u.Email, "a@mail.com")
+                .CreateMany(1)
+                .ToList();
+
+            _repoMock.Setup(r => r.GetAllAsync())
+                .ReturnsAsync(users);
 
             var result = await _service.GetAll();
 
@@ -51,8 +68,13 @@ namespace LMS.Tests.UserService
         {
             var id = Guid.NewGuid();
 
+            var user = _fixture.Build<User>()
+                .With(u => u.Id, id)
+                .With(u => u.Email, "x@mail.com")
+                .Create();
+
             _repoMock.Setup(r => r.GetByIdAsync(id))
-                .ReturnsAsync(new User { Id = id, Email = "x@mail.com" });
+                .ReturnsAsync(user);
 
             var result = await _service.GetById(id);
 
@@ -79,18 +101,16 @@ namespace LMS.Tests.UserService
         [Fact]
         public async Task Create_ShouldAddUser_AndReturnDto()
         {
-            var req = new CreateUserRequest
-            {
-                Email = "test@mail.com",
-                Name = "Kira",
-                Password = "123",
-                Role = "Student"
-            };
+            var req = _fixture.Build<CreateUserRequest>()
+                .With(r => r.Email, "test@mail.com")
+                .With(r => r.Name, "Kira")
+                .With(r => r.Role, "Student")
+                .Create();
 
-            User? addedUser = null;
+            User? captured = null;
 
             _repoMock.Setup(r => r.AddAsync(It.IsAny<User>()))
-                .Callback<User>(u => addedUser = u)
+                .Callback<User>(u => captured = u)
                 .Returns(Task.CompletedTask);
 
             _repoMock.Setup(r => r.SaveAsync())
@@ -100,7 +120,9 @@ namespace LMS.Tests.UserService
 
             Assert.NotNull(result);
             Assert.Equal("test@mail.com", result.Email);
-            Assert.NotNull(addedUser);
+
+            Assert.NotNull(captured);   // verify repo received correct model
+            Assert.Equal("test@mail.com", captured!.Email);
         }
 
         // -----------------------------------------------------
@@ -109,7 +131,7 @@ namespace LMS.Tests.UserService
         [Fact]
         public async Task Delete_ShouldRemove_WhenExists()
         {
-            var user = new User { Id = Guid.NewGuid() };
+            var user = _fixture.Create<User>();
 
             _repoMock.Setup(r => r.GetByIdAsync(user.Id)).ReturnsAsync(user);
             _repoMock.Setup(r => r.DeleteAsync(user)).Returns(Task.CompletedTask);

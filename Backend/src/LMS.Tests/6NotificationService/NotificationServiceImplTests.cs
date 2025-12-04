@@ -1,3 +1,4 @@
+using AutoFixture;
 using Moq;
 using NotificationService.BLL.Service;
 using NotificationService.BLL.Interface;
@@ -12,8 +13,9 @@ namespace LMS.Tests.NotificationService
     {
         private readonly Mock<INotificationRepository> _repoMock;
         private readonly Mock<IEmailSender> _emailMock;
-
         private readonly NotificationServiceImpl _service;
+
+        private readonly Fixture _fixture;
 
         public NotificationServiceImplTests()
         {
@@ -21,6 +23,13 @@ namespace LMS.Tests.NotificationService
             _emailMock = new Mock<IEmailSender>();
 
             _service = new NotificationServiceImpl(_repoMock.Object, _emailMock.Object);
+
+            _fixture = new Fixture();
+            _fixture.Behaviors
+                .OfType<ThrowingRecursionBehavior>()
+                .ToList()
+                .ForEach(b => _fixture.Behaviors.Remove(b));
+            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
         }
 
         // --------------------------------------------------
@@ -30,16 +39,18 @@ namespace LMS.Tests.NotificationService
         public async Task SendEmailAsync_ShouldSendEmail_AndSaveNotification()
         {
             Guid userId = Guid.NewGuid();
+            string subject = "Hello";
+            string body = "Body";
 
-            await _service.SendEmailAsync(userId, "Hello", "Body");
+            await _service.SendEmailAsync(userId, subject, body);
 
             _emailMock.Verify(x =>
-                x.SendAsync("user-email-placeholder", "Hello", "Body"), Times.Once);
+                x.SendAsync("user-email-placeholder", subject, body), Times.Once);
 
             _repoMock.Verify(x => x.SaveNotificationAsync(It.Is<Notification>(n =>
                 n.UserId == userId &&
-                n.Title == "Hello" &&
-                n.Body == "Body" &&
+                n.Title == subject &&
+                n.Body == body &&
                 n.IsRead == false
             )), Times.Once);
         }
@@ -50,7 +61,8 @@ namespace LMS.Tests.NotificationService
         [Fact]
         public async Task SendEmailByTemplateAsync_ShouldThrow_WhenTemplateNotFound()
         {
-            _repoMock.Setup(r => r.GetTemplateByNameAsync("Test")).ReturnsAsync((NotificationTemplate?)null);
+            _repoMock.Setup(r => r.GetTemplateByNameAsync("Test"))
+                     .ReturnsAsync((NotificationTemplate?)null);
 
             await Assert.ThrowsAsync<Exception>(() =>
                 _service.SendEmailByTemplateAsync(Guid.NewGuid(), "Test", new { Name = "Kira" }));
@@ -66,7 +78,8 @@ namespace LMS.Tests.NotificationService
                 BodyTemplate = "Welcome, {{Name}}!"
             };
 
-            _repoMock.Setup(r => r.GetTemplateByNameAsync("Welcome")).ReturnsAsync(template);
+            _repoMock.Setup(r => r.GetTemplateByNameAsync("Welcome"))
+                     .ReturnsAsync(template);
 
             await _service.SendEmailByTemplateAsync(Guid.NewGuid(), "Welcome", new { Name = "Kira" });
 
@@ -85,11 +98,14 @@ namespace LMS.Tests.NotificationService
         {
             Guid userId = Guid.NewGuid();
 
+            var notification = _fixture.Build<Notification>()
+                                       .With(n => n.Title, "A")
+                                       .With(n => n.Body, "Body A")
+                                       .With(n => n.SentAt, DateTime.UtcNow)
+                                       .Create();
+
             _repoMock.Setup(r => r.GetUserNotificationsAsync(userId))
-                .ReturnsAsync(new List<Notification>
-                {
-                    new Notification { Title = "A", Body = "Body A", SentAt = DateTime.Today }
-                });
+                     .ReturnsAsync(new List<Notification> { notification });
 
             var result = await _service.GetUserNotificationsAsync(userId);
 
@@ -133,17 +149,15 @@ namespace LMS.Tests.NotificationService
         [Fact]
         public async Task HandleTriggeredNotificationAsync_ShouldSendUsingTemplate()
         {
-            var dto = new TriggerNotificationDto
-            {
-                UserId = Guid.NewGuid(),
-                Email = "kira@mail.com",
-                Type = NotificationType.Enrollment,
-                Data = new Dictionary<string, string>
-                {
-                    { "UserName", "Kira" },
-                    { "CourseName", "Math" }
-                }
-            };
+            var dto = _fixture.Build<TriggerNotificationDto>()
+                              .With(d => d.Email, "kira@mail.com")
+                              .With(d => d.Type, NotificationType.Enrollment)
+                              .With(d => d.Data, new Dictionary<string, string>
+                              {
+                                  { "UserName", "Kira" },
+                                  { "CourseName", "Math" }
+                              })
+                              .Create();
 
             var template = new NotificationTemplate
             {
@@ -160,8 +174,7 @@ namespace LMS.Tests.NotificationService
             _emailMock.Verify(e =>
                 e.SendAsync("kira@mail.com", "Hello Kira", "Welcome to Math"), Times.Once);
 
-            _repoMock.Verify(r =>
-                r.SaveNotificationAsync(It.IsAny<Notification>()), Times.Once);
+            _repoMock.Verify(r => r.SaveNotificationAsync(It.IsAny<Notification>()), Times.Once);
         }
     }
 }

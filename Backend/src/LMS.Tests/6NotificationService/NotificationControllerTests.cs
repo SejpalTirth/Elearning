@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AutoFixture;
+using Microsoft.AspNetCore.Mvc;
 using Moq;
 using NotificationService.BLL.DTOs;
 using NotificationService.BLL.Interface;
@@ -11,11 +12,19 @@ namespace LMS.Tests.NotificationService
     {
         private readonly Mock<INotificationService> _serviceMock;
         private readonly NotificationController _controller;
+        private readonly Fixture _fixture;
 
         public NotificationControllerTests()
         {
             _serviceMock = new Mock<INotificationService>();
             _controller = new NotificationController(_serviceMock.Object);
+
+            _fixture = new Fixture();
+            _fixture.Behaviors
+                .OfType<ThrowingRecursionBehavior>()
+                .ToList()
+                .ForEach(b => _fixture.Behaviors.Remove(b));
+            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
         }
 
         // -----------------------------------------------------
@@ -24,12 +33,10 @@ namespace LMS.Tests.NotificationService
         [Fact]
         public async Task Send_ShouldInvokeService_AndReturnOk()
         {
-            var req = new EmailRequest
-            {
-                UserId = Guid.NewGuid(),
-                Subject = "Hello",
-                Body = "Body"
-            };
+            var req = _fixture.Build<EmailRequest>()
+                .With(x => x.Subject, "Hello")
+                .With(x => x.Body, "Body")
+                .Create();
 
             var result = await _controller.Send(req) as OkObjectResult;
 
@@ -47,12 +54,10 @@ namespace LMS.Tests.NotificationService
         [Fact]
         public async Task SendTemplate_ShouldInvokeService_AndReturnOk()
         {
-            var req = new TemplateRequest
-            {
-                UserId = Guid.NewGuid(),
-                TemplateName = "Welcome",
-                Model = new { Name = "Kira" }
-            };
+            var req = _fixture.Build<TemplateRequest>()
+                .With(t => t.TemplateName, "Welcome")
+                .With(t => t.Model, new { Name = "Kira" })
+                .Create();
 
             var result = await _controller.SendTemplate(req) as OkObjectResult;
 
@@ -72,11 +77,11 @@ namespace LMS.Tests.NotificationService
         {
             var userId = Guid.NewGuid();
 
+            var notifications = _fixture.CreateMany<NotificationDto>(1).ToList();
+            notifications[0].Title = "T1";
+
             _serviceMock.Setup(s => s.GetUserNotificationsAsync(userId))
-                .ReturnsAsync(new List<NotificationDto>
-                {
-                    new NotificationDto { Title = "T1", Body = "B1" }
-                });
+                .ReturnsAsync(notifications);
 
             var result = await _controller.GetUserNotifications(userId) as OkObjectResult;
 
@@ -112,13 +117,11 @@ namespace LMS.Tests.NotificationService
         [Fact]
         public async Task TriggerNotification_ShouldCallService_AndReturnOk()
         {
-            var dto = new TriggerNotificationDto
-            {
-                UserId = Guid.NewGuid(),
-                Email = "test@mail.com",
-                Type = NotificationType.Enrollment,
-                Data = new Dictionary<string, string> { { "UserName", "Kira" } }
-            };
+            var dto = _fixture.Build<TriggerNotificationDto>()
+                .With(x => x.Email, "test@mail.com")
+                .With(x => x.Type, NotificationType.Enrollment)
+                .With(x => x.Data, new Dictionary<string, string> { { "UserName", "Kira" } })
+                .Create();
 
             var result = await _controller.TriggerNotification(dto) as OkObjectResult;
 

@@ -1,8 +1,9 @@
-﻿using CourseService.BLL.Service;
+﻿using AutoFixture;
+using CourseService.BLL.Service;
 using CourseService.DAL.Models;
 using Moq;
-using System.Text.Json;
 using System.Net;
+using System.Text.Json;
 
 namespace LMS.Tests.ModuleServiceTests
 {
@@ -14,8 +15,18 @@ namespace LMS.Tests.ModuleServiceTests
         private readonly FakeHttpHandler _assessmentHandler;
         private readonly HttpClient _fakeAssessmentClient;
 
+        private readonly Fixture _fixture;
+
         public ModuleServiceTests()
         {
+            _fixture = new Fixture();
+
+            // Prevent potential nesting (safe default)
+            _fixture.Behaviors.OfType<ThrowingRecursionBehavior>()
+                .ToList()
+                .ForEach(b => _fixture.Behaviors.Remove(b));
+            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
+
             _moduleRepo = new Mock<IModuleRepository>();
             _httpFactory = new Mock<IHttpClientFactory>();
 
@@ -30,9 +41,9 @@ namespace LMS.Tests.ModuleServiceTests
                 .Returns(_fakeAssessmentClient);
         }
 
-        // -------------------------
+        // -----------------------------------------------------
         // FAKE HTTP HANDLER
-        // -------------------------
+        // -----------------------------------------------------
         private class FakeHttpHandler : HttpMessageHandler
         {
             public object? ResponseToSend { get; set; }
@@ -58,9 +69,9 @@ namespace LMS.Tests.ModuleServiceTests
         private ModuleService CreateService() =>
             new ModuleService(_moduleRepo.Object, _httpFactory.Object);
 
-        // -------------------------------------------------------------
+        // =====================================================================
         // GetModuleAndCourseIdAsync
-        // -------------------------------------------------------------
+        // =====================================================================
         [Fact]
         public async Task GetModuleAndCourseIdAsync_WhenNotFound_ReturnsNull()
         {
@@ -75,11 +86,13 @@ namespace LMS.Tests.ModuleServiceTests
         [Fact]
         public async Task GetModuleAndCourseIdAsync_WhenFound_ReturnsMapping()
         {
-            _moduleRepo.Setup(r => r.GetByIdAsync(99)).ReturnsAsync(new Module
-            {
-                Id = 99,
-                CourseId = 5
-            });
+            var module = _fixture.Build<Module>()
+                .With(m => m.Id, 99)
+                .With(m => m.CourseId, 5)
+                .Without(m => m.Course)
+                .Create();
+
+            _moduleRepo.Setup(r => r.GetByIdAsync(99)).ReturnsAsync(module);
 
             var service = CreateService();
             var result = await service.GetModuleAndCourseIdAsync(99);
@@ -89,18 +102,24 @@ namespace LMS.Tests.ModuleServiceTests
             Assert.Equal(5, result.CourseId);
         }
 
-        // -------------------------------------------------------------
+        // =====================================================================
         // GetModulesByCourseAsync
-        // -------------------------------------------------------------
+        // =====================================================================
         [Fact]
         public async Task GetModulesByCourseAsync_ReturnsSummaryList()
         {
+            var modules = _fixture.Build<Module>()
+                .Without(m => m.Course)
+                .CreateMany(2)
+                .ToList();
+
+            modules[0].Id = 1;
+            modules[0].Title = "M1";
+            modules[1].Id = 2;
+            modules[1].Title = "M2";
+
             _moduleRepo.Setup(r => r.GetByCourseIdAsync(3))
-                .ReturnsAsync(new List<Module>
-                {
-                    new Module { Id = 1, Title = "M1" },
-                    new Module { Id = 2, Title = "M2" }
-                });
+                .ReturnsAsync(modules);
 
             var service = CreateService();
 
@@ -110,9 +129,9 @@ namespace LMS.Tests.ModuleServiceTests
             Assert.Equal("M1", list[0].Title);
         }
 
-        // -------------------------------------------------------------
+        // =====================================================================
         // GetModuleContentAsync
-        // -------------------------------------------------------------
+        // =====================================================================
         [Fact]
         public async Task GetModuleContentAsync_WhenModuleNotFound_ReturnsNull()
         {
@@ -127,15 +146,16 @@ namespace LMS.Tests.ModuleServiceTests
         [Fact]
         public async Task GetModuleContentAsync_WhenModuleFound_ReturnsContent()
         {
-            _moduleRepo.Setup(r => r.GetByIdAsync(50)).ReturnsAsync(
-                new Module
-                {
-                    Id = 50,
-                    Title = "Module 50",
-                    Content = "Content 50"
-                });
+            var module = _fixture.Build<Module>()
+                .With(m => m.Id, 50)
+                .With(m => m.Title, "Module 50")
+                .With(m => m.Content, "Content 50")
+                .Without(m => m.Course)
+                .Create();
 
-            _assessmentHandler.ResponseToSend = 42; // quiz id
+            _moduleRepo.Setup(r => r.GetByIdAsync(50)).ReturnsAsync(module);
+
+            _assessmentHandler.ResponseToSend = 42; // Quiz ID
 
             var service = CreateService();
 
@@ -151,13 +171,14 @@ namespace LMS.Tests.ModuleServiceTests
         [Fact]
         public async Task GetModuleContentAsync_WhenAssessmentThrows_ReturnsQuizIdZero()
         {
-            _moduleRepo.Setup(r => r.GetByIdAsync(22)).ReturnsAsync(
-                new Module
-                {
-                    Id = 22,
-                    Title = "Module 22",
-                    Content = "X"
-                });
+            var module = _fixture.Build<Module>()
+                .With(m => m.Id, 22)
+                .With(m => m.Title, "Module 22")
+                .With(m => m.Content, "X")
+                .Without(m => m.Course)
+                .Create();
+
+            _moduleRepo.Setup(r => r.GetByIdAsync(22)).ReturnsAsync(module);
 
             _assessmentHandler.ThrowException = true;
 
@@ -165,7 +186,7 @@ namespace LMS.Tests.ModuleServiceTests
             var result = await service.GetModuleContentAsync(22);
 
             Assert.NotNull(result);
-            Assert.Equal(0, result!.QuizId); // fallback to zero
+            Assert.Equal(0, result!.QuizId);
         }
     }
 }

@@ -1,3 +1,4 @@
+using AutoFixture;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
@@ -15,7 +16,24 @@ namespace LMS.Tests.Gateway
         private Mock<IHttpClientFactory> _factoryMock = null!;
         private Mock<HttpMessageHandler> _handlerMock = null!;
 
-        private HttpClient CreateClientThatReturns(HttpResponseMessage response, Action<HttpRequestMessage>? capture = null)
+        private readonly Fixture _fixture;
+
+        public AssessmentGatewayControllerTests()
+        {
+            _fixture = new Fixture();
+            _fixture.Behaviors
+                .OfType<ThrowingRecursionBehavior>()
+                .ToList()
+                .ForEach(b => _fixture.Behaviors.Remove(b));
+            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
+        }
+
+        // ------------------------------------------------------------------
+        // Reusable helper for HttpClient that returns a predefined response
+        // ------------------------------------------------------------------
+        private HttpClient CreateClientThatReturns(
+            HttpResponseMessage response,
+            Action<HttpRequestMessage>? capture = null)
         {
             _handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
 
@@ -24,20 +42,17 @@ namespace LMS.Tests.Gateway
                .Setup<Task<HttpResponseMessage>>(
                    "SendAsync",
                    ItExpr.IsAny<HttpRequestMessage>(),
-                   ItExpr.IsAny<CancellationToken>()
-               )
+                   ItExpr.IsAny<CancellationToken>())
                .ReturnsAsync((HttpRequestMessage req, CancellationToken _) =>
                {
                    capture?.Invoke(req);
                    return response;
                });
 
-            var client = new HttpClient(_handlerMock.Object)
+            return new HttpClient(_handlerMock.Object)
             {
                 BaseAddress = new Uri("https://fake-assessment/")
             };
-
-            return client;
         }
 
         private AssessmentGatewayController CreateControllerWithClient(HttpClient client, string? authHeader = null)
@@ -45,146 +60,132 @@ namespace LMS.Tests.Gateway
             _factoryMock = new Mock<IHttpClientFactory>();
             _factoryMock.Setup(f => f.CreateClient("AssessmentService")).Returns(client);
 
-            var controller = new AssessmentGatewayController(_factoryMock.Object);
-
-            controller.ControllerContext = new ControllerContext
+            var controller = new AssessmentGatewayController(_factoryMock.Object)
             {
-                HttpContext = new DefaultHttpContext()
+                ControllerContext = new ControllerContext
+                {
+                    HttpContext = new DefaultHttpContext()
+                }
             };
 
-            if (!string.IsNullOrEmpty(authHeader))
-            {
+            if (!string.IsNullOrWhiteSpace(authHeader))
                 controller.Request.Headers["Authorization"] = authHeader;
-            }
 
             return controller;
         }
 
-        // -----------------------
-        // GetQuizForModule - Missing token -> Unauthorized
-        // -----------------------
+        // ---------------------------------------------------------------
+        // GetQuizForModule — Missing Token
+        // ---------------------------------------------------------------
         [Fact]
         public async Task GetQuizForModule_ShouldReturnUnauthorized_WhenMissingToken()
         {
-            // Arrange: create client but not used because controller returns early
-            var client = CreateClientThatReturns(new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = JsonContent.Create(new { })
-            });
+            var client = CreateClientThatReturns(
+                new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(new { }) });
 
             var controller = CreateControllerWithClient(client, authHeader: null);
 
-            // Act
             var result = await controller.GetQuizForModule(5);
 
-            // Assert
             var unauthorized = Assert.IsType<UnauthorizedObjectResult>(result);
             Assert.Equal("Missing access token.", unauthorized.Value);
         }
 
-        // -----------------------
-        // GetQuizForModule - Success, token forwarded
-        // -----------------------
+        // ---------------------------------------------------------------
+        // GetQuizForModule — Success + token forwarded
+        // ---------------------------------------------------------------
         [Fact]
         public async Task GetQuizForModule_ShouldReturnContent_WhenServiceReturnsSuccess_AndForwardAuth()
         {
-            // Arrange
             var payload = new { quiz = "ok" };
-            var contentJson = JsonSerializer.Serialize(payload);
+            var json = JsonSerializer.Serialize(payload);
 
             HttpRequestMessage? captured = null;
-            var response = new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent(contentJson, Encoding.UTF8, "application/json")
-            };
 
-            var client = CreateClientThatReturns(response, req => captured = req);
+            var client = CreateClientThatReturns(
+                new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(json, Encoding.UTF8, "application/json")
+                },
+                req => captured = req);
 
-            var controller = CreateControllerWithClient(client, authHeader: "Bearer token-abc");
+            var controller = CreateControllerWithClient(client, "Bearer token-abc");
 
-            // Act
             var result = await controller.GetQuizForModule(12);
 
-            // Assert - returned JSON as ContentResult
             var contentResult = Assert.IsType<ContentResult>(result);
             Assert.Equal("application/json", contentResult.ContentType);
-            Assert.Equal(contentJson, contentResult.Content);
+            Assert.Equal(json, contentResult.Content);
 
-            // Assert - outgoing request had Authorization header set on HttpClient (controller uses DefaultRequestHeaders)
-            // because controller sets client.DefaultRequestHeaders.Authorization; ensure handler saw a request
             Assert.NotNull(captured);
-            // the request will include Authorization header when sent by HttpClient
-            Assert.True(captured!.Headers.Authorization != null);
+            Assert.NotNull(captured!.Headers.Authorization);
             Assert.Equal("Bearer", captured.Headers.Authorization!.Scheme);
             Assert.Equal("token-abc", captured.Headers.Authorization!.Parameter);
         }
 
-        // -----------------------
-        // Forwarding helper: non-JSON string body -> status code with message
-        // -----------------------
+        // ---------------------------------------------------------------
+        // SubmitQuiz — Plain string response
+        // ---------------------------------------------------------------
         [Fact]
         public async Task SubmitQuiz_ShouldReturnStatusWithMessage_WhenServiceReturnsPlainString()
         {
-            // Arrange
             var plain = "some error happened";
-            HttpRequestMessage? captured = null;
+
             var response = new HttpResponseMessage(HttpStatusCode.BadRequest)
             {
                 Content = new StringContent(plain, Encoding.UTF8, "text/plain")
             };
 
-            var client = CreateClientThatReturns(response, req => captured = req);
-            var controller = CreateControllerWithClient(client, authHeader: "Bearer abc");
+            HttpRequestMessage? captured = null;
 
-            // Act
+            var client = CreateClientThatReturns(response, req => captured = req);
+            var controller = CreateControllerWithClient(client, "Bearer abc");
+
             var dto = new { answers = new[] { 1, 2 } };
+
             var result = await controller.Submit(dto);
 
-            // Assert: result should be a StatusCodeObjectResult containing message
             var status = Assert.IsType<ObjectResult>(result);
             Assert.Equal((int)HttpStatusCode.BadRequest, status.StatusCode);
 
-            // The controller wraps the plain text in anonymous object { message = content }
-            var msgObj = status.Value!;
-            var dict = msgObj.GetType().GetProperties()
-                        .ToDictionary(p => p.Name, p => p.GetValue(msgObj));
+            var dict = status.Value!.GetType().GetProperties()
+                .ToDictionary(p => p.Name, p => p.GetValue(status.Value));
+
             Assert.Equal(plain, dict["message"]);
         }
 
-        // -----------------------
-        // Forwarding helper: JSON response -> ContentResult
-        // -----------------------
+        // ---------------------------------------------------------------
+        // SubmitQuiz — JSON response
+        // ---------------------------------------------------------------
         [Fact]
         public async Task SubmitQuiz_ShouldReturnJsonContent_WhenServiceReturnsJson()
         {
-            // Arrange
             var json = JsonSerializer.Serialize(new { ok = true });
+
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
             };
 
             var client = CreateClientThatReturns(response);
-            var controller = CreateControllerWithClient(client, authHeader: "Bearer abc");
+            var controller = CreateControllerWithClient(client, "Bearer abc");
 
-            // Act
             var result = await controller.Submit(new { foo = "bar" });
 
-            // Assert
             var content = Assert.IsType<ContentResult>(result);
             Assert.Equal("application/json", content.ContentType);
             Assert.Equal(json, content.Content);
         }
 
-        // -----------------------
-        // GetSubmissionResult -> returns raw content as JSON
-        // -----------------------
+        // ---------------------------------------------------------------
+        // GetSubmissionResult — Raw content passthrough
+        // ---------------------------------------------------------------
         [Fact]
         public async Task GetSubmissionResult_ShouldReturnContent()
         {
-            // Arrange
             var id = Guid.NewGuid();
             var json = JsonSerializer.Serialize(new { score = 80 });
+
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
@@ -193,66 +194,62 @@ namespace LMS.Tests.Gateway
             var client = CreateClientThatReturns(response);
             var controller = CreateControllerWithClient(client);
 
-            // Act
             var result = await controller.Result(id);
 
-            // Assert
             var content = Assert.IsType<ContentResult>(result);
             Assert.Equal("application/json", content.ContentType);
             Assert.Equal(json, content.Content);
         }
 
-        // -----------------------
-        // CreateQuiz -> forwards and returns JSON content
-        // -----------------------
+        // ---------------------------------------------------------------
+        // CreateQuiz — forwards & returns content
+        // ---------------------------------------------------------------
         [Fact]
         public async Task CreateQuiz_ShouldForwardAndReturnContent()
         {
-            // Arrange
             var json = JsonSerializer.Serialize(new { created = true });
+
             var response = new HttpResponseMessage(HttpStatusCode.Created)
             {
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
             };
 
             var client = CreateClientThatReturns(response);
-            var controller = CreateControllerWithClient(client, authHeader: "Bearer zzz");
+            var controller = CreateControllerWithClient(client, "Bearer zzz");
 
-            // Act
             var result = await controller.CreateQuiz(new { title = "q" });
 
-            // Assert
             var content = Assert.IsType<ContentResult>(result);
             Assert.Equal("application/json", content.ContentType);
             Assert.Equal(json, content.Content);
         }
 
-        // -----------------------
-        // AddQuestion -> forwards to specific quiz id
-        // -----------------------
+        // ---------------------------------------------------------------
+        // AddQuestion — forwards with correct route
+        // ---------------------------------------------------------------
         [Fact]
         public async Task AddQuestion_ShouldForwardToQuizSpecificRoute()
         {
-            // Arrange
             HttpRequestMessage? captured = null;
-            // return any JSON so controller returns Content
+
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
-                Content = new StringContent(JsonSerializer.Serialize(new { ok = true }), Encoding.UTF8, "application/json")
+                Content = new StringContent(
+                    JsonSerializer.Serialize(new { ok = true }),
+                    Encoding.UTF8,
+                    "application/json")
             };
 
             var client = CreateClientThatReturns(response, req => captured = req);
             var controller = CreateControllerWithClient(client);
 
-            // Act
             var result = await controller.AddQuestion(42, new { q = "x" });
 
-            // Assert
             Assert.IsType<ContentResult>(result);
 
-            // Validate the outgoing request URI path contains expected endpoint
             Assert.NotNull(captured);
-            Assert.Contains("/api/assessment/quiz/42/questions", captured!.RequestUri!.ToString());
+            Assert.Contains("/api/assessment/quiz/42/questions",
+                captured!.RequestUri!.ToString());
         }
     }
 }

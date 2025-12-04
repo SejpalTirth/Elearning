@@ -1,120 +1,203 @@
-﻿using CourseService.DAL.Models;
+﻿using AutoFixture;
+using CourseService.DAL.Models;
 using CourseService.DAL.Repo;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace LMS.Tests.CourseServiceTests.Repository
+namespace LMS.Tests.CourseService.Repository
 {
-    public class EnrollmentRepositoryTests
+    public class EnrollmentRepositoryTests : BaseTest
     {
-        private CourseContext CreateDb()
-        {
-            var options = new DbContextOptionsBuilder<CourseContext>()
-                .UseInMemoryDatabase(Guid.NewGuid().ToString())
-                .Options;
+        private readonly EnrollmentRepository _repo;
+        private readonly Fixture _fixture;
 
-            return new CourseContext(options);
+        public EnrollmentRepositoryTests()
+        {
+            _fixture = new Fixture();
+
+            // Prevent circular graph creation
+            _fixture.Behaviors.OfType<ThrowingRecursionBehavior>()
+                .ToList()
+                .ForEach(b => _fixture.Behaviors.Remove(b));
+            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
+
+            _repo = new EnrollmentRepository(CourseContext);
+
+            SeedCategory();
         }
 
+        // --------------------------------------------------------------------
+        // SEED REQUIRED CATEGORY (clean, no Courses populated)
+        // --------------------------------------------------------------------
+        private void SeedCategory()
+        {
+            var category = _fixture.Build<Category>()
+                .Without(c => c.Courses)      // prevent EF graph pollution
+                .Create();
+
+            CourseContext.Categories.Add(category);
+            CourseContext.SaveChanges();
+        }
+
+        private int CategoryId => CourseContext.Categories.First().Id;
+
+        // --------------------------------------------------------------------
+        // CLEAN FACTORY: Course (NO navigation properties)
+        // --------------------------------------------------------------------
+        private Course CreateCourse(int id)
+        {
+            return _fixture.Build<Course>()
+                .With(c => c.Id, id)
+                .With(c => c.CategoryId, CategoryId)
+                .Without(c => c.Category)
+                .Without(c => c.Modules)
+                .Without(c => c.Enrollments)
+                .Create();
+        }
+
+        // --------------------------------------------------------------------
+        // CLEAN FACTORY: Enrollment (NO navigation Course)
+        // --------------------------------------------------------------------
+        private Enrollment CreateEnrollment(string userId, int courseId, int? id = null)
+        {
+            var e = _fixture.Build<Enrollment>()
+                .With(e => e.UserId, userId)
+                .With(e => e.CourseId, courseId)
+                .Without(e => e.Course)
+                .Create();
+
+            if (id != null)
+                e.Id = id.Value;
+
+            return e;
+        }
+
+        protected override void ConfigureGatewayDependencies(IServiceCollection services)
+        {
+            // Gateway not needed for CourseService tests
+        }
+
+        // ====================================================================
+        // ADD
+        // ====================================================================
         [Fact]
         public async Task AddAsync_ShouldAddEnrollment()
         {
-            using var db = CreateDb();
-            var repo = new EnrollmentRepository(db);
+            var course = CreateCourse(1);
+            CourseContext.Courses.Add(course);
+            CourseContext.SaveChanges();
 
-            await repo.AddAsync(new Enrollment { UserId = "U1", CourseId = 1 });
-            await repo.SaveChangesAsync();
+            var enrollment = CreateEnrollment("U1", 1);
 
-            Assert.Single(db.Enrollments);
+            await _repo.AddAsync(enrollment);
+            await _repo.SaveChangesAsync();
+
+            Assert.Single(CourseContext.Enrollments);
         }
 
+        // ====================================================================
+        // REMOVE
+        // ====================================================================
         [Fact]
         public async Task RemoveAsync_ShouldDeleteEnrollment()
         {
-            using var db = CreateDb();
-            db.Enrollments.Add(new Enrollment { Id = 10, UserId = "User1", CourseId = 1 });
-            await db.SaveChangesAsync();
+            var course = CreateCourse(1);
+            CourseContext.Courses.Add(course);
+            CourseContext.SaveChanges();
 
-            var repo = new EnrollmentRepository(db);
-            await repo.RemoveAsync(10);
-            await repo.SaveChangesAsync();
+            var enrollment = CreateEnrollment("User1", 1, id: 10);
+            CourseContext.Enrollments.Add(enrollment);
+            CourseContext.SaveChanges();
 
-            Assert.Empty(db.Enrollments);
+            await _repo.RemoveAsync(10);
+            await _repo.SaveChangesAsync();
+
+            Assert.Empty(CourseContext.Enrollments);
         }
 
+        // ====================================================================
+        // GET BY USER ID
+        // ====================================================================
         [Fact]
         public async Task GetByUserIdAsync_ReturnsCorrectList()
         {
-            using var db = CreateDb();
-            // Add category and courses first to establish FK relationships
-            db.Categories.Add(new Category { Id = 1, Name = "Test Category" });
-            await db.SaveChangesAsync();
-            
-            db.Courses.Add(new Course { Id = 1, Title = "Course 1", Description = "Desc 1", CategoryId = 1, IsDeleted = false });
-            db.Courses.Add(new Course { Id = 2, Title = "Course 2", Description = "Desc 2", CategoryId = 1, IsDeleted = false });
-            await db.SaveChangesAsync();
-            
-            db.Enrollments.Add(new Enrollment { UserId = "A", CourseId = 1 });
-            db.Enrollments.Add(new Enrollment { UserId = "B", CourseId = 2 });
-            await db.SaveChangesAsync();
+            var course1 = CreateCourse(1);
+            var course2 = CreateCourse(2);
 
-            // Create a fresh context to avoid tracking issues
-            using var queryDb = CreateDb();
-            var existingCourse = db.Courses.First();
-            var existingEnrollments = db.Enrollments.Where(e => e.UserId == "A").ToList();
-            
-            // Verify directly from the original db context first
-            Assert.Single(existingEnrollments);
-            Assert.Equal(1, existingEnrollments[0].CourseId);
+            CourseContext.Courses.AddRange(course1, course2);
+            CourseContext.SaveChanges();
+
+            var e1 = CreateEnrollment("A", 1);
+            var e2 = CreateEnrollment("B", 2);
+
+            CourseContext.Enrollments.AddRange(e1, e2);
+            CourseContext.SaveChanges();
+
+            var list = (await _repo.GetByUserIdAsync("A")).ToList();
+
+            Assert.Single(list);
+            Assert.Equal("A", list[0].UserId);
+            Assert.Equal(1, list[0].CourseId);
         }
 
+        // ====================================================================
+        // IS USER ENROLLED
+        // ====================================================================
         [Fact]
         public async Task IsUserEnrolledAsync_WorksCorrectly()
         {
-            using var db = CreateDb();
-            db.Enrollments.Add(new Enrollment { UserId = "Tirth", CourseId = 99 });
-            await db.SaveChangesAsync();
+            var course = CreateCourse(99);
+            CourseContext.Courses.Add(course);
+            CourseContext.SaveChanges();
 
-            var repo = new EnrollmentRepository(db);
+            var enrollment = CreateEnrollment("Tirth", 99);
+            CourseContext.Enrollments.Add(enrollment);
+            CourseContext.SaveChanges();
 
-            Assert.True(await repo.IsUserEnrolledAsync("Tirth", 99));
-            Assert.False(await repo.IsUserEnrolledAsync("Someone", 99));
+            Assert.True(await _repo.IsUserEnrolledAsync("Tirth", 99));
+            Assert.False(await _repo.IsUserEnrolledAsync("Someone", 99));
         }
 
+        // ====================================================================
+        // GET BY COURSE ID
+        // ====================================================================
         [Fact]
         public async Task GetByCourseIdAsync_ReturnsList()
         {
-            using var db = CreateDb();
-            db.Categories.Add(new Category { Id = 1, Name = "Test Category" });
-            await db.SaveChangesAsync();
-            
-            db.Courses.Add(new Course { Id = 5, Title = "Course 5", Description = "Desc 5", CategoryId = 1, IsDeleted = false });
-            db.Courses.Add(new Course { Id = 6, Title = "Course 6", Description = "Desc 6", CategoryId = 1, IsDeleted = false });
-            await db.SaveChangesAsync();
-            
-            db.Enrollments.Add(new Enrollment { CourseId = 5, UserId = "User1" });
-            db.Enrollments.Add(new Enrollment { CourseId = 6, UserId = "User2" });
-            await db.SaveChangesAsync();
+            var course = CreateCourse(5);
+            CourseContext.Courses.Add(course);
+            CourseContext.SaveChanges();
 
-            // Verify directly from db context
-            var list = db.Enrollments.Where(e => e.CourseId == 5).ToList();
+            var e1 = CreateEnrollment("User1", 5);
+            var e2 = CreateEnrollment("User2", 6);
+
+            CourseContext.Enrollments.AddRange(e1, e2);
+            CourseContext.SaveChanges();
+
+            var list = (await _repo.GetByCourseIdAsync(5)).ToList();
 
             Assert.Single(list);
             Assert.Equal(5, list[0].CourseId);
         }
 
+        // ====================================================================
+        // GET BY ID
+        // ====================================================================
         [Fact]
         public async Task GetByIdAsync_ReturnsEnrollment()
         {
-            using var db = CreateDb();
-            db.Categories.Add(new Category { Id = 1, Name = "Test Category" });
-            await db.SaveChangesAsync();
-            
-            db.Courses.Add(new Course { Id = 1, Title = "Course 1", Description = "Desc 1", CategoryId = 1, IsDeleted = false });
-            await db.SaveChangesAsync();
-            
-            db.Enrollments.Add(new Enrollment { Id = 7, UserId = "User1", CourseId = 1 });
-            await db.SaveChangesAsync();
+            var course = CreateCourse(1);
+            CourseContext.Courses.Add(course);
+            CourseContext.SaveChanges();
 
+            var enrollment = CreateEnrollment("User1", 1, id: 7);
+            CourseContext.Enrollments.Add(enrollment);
+            CourseContext.SaveChanges();
+
+            var result = await _repo.GetByIdAsync(7);
+
+            Assert.NotNull(result);
+            Assert.Equal("User1", result!.UserId);
+            Assert.Equal(1, result.CourseId);
         }
     }
 }

@@ -1,22 +1,31 @@
-﻿using Gateway.Controllers;
+﻿using AutoFixture;
+using Gateway.Controllers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Moq.Protected;
 using System.Net;
-using System.Net.Http.Headers;
 using System.Text;
 
 namespace LMS.Tests.Gateway
 {
     public class GatewayCourseControllerTests
     {
+        private readonly Fixture _fixture;
+
         private readonly Mock<IHttpClientFactory> _factoryMock;
         private readonly Mock<HttpMessageHandler> _handlerMock;
         private readonly HttpClient _client;
 
         public GatewayCourseControllerTests()
         {
+            _fixture = new Fixture();
+            _fixture.Behaviors
+                .OfType<ThrowingRecursionBehavior>()
+                .ToList()
+                .ForEach(b => _fixture.Behaviors.Remove(b));
+            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
+
             _handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
 
             _client = new HttpClient(_handlerMock.Object)
@@ -31,16 +40,18 @@ namespace LMS.Tests.Gateway
 
         private GatewayCourseController CreateController(HttpContext? ctx = null)
         {
-            var controller = new GatewayCourseController(_factoryMock.Object);
-
-            controller.ControllerContext = new ControllerContext
+            return new GatewayCourseController(_factoryMock.Object)
             {
-                HttpContext = ctx ?? new DefaultHttpContext()
+                ControllerContext = new ControllerContext
+                {
+                    HttpContext = ctx ?? new DefaultHttpContext()
+                }
             };
-
-            return controller;
         }
 
+        // -------------------------------------------------------------------
+        // Utilities for Response Setup
+        // -------------------------------------------------------------------
         private void SetupJsonResponse(string json, HttpStatusCode status = HttpStatusCode.OK)
         {
             _handlerMock.Protected()
@@ -69,9 +80,9 @@ namespace LMS.Tests.Gateway
                 });
         }
 
-        // -------------------------------------------------------------
+        // -------------------------------------------------------------------
         // GET ALL
-        // -------------------------------------------------------------
+        // -------------------------------------------------------------------
         [Fact]
         public async Task GetAll_ShouldForwardTo_CourseService()
         {
@@ -85,9 +96,9 @@ namespace LMS.Tests.Gateway
             Assert.Equal("[{\"id\":1}]", content.Content);
         }
 
-        // -------------------------------------------------------------
+        // -------------------------------------------------------------------
         // GET by ID
-        // -------------------------------------------------------------
+        // -------------------------------------------------------------------
         [Fact]
         public async Task Get_ShouldForwardCorrectUrl()
         {
@@ -109,16 +120,16 @@ namespace LMS.Tests.Gateway
                     ItExpr.IsAny<CancellationToken>());
         }
 
-        // -------------------------------------------------------------
+        // -------------------------------------------------------------------
         // CREATE
-        // -------------------------------------------------------------
+        // -------------------------------------------------------------------
         [Fact]
         public async Task Create_ShouldSendPost_WithJsonBody()
         {
             SetupJsonResponse("{\"ok\":true}");
 
             var controller = CreateController();
-            var dto = new { title = "abc" };
+            var dto = _fixture.Create<object>();
 
             var result = await controller.Create(dto);
             var content = Assert.IsType<ContentResult>(result);
@@ -134,9 +145,9 @@ namespace LMS.Tests.Gateway
                     ItExpr.IsAny<CancellationToken>());
         }
 
-        // -------------------------------------------------------------
+        // -------------------------------------------------------------------
         // UPDATE
-        // -------------------------------------------------------------
+        // -------------------------------------------------------------------
         [Fact]
         public async Task Update_ShouldSendPut_ToCorrectUrl()
         {
@@ -159,9 +170,9 @@ namespace LMS.Tests.Gateway
                     ItExpr.IsAny<CancellationToken>());
         }
 
-        // -------------------------------------------------------------
+        // -------------------------------------------------------------------
         // NON-JSON RESPONSE
-        // -------------------------------------------------------------
+        // -------------------------------------------------------------------
         [Fact]
         public async Task Forward_ShouldWrapNonJson_InMessageField()
         {
@@ -180,9 +191,9 @@ namespace LMS.Tests.Gateway
             Assert.Equal(404, bad.StatusCode);
         }
 
-        // -------------------------------------------------------------
+        // -------------------------------------------------------------------
         // AUTH HEADER FORWARDING
-        // -------------------------------------------------------------
+        // -------------------------------------------------------------------
         [Fact]
         public async Task Forward_ShouldIncludeAuthorizationHeader()
         {
@@ -203,9 +214,9 @@ namespace LMS.Tests.Gateway
                     ItExpr.IsAny<CancellationToken>());
         }
 
-        // -------------------------------------------------------------
-        // Delete
-        // -------------------------------------------------------------
+        // -------------------------------------------------------------------
+        // DELETE
+        // -------------------------------------------------------------------
         [Fact]
         public async Task Delete_ShouldCallCorrectUrl()
         {

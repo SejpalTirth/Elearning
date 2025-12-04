@@ -1,4 +1,5 @@
-﻿using GatewayService.BLL.DTOs;
+﻿using AutoFixture;
+using GatewayService.BLL.DTOs;
 using GatewayService.BLL.Interface;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -18,53 +19,67 @@ namespace LMS.Tests.Gateway
         private readonly Mock<IAuthService> _authMock = new();
         private readonly Mock<ILogger<GatewayAuthController>> _logMock = new();
 
+        private readonly Fixture _fixture;
+
+        public GatewayAuthControllerTests()
+        {
+            _fixture = new Fixture();
+            _fixture.Behaviors
+                .OfType<ThrowingRecursionBehavior>()
+                .ToList()
+                .ForEach(b => _fixture.Behaviors.Remove(b));
+            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
+        }
+
+        // -------------------------------------------------------------------
+        // Controller Builder
+        // -------------------------------------------------------------------
         private GatewayAuthController CreateController(
-    ClaimsPrincipal? externalUser = null,
-    bool externalSucceeded = true)
+            ClaimsPrincipal? externalUser = null,
+            bool externalSucceeded = true)
         {
             var controller = new GatewayAuthController(_authMock.Object, _logMock.Object);
 
-            // HttpContext
+            // ----------------- HTTP CONTEXT + DI -----------------
             var ctx = new DefaultHttpContext();
             var services = new ServiceCollection();
 
-            // 1) Fake AuthenticationService
-            var fakeAuthService = new Mock<IAuthenticationService>();
-            fakeAuthService.Setup(x => x.AuthenticateAsync(
-                    It.IsAny<HttpContext>(), "External"))
+            // ----------------- Mock IAuthenticationService -----------------
+            var fakeAuth = new Mock<IAuthenticationService>();
+
+            fakeAuth.Setup(x => x.AuthenticateAsync(It.IsAny<HttpContext>(), "External"))
                 .ReturnsAsync(() =>
                     externalSucceeded
                         ? AuthenticateResult.Success(
-                                new AuthenticationTicket(
-                                    externalUser ?? new ClaimsPrincipal(),
-                                    new AuthenticationProperties
-                                    {
-                                        Items = { [".AuthScheme"] = "Google" }
-                                    },
-                                    "External"))
+                            new AuthenticationTicket(
+                                externalUser ?? new ClaimsPrincipal(),
+                                new AuthenticationProperties
+                                {
+                                    Items = { [".AuthScheme"] = "Google" }
+                                },
+                                "External"))
                         : AuthenticateResult.Fail("failed"));
 
-            fakeAuthService.Setup(x => x.SignInAsync(
+            fakeAuth.Setup(x => x.SignInAsync(
                     It.IsAny<HttpContext>(),
                     CookieAuthenticationDefaults.AuthenticationScheme,
                     It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<AuthenticationProperties>()))
                 .Returns(Task.CompletedTask);
 
-            fakeAuthService.Setup(x => x.SignOutAsync(
+            fakeAuth.Setup(x => x.SignOutAsync(
                     It.IsAny<HttpContext>(),
                     It.IsAny<string>(),
                     It.IsAny<AuthenticationProperties>()))
                 .Returns(Task.CompletedTask);
 
-            services.AddSingleton<IAuthenticationService>(fakeAuthService.Object);
+            services.AddSingleton<IAuthenticationService>(fakeAuth.Object);
 
-            // 2) Fake UrlHelper + factory
+            // ----------------- Mock UrlHelper -----------------
             var urlHelper = new Mock<IUrlHelper>();
-            urlHelper.Setup(x => x.IsLocalUrl(It.IsAny<string>())).Returns(true);
-            urlHelper
-                .Setup(x => x.Action(It.IsAny<UrlActionContext>()))
-                .Returns("http://localhost/callback");
+            urlHelper.Setup(u => u.IsLocalUrl(It.IsAny<string>())).Returns(true);
+            urlHelper.Setup(u => u.Action(It.IsAny<UrlActionContext>()))
+                     .Returns("http://localhost/callback");
 
             var urlFactory = new Mock<IUrlHelperFactory>();
             urlFactory.Setup(f => f.GetUrlHelper(It.IsAny<ActionContext>()))
@@ -72,53 +87,46 @@ namespace LMS.Tests.Gateway
 
             services.AddSingleton<IUrlHelperFactory>(urlFactory.Object);
 
-            // Build provider
             ctx.RequestServices = services.BuildServiceProvider();
+            controller.ControllerContext = new ControllerContext { HttpContext = ctx };
 
-            controller.ControllerContext = new ControllerContext
-            {
-                HttpContext = ctx
-            };
-
-            // Assign Url helper explicitly
             controller.Url = urlHelper.Object;
 
             return controller;
         }
 
-
-        // ---------------------------------------------------------
+        // -------------------------------------------------------------------
         // GOOGLE LOGIN
-        // ---------------------------------------------------------
+        // -------------------------------------------------------------------
         [Fact]
         public void GoogleLogin_ShouldReturnChallenge()
         {
             var controller = CreateController();
 
             var result = controller.Google("/dashboard");
-            var challenge = Assert.IsType<ChallengeResult>(result);
 
+            var challenge = Assert.IsType<ChallengeResult>(result);
             Assert.Equal(GoogleDefaults.AuthenticationScheme, challenge.AuthenticationSchemes.Single());
             Assert.Contains("prompt", challenge.Properties.Items.Keys);
         }
 
-        // ---------------------------------------------------------
+        // -------------------------------------------------------------------
         // MICROSOFT LOGIN
-        // ---------------------------------------------------------
+        // -------------------------------------------------------------------
         [Fact]
         public void MicrosoftLogin_ShouldReturnChallenge()
         {
             var controller = CreateController();
 
             var result = controller.Microsoft("/test");
-            var challenge = Assert.IsType<ChallengeResult>(result);
 
+            var challenge = Assert.IsType<ChallengeResult>(result);
             Assert.Equal("Microsoft", challenge.AuthenticationSchemes.Single());
         }
 
-        // ---------------------------------------------------------
+        // -------------------------------------------------------------------
         // EXTERNAL FAILURE
-        // ---------------------------------------------------------
+        // -------------------------------------------------------------------
         [Fact]
         public async Task ExternalResponse_ShouldReturnBadRequest_WhenExternalFails()
         {
@@ -130,9 +138,9 @@ namespace LMS.Tests.Gateway
             Assert.Equal("External authentication failed", bad.Value);
         }
 
-        // ---------------------------------------------------------
+        // -------------------------------------------------------------------
         // MISSING CLAIMS
-        // ---------------------------------------------------------
+        // -------------------------------------------------------------------
         [Fact]
         public async Task ExternalResponse_ShouldReturnBadRequest_WhenMissingClaims()
         {
@@ -146,9 +154,9 @@ namespace LMS.Tests.Gateway
             Assert.Equal("Invalid external data", bad.Value);
         }
 
-        // ---------------------------------------------------------
-        // NEW USER -> redirect with isNewUser
-        // ---------------------------------------------------------
+        // -------------------------------------------------------------------
+        // NEW USER FLOW
+        // -------------------------------------------------------------------
         [Fact]
         public async Task ExternalResponse_ShouldRedirect_WhenNewUser()
         {
@@ -161,12 +169,13 @@ namespace LMS.Tests.Gateway
 
             var user = new ClaimsPrincipal(claims);
 
-            _authMock.Setup(a => a.SignInExternalAsync("Google", "sub123", "test@mail.com", "Kira"))
-                     .ReturnsAsync(new ExternalSignInResultDto
-                     {
-                         IsNewUser = true,
-                         UserId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
-                     });
+            _authMock.Setup(a =>
+                a.SignInExternalAsync("Google", "sub123", "test@mail.com", "Kira"))
+                .ReturnsAsync(new ExternalSignInResultDto
+                {
+                    IsNewUser = true,
+                    UserId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+                });
 
             var controller = CreateController(user);
 
@@ -177,9 +186,9 @@ namespace LMS.Tests.Gateway
             Assert.Contains("userId=aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", redirect.Url);
         }
 
-        // ---------------------------------------------------------
-        // EXISTING USER + TOKENS -> redirect with tokens
-        // ---------------------------------------------------------
+        // -------------------------------------------------------------------
+        // EXISTING USER — WITH TOKENS
+        // -------------------------------------------------------------------
         [Fact]
         public async Task ExternalResponse_ShouldRedirectWithToken_WhenExistingUser()
         {
@@ -192,17 +201,18 @@ namespace LMS.Tests.Gateway
 
             var user = new ClaimsPrincipal(claims);
 
-            _authMock.Setup(a => a.SignInExternalAsync("Google", "sub1", "e@mail.com", "Kira"))
-                     .ReturnsAsync(new ExternalSignInResultDto
-                     {
-                         IsNewUser = false,
-                         UserId = Guid.NewGuid(),
-                         Tokens = new TokenResponseDto
-                         {
-                             AccessToken = "access123",
-                             RefreshToken = "refresh123"
-                         }
-                     });
+            _authMock.Setup(a =>
+                a.SignInExternalAsync("Google", "sub1", "e@mail.com", "Kira"))
+                .ReturnsAsync(new ExternalSignInResultDto
+                {
+                    IsNewUser = false,
+                    UserId = Guid.NewGuid(),
+                    Tokens = new TokenResponseDto
+                    {
+                        AccessToken = "access123",
+                        RefreshToken = "refresh123"
+                    }
+                });
 
             var controller = CreateController(user);
 
@@ -213,9 +223,9 @@ namespace LMS.Tests.Gateway
             Assert.Contains("refresh=refresh123", redirect.Url);
         }
 
-        // ---------------------------------------------------------
-        // EXISTING USER without tokens -> simple redirect
-        // ---------------------------------------------------------
+        // -------------------------------------------------------------------
+        // EXISTING USER — NO TOKENS
+        // -------------------------------------------------------------------
         [Fact]
         public async Task ExternalResponse_ShouldRedirectWithoutToken_WhenNoTokens()
         {
@@ -228,13 +238,14 @@ namespace LMS.Tests.Gateway
 
             var user = new ClaimsPrincipal(claims);
 
-            _authMock.Setup(a => a.SignInExternalAsync("Google", "subX", "xx@mail.com", "Kira"))
-                     .ReturnsAsync(new ExternalSignInResultDto
-                     {
-                         IsNewUser = false,
-                         UserId = Guid.NewGuid(),
-                         Tokens = null
-                     });
+            _authMock.Setup(a =>
+                a.SignInExternalAsync("Google", "subX", "xx@mail.com", "Kira"))
+                .ReturnsAsync(new ExternalSignInResultDto
+                {
+                    IsNewUser = false,
+                    UserId = Guid.NewGuid(),
+                    Tokens = null
+                });
 
             var controller = CreateController(user);
 
@@ -244,9 +255,9 @@ namespace LMS.Tests.Gateway
             Assert.DoesNotContain("token=", redirect.Url);
         }
 
-        // ---------------------------------------------------------
+        // -------------------------------------------------------------------
         // LOGOUT
-        // ---------------------------------------------------------
+        // -------------------------------------------------------------------
         [Fact]
         public async Task Logout_ShouldRevokeRefresh_AndSignOut()
         {
@@ -257,11 +268,12 @@ namespace LMS.Tests.Gateway
             _authMock.Verify(a => a.RevokeRefreshTokenAsync("abc123"), Times.Once);
 
             var ok = Assert.IsType<OkObjectResult>(result);
-            var dict = ok.Value!.GetType()
+
+            var props = ok.Value!.GetType()
                 .GetProperties()
                 .ToDictionary(p => p.Name, p => p.GetValue(ok.Value));
 
-            Assert.Equal("Logged out", dict["message"]);
+            Assert.Equal("Logged out", props["message"]);
         }
     }
 }

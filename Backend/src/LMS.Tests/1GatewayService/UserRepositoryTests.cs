@@ -1,31 +1,38 @@
-﻿using GatewayService.DAL.Data;
+﻿using AutoFixture;
 using GatewayService.DAL.Models;
 using GatewayService.DAL.Repo;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace LMS.Tests.GatewayService
 {
-    public class UserRepositoryTests
+    public class UserRepositoryTests : BaseTest
     {
-        private readonly GatewayServiceContext _context;
         private readonly UserRepository _repo;
+        private readonly Fixture _fixture;
 
         public UserRepositoryTests()
         {
-            // 🔥 Isolated EF InMemory provider (prevents SQL Server conflict)
-            var services = new ServiceCollection();
-            services.AddEntityFrameworkInMemoryDatabase();
+            // -----------------------------
+            // AutoFixture Setup
+            // -----------------------------
+            _fixture = new Fixture();
 
-            var provider = services.BuildServiceProvider();
+            // Fix circular references (User <-> Tokens)
+            _fixture.Behaviors.OfType<ThrowingRecursionBehavior>()
+                .ToList()
+                .ForEach(b => _fixture.Behaviors.Remove(b));
 
-            var options = new DbContextOptionsBuilder<GatewayServiceContext>()
-                .UseInMemoryDatabase(Guid.NewGuid().ToString())
-                .UseInternalServiceProvider(provider)     // KEY FIX
-                .Options;
+            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
 
-            _context = new GatewayServiceContext(options);
-            _repo = new UserRepository(_context);
+            // -----------------------------
+            // Repository Under Test
+            // -----------------------------
+            _repo = new UserRepository(GatewayContext);
+        }
+
+        protected override void ConfigureGatewayDependencies(IServiceCollection services)
+        {
+            // Nothing special needed for UserRepository now
         }
 
         // -----------------------------------------------------
@@ -34,16 +41,17 @@ namespace LMS.Tests.GatewayService
         [Fact]
         public async Task AddUser_ShouldAssignId_AndSave()
         {
-            var user = new User
-            {
-                Email = "new@mail.com"
-            };
+            // AutoFixture builds user but we override Email
+            var user = _fixture.Build<User>()
+                .With(u => u.Email, "new@mail.com")
+                .Without(u => u.RefreshTokens)   // Avoid random token list
+                .Create();
 
             var saved = await _repo.AddUserAsync(user);
 
             Assert.NotEqual(Guid.Empty, saved.Id);
             Assert.Equal("new@mail.com", saved.Email);
-            Assert.True(_context.Users.Any(u => u.Email == "new@mail.com"));
+            Assert.True(GatewayContext.Users.Any(u => u.Email == "new@mail.com"));
         }
 
         // -----------------------------------------------------
@@ -52,13 +60,13 @@ namespace LMS.Tests.GatewayService
         [Fact]
         public async Task GetByEmail_ShouldReturnUser()
         {
-            var user = new User
-            {
-                Email = "findme@mail.com"
-            };
+            var user = _fixture.Build<User>()
+                .With(u => u.Email, "findme@mail.com")
+                .Without(u => u.RefreshTokens)
+                .Create();
 
-            _context.Users.Add(user);
-            _context.SaveChanges();
+            GatewayContext.Users.Add(user);
+            GatewayContext.SaveChanges();
 
             var fetched = await _repo.GetByEmailAsync("findme@mail.com");
 
@@ -72,13 +80,13 @@ namespace LMS.Tests.GatewayService
         [Fact]
         public async Task GetById_ShouldReturnUser()
         {
-            var user = new User
-            {
-                Email = "byid@mail.com"
-            };
+            var user = _fixture.Build<User>()
+                .With(u => u.Email, "byid@mail.com")
+                .Without(u => u.RefreshTokens)
+                .Create();
 
-            _context.Users.Add(user);
-            _context.SaveChanges();
+            GatewayContext.Users.Add(user);
+            GatewayContext.SaveChanges();
 
             var fetched = await _repo.GetByIdAsync(user.Id);
 
