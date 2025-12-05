@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoFixture;
+using Microsoft.EntityFrameworkCore;
 using NotificationService.DAL.Data;
 using NotificationService.DAL.Models;
 using NotificationService.DAL.Repo;
@@ -7,6 +8,18 @@ namespace LMS.Tests.NotificationService
 {
     public class NotificationRepositoryTests
     {
+        private readonly Fixture _fixture;
+
+        public NotificationRepositoryTests()
+        {
+            _fixture = new Fixture();
+            _fixture.Behaviors
+                .OfType<ThrowingRecursionBehavior>()
+                .ToList()
+                .ForEach(b => _fixture.Behaviors.Remove(b));
+            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
+        }
+
         private NotificationDbContext GetDb()
         {
             var options = new DbContextOptionsBuilder<NotificationDbContext>()
@@ -25,13 +38,13 @@ namespace LMS.Tests.NotificationService
             var db = GetDb();
             var repo = new NotificationRepository(db);
 
-            db.NotificationTemplates.Add(new NotificationTemplate
-            {
-                Name = "Welcome",
-                Subject = "Hello",
-                BodyTemplate = "Body..."
-            });
+            var template = _fixture.Build<NotificationTemplate>()
+                                   .With(x => x.Name, "Welcome")
+                                   .With(x => x.Subject, "Hello")
+                                   .With(x => x.BodyTemplate, "Body...")
+                                   .Create();
 
+            db.NotificationTemplates.Add(template);
             await db.SaveChangesAsync();
 
             var result = await repo.GetTemplateByNameAsync("Welcome");
@@ -49,13 +62,9 @@ namespace LMS.Tests.NotificationService
             var db = GetDb();
             var repo = new NotificationRepository(db);
 
-            var note = new Notification
-            {
-                UserId = Guid.NewGuid(),
-                Title = "Test",
-                Body = "Message",
-                SentAt = DateTime.UtcNow
-            };
+            var note = _fixture.Build<Notification>()
+                               .With(n => n.SentAt, DateTime.UtcNow)
+                               .Create();
 
             await repo.SaveNotificationAsync(note);
 
@@ -73,11 +82,19 @@ namespace LMS.Tests.NotificationService
 
             Guid userId = Guid.NewGuid();
 
-            db.Notifications.AddRange(
-                new Notification { UserId = userId, Title = "Old", SentAt = DateTime.UtcNow.AddHours(-1) },
-                new Notification { UserId = userId, Title = "New", SentAt = DateTime.UtcNow }
-            );
+            var oldNotif = _fixture.Build<Notification>()
+                                   .With(n => n.UserId, userId)
+                                   .With(n => n.Title, "Old")
+                                   .With(n => n.SentAt, DateTime.UtcNow.AddHours(-1))
+                                   .Create();
 
+            var newNotif = _fixture.Build<Notification>()
+                                   .With(n => n.UserId, userId)
+                                   .With(n => n.Title, "New")
+                                   .With(n => n.SentAt, DateTime.UtcNow)
+                                   .Create();
+
+            db.Notifications.AddRange(oldNotif, newNotif);
             await db.SaveChangesAsync();
 
             var result = await repo.GetUserNotificationsAsync(userId);

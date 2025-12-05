@@ -1,153 +1,195 @@
-﻿using CourseService.DAL.Models;
+﻿using AutoFixture;
+using CourseService.DAL.Models;
 using CourseService.DAL.Repo;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace LMS.Tests.CourseServiceTests.Repository
+namespace LMS.Tests.CourseService.Repository
 {
-    public class CourseRepositoryTests
+    public class CourseRepositoryTests : BaseTest
     {
-        private CourseContext CreateDb()
-        {
-            var options = new DbContextOptionsBuilder<CourseContext>()
-                .UseInMemoryDatabase(Guid.NewGuid().ToString())
-                .Options;
+        private readonly CourseRepository _repo;
+        private readonly Fixture _fixture;
 
-            return new CourseContext(options);
+        public CourseRepositoryTests()
+        {
+            // -----------------------------
+            // AutoFixture setup
+            // -----------------------------
+            _fixture = new Fixture();
+
+            // Prevent EF circular recursion (Course → Category → Course…)
+            _fixture.Behaviors.OfType<ThrowingRecursionBehavior>()
+                .ToList()
+                .ForEach(b => _fixture.Behaviors.Remove(b));
+            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
+
+            // -----------------------------
+            // Seed a Category (needed for FK)
+            // -----------------------------
+            var category = _fixture.Build<Category>()
+                .With(c => c.Name, "Test Category")
+                .Without(c => c.Courses)
+                .Create();
+
+            CourseContext.Categories.Add(category);
+            CourseContext.SaveChanges();
+
+            // -----------------------------
+            // Repo under test
+            // -----------------------------
+            _repo = new CourseRepository(CourseContext);
         }
 
+        protected override void ConfigureGatewayDependencies(IServiceCollection services)
+        {
+            // No Gateway dependencies for CourseService
+        }
+
+        // Helper to create courses safely
+        private Course CreateCourse(int? id = null, Guid? instructor = null, bool isDeleted = false)
+        {
+            var course = _fixture.Build<Course>()
+                .Without(c => c.Category) // Prevent recursion
+                .With(c => c.CategoryId, CourseContext.Categories.First().Id)
+                .With(c => c.IsDeleted, isDeleted)
+                .Create();
+
+            if (id.HasValue) course.Id = id.Value;
+            if (instructor.HasValue) course.InstructorUserId = instructor.Value;
+
+            return course;
+        }
+
+        // -----------------------------------------------------
+        // GetAllAsync – only non-deleted courses
+        // -----------------------------------------------------
         [Fact]
         public async Task GetAllAsync_ReturnsNonDeletedCourses()
         {
-            using var db = CreateDb();
-            db.Categories.Add(new Category { Id = 1, Name = "Test Category" });
-            await db.SaveChangesAsync();
-            
-            db.Courses.Add(new Course { Title = "A", Description = "Desc A", CategoryId = 1, IsDeleted = false });
-            db.Courses.Add(new Course { Title = "B", Description = "Desc B", CategoryId = 1, IsDeleted = true });
-            await db.SaveChangesAsync();
+            var catId = CourseContext.Categories.First().Id;
 
-            var repo = new CourseRepository(db);
-            var list = (await repo.GetAllAsync()).ToList();
+            var active = CreateCourse(isDeleted: false);
+            var deleted = CreateCourse(isDeleted: true);
+
+            CourseContext.Courses.AddRange(active, deleted);
+            await CourseContext.SaveChangesAsync();
+
+            var list = (await _repo.GetAllAsync()).ToList();
 
             Assert.Single(list);
-            Assert.Equal("A", list[0].Title);
+            Assert.Equal(active.Title, list[0].Title);
         }
 
+        // -----------------------------------------------------
+        // GetByIdAsync – course exists
+        // -----------------------------------------------------
         [Fact]
         public async Task GetByIdAsync_ReturnsCourse_WhenExists()
         {
-            using var db = CreateDb();
-            db.Categories.Add(new Category { Id = 1, Name = "Test Category" });
-            await db.SaveChangesAsync();
-            
-            db.Courses.Add(new Course { Id = 1, Title = "Test", Description = "Test description", CategoryId = 1, IsDeleted = false });
-            await db.SaveChangesAsync();
+            var course = CreateCourse(id: 1, isDeleted: false);
 
-            var repo = new CourseRepository(db);
-            var result = await repo.GetByIdAsync(1);
+            CourseContext.Courses.Add(course);
+            await CourseContext.SaveChangesAsync();
+
+            var result = await _repo.GetByIdAsync(1);
 
             Assert.NotNull(result);
-            Assert.Equal("Test", result!.Title);
+            Assert.Equal(course.Title, result!.Title);
         }
 
+        // -----------------------------------------------------
+        // GetByIdAsync – returns null when deleted
+        // -----------------------------------------------------
         [Fact]
         public async Task GetByIdAsync_ReturnsNull_WhenDeleted()
         {
-            using var db = CreateDb();
-            db.Categories.Add(new Category { Id = 1, Name = "Test Category" });
-            await db.SaveChangesAsync();
-            
-            db.Courses.Add(new Course { Id = 2, Title = "X", Description = "Deleted course", CategoryId = 1, IsDeleted = true });
-            await db.SaveChangesAsync();
+            var course = CreateCourse(id: 2, isDeleted: true);
 
-            var repo = new CourseRepository(db);
-            var result = await repo.GetByIdAsync(2);
+            CourseContext.Courses.Add(course);
+            await CourseContext.SaveChangesAsync();
+
+            var result = await _repo.GetByIdAsync(2);
 
             Assert.Null(result);
         }
 
+        // -----------------------------------------------------
+        // AddAsync
+        // -----------------------------------------------------
         [Fact]
         public async Task AddAsync_ShouldAddCourse()
         {
-            using var db = CreateDb();
-            db.Categories.Add(new Category { Id = 1, Name = "Test Category" });
-            await db.SaveChangesAsync();
-            
-            var repo = new CourseRepository(db);
+            var course = CreateCourse(isDeleted: false);
 
-            await repo.AddAsync(new Course { Title = "New", Description = "New course description", CategoryId = 1, IsDeleted = false });
-            await repo.SaveChangesAsync();
+            await _repo.AddAsync(course);
+            await CourseContext.SaveChangesAsync();
 
-            Assert.Single(db.Courses);
+            Assert.Single(CourseContext.Courses);
         }
 
+        // -----------------------------------------------------
+        // UpdateAsync
+        // -----------------------------------------------------
         [Fact]
         public async Task UpdateAsync_ShouldModifyCourse()
         {
-            using var db = CreateDb();
-            db.Categories.Add(new Category { Id = 1, Name = "Test Category" });
-            await db.SaveChangesAsync();
-            
-            db.Courses.Add(new Course { Id = 1, Title = "Old", Description = "Old description", CategoryId = 1, IsDeleted = false });
-            await db.SaveChangesAsync();
+            var course = CreateCourse(id: 1);
+            CourseContext.Courses.Add(course);
+            await CourseContext.SaveChangesAsync();
 
-            var repo = new CourseRepository(db);
-            var course = await repo.GetByIdAsync(1);
-            course!.Title = "Updated";
+            course.Title = "Updated";
+            await _repo.UpdateAsync(course);
+            await CourseContext.SaveChangesAsync();
 
-            await repo.UpdateAsync(course);
-            await db.SaveChangesAsync();
-
-            Assert.Equal("Updated", db.Courses.First().Title);
+            Assert.Equal("Updated", CourseContext.Courses.First().Title);
         }
 
+        // -----------------------------------------------------
+        // ExistsAsync
+        // -----------------------------------------------------
         [Fact]
         public async Task ExistsAsync_ReturnsTrue_ForExistingCourse()
         {
-            using var db = CreateDb();
-            db.Categories.Add(new Category { Id = 1, Name = "Test Category" });
-            await db.SaveChangesAsync();
-            
-            db.Courses.Add(new Course { Id = 3, Title = "Exists", Description = "Exists description", CategoryId = 1, IsDeleted = false });
-            await db.SaveChangesAsync();
+            var course = CreateCourse(id: 3);
+            CourseContext.Courses.Add(course);
+            await CourseContext.SaveChangesAsync();
 
-            var repo = new CourseRepository(db);
-            Assert.True(await repo.ExistsAsync(3));
+            Assert.True(await _repo.ExistsAsync(3));
         }
 
+        // -----------------------------------------------------
+        // GetByIdsAsync
+        // -----------------------------------------------------
         [Fact]
         public async Task GetByIdsAsync_ReturnsMatchingCourses()
         {
-            using var db = CreateDb();
-            db.Categories.Add(new Category { Id = 1, Name = "Test Category" });
-            await db.SaveChangesAsync();
-            
-            db.Courses.Add(new Course { Id = 1, Title = "Course 1", Description = "Desc 1", CategoryId = 1, IsDeleted = false });
-            db.Courses.Add(new Course { Id = 2, Title = "Course 2", Description = "Desc 2", CategoryId = 1, IsDeleted = false });
-            await db.SaveChangesAsync();
+            var c1 = CreateCourse(id: 1);
+            var c2 = CreateCourse(id: 2);
 
-            var repo = new CourseRepository(db);
-            var list = (await repo.GetByIdsAsync(new List<int> { 1 })).ToList();
+            CourseContext.Courses.AddRange(c1, c2);
+            await CourseContext.SaveChangesAsync();
+
+            var list = (await _repo.GetByIdsAsync(new List<int> { 1 })).ToList();
 
             Assert.Single(list);
             Assert.Equal(1, list[0].Id);
         }
 
+        // -----------------------------------------------------
+        // GetByInstructorIdAsync
+        // -----------------------------------------------------
         [Fact]
         public async Task GetByInstructorIdAsync_ReturnsCorrectData()
         {
             Guid instructor = Guid.NewGuid();
 
-            using var db = CreateDb();
-            db.Categories.Add(new Category { Id = 1, Name = "Test Category" });
-            await db.SaveChangesAsync();
-            
-            db.Courses.Add(new Course { Id = 1, Title = "Instructor Course 1", InstructorUserId = instructor, Description = "Instructor 1", CategoryId = 1, IsDeleted = false });
-            db.Courses.Add(new Course { Id = 2, Title = "Instructor Course 2", InstructorUserId = Guid.NewGuid(), Description = "Instructor 2", CategoryId = 1, IsDeleted = false });
-            await db.SaveChangesAsync();
+            var matching = CreateCourse(id: 1, instructor: instructor);
+            var other = CreateCourse(id: 2, instructor: Guid.NewGuid());
 
-            var repo = new CourseRepository(db);
-            var list = (await repo.GetByInstructorIdAsync(instructor)).ToList();
+            CourseContext.Courses.AddRange(matching, other);
+            await CourseContext.SaveChangesAsync();
+
+            var list = (await _repo.GetByInstructorIdAsync(instructor)).ToList();
 
             Assert.Single(list);
             Assert.Equal(1, list[0].Id);

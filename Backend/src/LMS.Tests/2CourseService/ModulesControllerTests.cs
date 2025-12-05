@@ -1,4 +1,5 @@
-﻿using CourseService.BLL.DTOs;
+﻿using AutoFixture;
+using CourseService.BLL.DTOs;
 using CourseService.BLL.Interface;
 using CourseService.Web.Controllers;
 using Microsoft.AspNetCore.Mvc;
@@ -10,11 +11,20 @@ namespace LMS.Tests.CourseService
     {
         private readonly Mock<IModuleService> _moduleMock;
         private readonly ModulesController _controller;
+        private readonly Fixture _fixture;
 
         public ModulesControllerTests()
         {
             _moduleMock = new Mock<IModuleService>();
             _controller = new ModulesController(_moduleMock.Object);
+
+            _fixture = new Fixture();
+
+            // Prevent accidental recursion for DTOs (safe default)
+            _fixture.Behaviors.OfType<ThrowingRecursionBehavior>()
+                .ToList()
+                .ForEach(b => _fixture.Behaviors.Remove(b));
+            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
         }
 
         // -----------------------------------------------------
@@ -23,8 +33,10 @@ namespace LMS.Tests.CourseService
         [Fact]
         public async Task GetByCourse_ShouldReturnModules()
         {
+            var moduleList = _fixture.CreateMany<ModuleSummaryDto>(1).ToList();
+
             _moduleMock.Setup(m => m.GetModulesByCourseAsync(10))
-                .ReturnsAsync(new List<ModuleSummaryDto> { new ModuleSummaryDto { Id = 1, Title = "Module 1" } });
+                .ReturnsAsync(moduleList);
 
             var result = await _controller.GetByCourse(10) as OkObjectResult;
 
@@ -39,7 +51,9 @@ namespace LMS.Tests.CourseService
         [Fact]
         public async Task GetContent_ShouldReturnModule_WhenExists()
         {
-            var dto = new ModuleContentResponseDto { Id = 5, Title = "Module 5", Content = "Hello" };
+            var dto = _fixture.Build<ModuleContentResponseDto>()
+                .With(m => m.Id, 5)
+                .Create();
 
             _moduleMock.Setup(m => m.GetModuleContentAsync(5)).ReturnsAsync(dto);
 
@@ -66,11 +80,10 @@ namespace LMS.Tests.CourseService
         [Fact]
         public async Task GetCourseId_ShouldReturnData()
         {
-            var response = new ModuleAndCourseIdDTO
-            {
-                ModuleId = 1,
-                CourseId = 10
-            };
+            var response = _fixture.Build<ModuleAndCourseIdDTO>()
+                .With(d => d.ModuleId, 1)
+                .With(d => d.CourseId, 10)
+                .Create();
 
             _moduleMock.Setup(m => m.GetModuleAndCourseIdAsync(1))
                 .ReturnsAsync(response);

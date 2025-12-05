@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace ProgresService.DAL.Models;
+﻿namespace ProgresService.DAL.Models;
 
 public partial class ProgressTracking
 {

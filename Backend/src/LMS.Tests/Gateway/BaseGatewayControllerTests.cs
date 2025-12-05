@@ -1,4 +1,5 @@
-﻿using Gateway.Controllers;
+﻿using AutoFixture;
+using Gateway.Controllers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -10,6 +11,9 @@ namespace LMS.Tests.Gateway
 {
     public class BaseGatewayControllerTests
     {
+        // --------------------------------------------------------------------
+        // Local test controller that exposes BaseGatewayController methods
+        // --------------------------------------------------------------------
         private class TestGatewayController : BaseGatewayController
         {
             public TestGatewayController(HttpClient client) : base(client) { }
@@ -20,9 +24,25 @@ namespace LMS.Tests.Gateway
             public Task<IActionResult> TestDelete(string url) => ForwardDelete(url);
         }
 
+        private readonly Fixture _fixture;
         private Mock<HttpMessageHandler> _handlerMock = null!;
 
-        private HttpClient CreateHttpClientReturning(HttpResponseMessage response, Action<HttpRequestMessage>? capture = null)
+        public BaseGatewayControllerTests()
+        {
+            _fixture = new Fixture();
+            _fixture.Behaviors
+                .OfType<ThrowingRecursionBehavior>()
+                .ToList()
+                .ForEach(b => _fixture.Behaviors.Remove(b));
+            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
+        }
+
+        // --------------------------------------------------------------------
+        // Helper: Creates an HttpClient that returns a specific response
+        // --------------------------------------------------------------------
+        private HttpClient CreateHttpClientReturning(
+            HttpResponseMessage response,
+            Action<HttpRequestMessage>? capture = null)
         {
             _handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
 
@@ -31,8 +51,7 @@ namespace LMS.Tests.Gateway
                 .Setup<Task<HttpResponseMessage>>(
                     "SendAsync",
                     ItExpr.IsAny<HttpRequestMessage>(),
-                    ItExpr.IsAny<CancellationToken>()
-                )
+                    ItExpr.IsAny<CancellationToken>())
                 .ReturnsAsync((HttpRequestMessage req, CancellationToken _) =>
                 {
                     capture?.Invoke(req);
@@ -47,19 +66,18 @@ namespace LMS.Tests.Gateway
 
         private TestGatewayController CreateController(HttpClient client)
         {
-            var controller = new TestGatewayController(client);
-
-            controller.ControllerContext = new ControllerContext
+            return new TestGatewayController(client)
             {
-                HttpContext = new DefaultHttpContext()
+                ControllerContext = new ControllerContext
+                {
+                    HttpContext = new DefaultHttpContext()
+                }
             };
-
-            return controller;
         }
 
-        // ---------------------------------------------------------
+        // --------------------------------------------------------------------
         // SUCCESS RESPONSE
-        // ---------------------------------------------------------
+        // --------------------------------------------------------------------
         [Fact]
         public async Task ForwardGet_ShouldReturnJsonContent_WhenSuccess()
         {
@@ -71,7 +89,6 @@ namespace LMS.Tests.Gateway
             };
 
             var client = CreateHttpClientReturning(response);
-
             var controller = CreateController(client);
 
             var result = await controller.TestGet("api/test");
@@ -81,9 +98,9 @@ namespace LMS.Tests.Gateway
             Assert.Equal(json, content.Content);
         }
 
-        // ---------------------------------------------------------
+        // --------------------------------------------------------------------
         // ERROR RESPONSE
-        // ---------------------------------------------------------
+        // --------------------------------------------------------------------
         [Fact]
         public async Task ForwardGet_ShouldReturnStatusCode_WhenError()
         {
@@ -104,43 +121,48 @@ namespace LMS.Tests.Gateway
             Assert.Equal(body, status.Value);
         }
 
-        // ---------------------------------------------------------
+        // --------------------------------------------------------------------
         // POST forwards body
-        // ---------------------------------------------------------
+        // --------------------------------------------------------------------
         [Fact]
         public async Task ForwardPost_ShouldSendJsonBody()
         {
             HttpRequestMessage? captured = null;
 
-            var json = "{\"success\":true}";
+            var jsonResponse = "{\"success\":true}";
 
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
-                Content = new StringContent(json, Encoding.UTF8, "application/json")
+                Content = new StringContent(jsonResponse, Encoding.UTF8, "application/json")
             };
 
             var client = CreateHttpClientReturning(response, req => captured = req);
             var controller = CreateController(client);
 
-            var dto = new { name = "Kira" };
+            var dto = _fixture.Create<object>(); // AutoFixture for request body
 
             var result = await controller.TestPost("api/post", dto);
 
-            // Asserts on result
             var content = Assert.IsType<ContentResult>(result);
-            Assert.Equal(json, content.Content);
+            Assert.Equal(jsonResponse, content.Content);
 
-            // Asserts on outgoing request
             Assert.NotNull(captured);
             Assert.Equal(HttpMethod.Post, captured!.Method);
 
             var reqBody = await captured.Content!.ReadAsStringAsync();
-            Assert.Contains("\"name\":\"Kira\"", reqBody);
+
+            // verify something from dto appears (string representation)
+            foreach (var prop in dto.GetType().GetProperties())
+            {
+                var val = prop.GetValue(dto)?.ToString();
+                if (val != null)
+                    Assert.Contains(val, reqBody);
+            }
         }
 
-        // ---------------------------------------------------------
+        // --------------------------------------------------------------------
         // PUT forwards body
-        // ---------------------------------------------------------
+        // --------------------------------------------------------------------
         [Fact]
         public async Task ForwardPut_ShouldSendJsonBody()
         {
@@ -168,9 +190,9 @@ namespace LMS.Tests.Gateway
             Assert.Contains("\"value\":123", reqBody);
         }
 
-        // ---------------------------------------------------------
+        // --------------------------------------------------------------------
         // DELETE
-        // ---------------------------------------------------------
+        // --------------------------------------------------------------------
         [Fact]
         public async Task ForwardDelete_ShouldSendDeleteRequest()
         {

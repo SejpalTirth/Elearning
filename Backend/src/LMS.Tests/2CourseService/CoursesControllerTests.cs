@@ -1,4 +1,5 @@
-﻿using CourseService.BLL.DTOs;
+﻿using AutoFixture;
+using CourseService.BLL.DTOs;
 using CourseService.BLL.Interface;
 using CourseService.DAL.Models;
 using CourseService.Web.Controllers;
@@ -12,11 +13,21 @@ namespace LMS.Tests.CourseService
         private readonly Mock<ICourseService> _courseMock;
         private readonly Mock<IModuleService> _moduleMock;
         private readonly CoursesController _controller;
+        private readonly Fixture _fixture;
 
         public CoursesControllerTests()
         {
+            _fixture = new Fixture();
+
+            // Prevent recursion for EF-like models
+            _fixture.Behaviors.OfType<ThrowingRecursionBehavior>()
+                .ToList()
+                .ForEach(b => _fixture.Behaviors.Remove(b));
+            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
+
             _courseMock = new Mock<ICourseService>();
             _moduleMock = new Mock<IModuleService>();
+
             _controller = new CoursesController(_courseMock.Object, _moduleMock.Object);
         }
 
@@ -26,15 +37,14 @@ namespace LMS.Tests.CourseService
         [Fact]
         public async Task GetAll_ShouldReturnList()
         {
-            _courseMock.Setup(s => s.GetAllAsync())
-                .ReturnsAsync(new List<CourseResponseDto>
-                {
-                    new CourseResponseDto { Id = 1, Title = "C# Basics" }
-                });
+            var dtoList = _fixture.CreateMany<CourseResponseDto>(1).ToList();
+
+            _courseMock.Setup(s => s.GetAllAsync()).ReturnsAsync(dtoList);
 
             var result = await _controller.GetAll() as OkObjectResult;
 
             Assert.NotNull(result);
+
             var data = Assert.IsType<List<CourseResponseDto>>(result!.Value);
             Assert.Single(data);
         }
@@ -45,10 +55,11 @@ namespace LMS.Tests.CourseService
         [Fact]
         public async Task GetById_ShouldReturnCourse_WhenExists()
         {
-            var dto = new CourseResponseDto { Id = 10, Title = "React" };
-            _courseMock.Setup(s => s.GetByIdAsync(10)).ReturnsAsync(dto);
+            var dto = _fixture.Create<CourseResponseDto>();
 
-            var result = await _controller.GetById(10) as OkObjectResult;
+            _courseMock.Setup(s => s.GetByIdAsync(dto.Id)).ReturnsAsync(dto);
+
+            var result = await _controller.GetById(dto.Id) as OkObjectResult;
 
             Assert.NotNull(result);
             Assert.Equal(dto, result!.Value);
@@ -57,9 +68,10 @@ namespace LMS.Tests.CourseService
         [Fact]
         public async Task GetById_ShouldReturnNotFound_WhenMissing()
         {
-            _courseMock.Setup(s => s.GetByIdAsync(5)).ReturnsAsync((CourseResponseDto?)null);
+            _courseMock.Setup(s => s.GetByIdAsync(It.IsAny<int>()))
+                       .ReturnsAsync((CourseResponseDto?)null);
 
-            var result = await _controller.GetById(5);
+            var result = await _controller.GetById(1000);
 
             Assert.IsType<NotFoundResult>(result);
         }
@@ -70,15 +82,18 @@ namespace LMS.Tests.CourseService
         [Fact]
         public async Task Create_ShouldReturnCreated()
         {
-            var req = new CourseDto
-            {
-                InstructorUserId = Guid.NewGuid().ToString(),
-                Title = "NodeJS"
-            };
+            var req = _fixture.Build<CourseDto>()
+                .With(r => r.InstructorUserId, Guid.NewGuid().ToString())
+                .With(r => r.Title, "NodeJS")
+                .Create();
 
-            var courseEntity = new Course { Id = 99, Title = "NodeJS" };
+            var courseEntity = _fixture.Build<Course>()
+                .With(c => c.Id, 99)
+                .With(c => c.Title, "NodeJS")
+                .Create();
+
             _courseMock.Setup(s => s.CreateAsync(req))
-                .ReturnsAsync(courseEntity);
+                       .ReturnsAsync(courseEntity);
 
             var result = await _controller.Create(req) as CreatedAtActionResult;
 
@@ -92,10 +107,17 @@ namespace LMS.Tests.CourseService
         [Fact]
         public async Task Update_ShouldReturnOk_WhenUpdated()
         {
-            var dto = new UpdateCourseDto { Title = "Updated Course" };
-            var updated = new Course { Id = 1, Title = "Updated Course" };
+            var dto = _fixture.Build<UpdateCourseDto>()
+                              .With(d => d.Title, "Updated Course")
+                              .Create();
 
-            _courseMock.Setup(s => s.UpdateAsync(1, dto)).ReturnsAsync(updated);
+            var updated = _fixture.Build<Course>()
+                                  .With(c => c.Id, 1)
+                                  .With(c => c.Title, "Updated Course")
+                                  .Create();
+
+            _courseMock.Setup(s => s.UpdateAsync(1, dto))
+                       .ReturnsAsync(updated);
 
             var result = await _controller.Update(1, dto) as OkObjectResult;
 
@@ -106,10 +128,10 @@ namespace LMS.Tests.CourseService
         [Fact]
         public async Task Update_ShouldReturnNotFound_WhenMissing()
         {
-            _courseMock.Setup(s => s.UpdateAsync(5, It.IsAny<UpdateCourseDto>()))
-                .ReturnsAsync((Course?)null);
+            _courseMock.Setup(s => s.UpdateAsync(It.IsAny<int>(), It.IsAny<UpdateCourseDto>()))
+                       .ReturnsAsync((Course?)null);
 
-            var result = await _controller.Update(5, new UpdateCourseDto());
+            var result = await _controller.Update(999, new UpdateCourseDto());
 
             Assert.IsType<NotFoundResult>(result);
         }
@@ -143,12 +165,15 @@ namespace LMS.Tests.CourseService
         [Fact]
         public async Task GetModulesForCourse_ShouldReturnModules()
         {
+            var modules = _fixture.CreateMany<ModuleSummaryDto>(1).ToList();
+
             _moduleMock.Setup(s => s.GetModulesByCourseAsync(3))
-                .ReturnsAsync(new List<ModuleSummaryDto> { new ModuleSummaryDto { Id = 1, Title = "Module 1" } });
+                       .ReturnsAsync(modules);
 
             var result = await _controller.GetModulesForCourse(3) as OkObjectResult;
 
             Assert.NotNull(result);
+
             var list = Assert.IsType<List<ModuleSummaryDto>>(result!.Value);
             Assert.Single(list);
         }

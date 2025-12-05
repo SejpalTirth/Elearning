@@ -1,4 +1,4 @@
-using AutoFixture;
+ï»¿using AutoFixture;
 using Moq;
 using ProgresService.DAL.Models;
 using ProgresService.DAL.Repo;
@@ -12,7 +12,8 @@ namespace ProgressService.Tests
     {
         private readonly Mock<IProgressRepository> _repoMock;
         private readonly Mock<IHttpClientFactory> _httpClientFactoryMock;
-        private readonly Fixture _fixture;
+
+        private readonly Fixture _fixture; // Local AutoFixture instance
 
         public ProgressServiceImplTests()
         {
@@ -21,17 +22,18 @@ namespace ProgressService.Tests
 
             _fixture = new Fixture();
 
-            // Avoid recursion issues
-            _fixture.Behaviors.OfType<ThrowingRecursionBehavior>()
+            // Recursion safety
+            _fixture.Behaviors
+                .OfType<ThrowingRecursionBehavior>()
                 .ToList()
-                .ForEach(b => _fixture.Behaviors.Remove(b));
+                .ForEach(x => _fixture.Behaviors.Remove(x));
 
             _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
         }
 
-        // ------------------------------
-        // SAME FakeHandler — NOT CHANGED
-        // ------------------------------
+        // ================================================================
+        // Fake HTTP handler (unchanged)
+        // ================================================================
         public class FakeHttpMessageHandler : HttpMessageHandler
         {
             private class RawNullResponse { }
@@ -57,7 +59,6 @@ namespace ProgressService.Tests
 
                 if (match.Response != null)
                 {
-                    // SPECIAL CASE: return raw literal "null"
                     if (match.Response is RawNullResponse)
                     {
                         return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
@@ -66,7 +67,6 @@ namespace ProgressService.Tests
                         });
                     }
 
-                    // Normal JSON
                     var json = JsonSerializer.Serialize(match.Response);
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
                     {
@@ -74,7 +74,6 @@ namespace ProgressService.Tests
                     });
                 }
 
-                // Default fallback JSON
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
                 {
                     Content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json")
@@ -82,12 +81,9 @@ namespace ProgressService.Tests
             }
         }
 
-
-
-
-        // ----------------------------------------------------------
-        // TEST 1 — AutoFixture used to generate ProgressTracking
-        // ----------------------------------------------------------
+        // ================================================================
+        // TEST 1
+        // ================================================================
         [Fact]
         public async Task GetUserProgressAsync_ShouldMapCorrectly()
         {
@@ -114,10 +110,9 @@ namespace ProgressService.Tests
             Assert.False(result[0].IsCompleted);
         }
 
-
-        // ----------------------------------------------------------
-        // TEST 2 — AutoFixture generating fake "user not found" response
-        // ----------------------------------------------------------
+        // ================================================================
+        // TEST 2 â€” User not found
+        // ================================================================
         [Fact]
         public async Task MarkModuleCompletedAsync_ShouldThrow_WhenUserNotFound()
         {
@@ -131,30 +126,26 @@ namespace ProgressService.Tests
 
             var fake = new FakeHttpMessageHandler();
 
-            // valid modules (AutoFixture)
             fake.AddJsonResponse("modules", _fixture.CreateMany<object>(2));
-
-            // valid course (AutoFixture)
             fake.AddJsonResponse("api/courses/", new { Title = _fixture.Create<string>() });
 
-            //  FORCE GetFromJsonAsync<UserDto>() to return NULL
-            fake.AddNullJsonResponse("api/users/");
+            fake.AddNullJsonResponse("api/users/"); // force null
 
-            var httpClient = new HttpClient(fake) { BaseAddress = new Uri("http://fake/") };
+            var client = new HttpClient(fake) { BaseAddress = new Uri("http://fake/") };
             _httpClientFactoryMock.Setup(f => f.CreateClient(It.IsAny<string>()))
-                .Returns(httpClient);
+                                  .Returns(client);
 
             var service = new ProgressServiceImpl(_repoMock.Object, _httpClientFactoryMock.Object);
 
             var ex = await Assert.ThrowsAsync<Exception>(() =>
                 service.MarkModuleCompletedAsync(userId, 1, 10));
 
-            Assert.Equal("Unable to send notification — User not found.", ex.Message);
+            Assert.Equal("Unable to send notification â€” User not found.", ex.Message);
         }
 
-        // ----------------------------------------------------------
-        // TEST 3 — Module fallback name using AutoFixture
-        // ----------------------------------------------------------
+        // ================================================================
+        // TEST 3 â€” Missing module title â†’ fallback name
+        // ================================================================
         [Fact]
         public async Task MarkModuleCompletedAsync_ShouldUseFallbackModuleName_WhenModuleTitleMissing()
         {
@@ -174,19 +165,17 @@ namespace ProgressService.Tests
                 Name = _fixture.Create<string>()
             });
 
-            // AutoFixture module list -> one module with null title
             fake.AddJsonResponse("modules", new[]
             {
                 new { Id = 10, Title = (string)null }
             });
 
             fake.AddJsonResponse("api/courses/", new { Title = _fixture.Create<string>() });
-
             fake.AddJsonResponse("notification/trigger", new { ok = true });
 
-            var httpClient = new HttpClient(fake) { BaseAddress = new Uri("http://fake/") };
+            var client = new HttpClient(fake) { BaseAddress = new Uri("http://fake/") };
             _httpClientFactoryMock.Setup(f => f.CreateClient(It.IsAny<string>()))
-                                  .Returns(httpClient);
+                                  .Returns(client);
 
             var service = new ProgressServiceImpl(_repoMock.Object, _httpClientFactoryMock.Object);
 
@@ -195,10 +184,9 @@ namespace ProgressService.Tests
             Assert.True(true);
         }
 
-
-        // ----------------------------------------------------------
-        // TEST 4 — AutoFixture with full module list
-        // ----------------------------------------------------------
+        // ================================================================
+        // TEST 4 â€” All modules completed = send notification
+        // ================================================================
         [Fact]
         public async Task MarkModuleCompletedAsync_ShouldSendCourseCompletedNotification_WhenAllModulesCompleted()
         {
@@ -210,30 +198,27 @@ namespace ProgressService.Tests
             _repoMock.Setup(r => r.GetCompletedModuleCountAsync(userId, 1))
                      .ReturnsAsync(3);
 
-            var handler = new FakeHttpMessageHandler();
+            var fake = new FakeHttpMessageHandler();
 
-            handler.AddJsonResponse("api/users/", new
+            fake.AddJsonResponse("api/users/", new
             {
                 Email = _fixture.Create<string>() + "@mail.com",
                 Name = _fixture.Create<string>()
             });
 
-            // AutoFixture modules
-            handler.AddJsonResponse("modules", _fixture.Build<object>()
-                .CreateMany(3)
-                .Select((m, idx) => new
+            fake.AddJsonResponse("modules",
+                Enumerable.Range(1, 3).Select(i => new
                 {
-                    Id = idx + 10,
+                    Id = 10 + i,
                     Title = _fixture.Create<string>()
                 }));
 
-            handler.AddJsonResponse("api/courses/", new { Title = _fixture.Create<string>() });
+            fake.AddJsonResponse("api/courses/", new { Title = _fixture.Create<string>() });
+            fake.AddJsonResponse("notification/trigger", new { ok = true });
 
-            handler.AddJsonResponse("notification/trigger", new { ok = true });
-
-            var httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://fake/") };
+            var client = new HttpClient(fake) { BaseAddress = new Uri("http://fake/") };
             _httpClientFactoryMock.Setup(f => f.CreateClient(It.IsAny<string>()))
-                                  .Returns(httpClient);
+                                  .Returns(client);
 
             var service = new ProgressServiceImpl(_repoMock.Object, _httpClientFactoryMock.Object);
 

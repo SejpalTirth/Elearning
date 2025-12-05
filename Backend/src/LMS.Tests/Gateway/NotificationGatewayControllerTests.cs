@@ -1,4 +1,5 @@
-﻿using Gateway.Controllers;
+﻿using AutoFixture;
+using Gateway.Controllers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -10,12 +11,20 @@ namespace LMS.Tests.Gateway
 {
     public class NotificationGatewayControllerTests
     {
+        private readonly Fixture _fixture;
         private readonly Mock<IHttpClientFactory> _factoryMock;
         private readonly Mock<HttpMessageHandler> _handlerMock;
         private readonly HttpClient _client;
 
         public NotificationGatewayControllerTests()
         {
+            _fixture = new Fixture();
+            _fixture.Behaviors
+                .OfType<ThrowingRecursionBehavior>()
+                .ToList()
+                .ForEach(b => _fixture.Behaviors.Remove(b));
+            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
+
             _handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
 
             _client = new HttpClient(_handlerMock.Object)
@@ -30,16 +39,18 @@ namespace LMS.Tests.Gateway
 
         private NotificationGatewayController CreateController()
         {
-            var controller = new NotificationGatewayController(_factoryMock.Object);
-
-            controller.ControllerContext = new ControllerContext
+            return new NotificationGatewayController(_factoryMock.Object)
             {
-                HttpContext = new DefaultHttpContext()
+                ControllerContext = new ControllerContext
+                {
+                    HttpContext = new DefaultHttpContext()
+                }
             };
-
-            return controller;
         }
 
+        // ---------------------------------------------------------
+        // Response Setup Helpers
+        // ---------------------------------------------------------
         private void SetupJsonResponse(string json, HttpStatusCode code = HttpStatusCode.OK)
         {
             _handlerMock.Protected()
@@ -54,9 +65,9 @@ namespace LMS.Tests.Gateway
                 });
         }
 
-        // -------------------------------------------------------------
-        // /test
-        // -------------------------------------------------------------
+        // ---------------------------------------------------------
+        // GET /test
+        // ---------------------------------------------------------
         [Fact]
         public async Task Test_ShouldCallCorrectUrl_AndReturnContent()
         {
@@ -78,16 +89,16 @@ namespace LMS.Tests.Gateway
                 ItExpr.IsAny<CancellationToken>());
         }
 
-        // -------------------------------------------------------------
+        // ---------------------------------------------------------
         // POST /send
-        // -------------------------------------------------------------
+        // ---------------------------------------------------------
         [Fact]
         public async Task Send_ShouldPostCorrectUrl()
         {
             SetupJsonResponse("{\"sent\":true}");
 
             var controller = CreateController();
-            var dto = new { email = "test@mail.com" };
+            var dto = _fixture.Create<object>();
 
             var result = await controller.Send(dto);
             var content = Assert.IsType<ContentResult>(result);
@@ -103,9 +114,9 @@ namespace LMS.Tests.Gateway
                 ItExpr.IsAny<CancellationToken>());
         }
 
-        // -------------------------------------------------------------
+        // ---------------------------------------------------------
         // POST /template/send
-        // -------------------------------------------------------------
+        // ---------------------------------------------------------
         [Fact]
         public async Task SendTemplate_ShouldPostCorrectUrl()
         {
@@ -128,9 +139,9 @@ namespace LMS.Tests.Gateway
                 ItExpr.IsAny<CancellationToken>());
         }
 
-        // -------------------------------------------------------------
+        // ---------------------------------------------------------
         // POST /trigger
-        // -------------------------------------------------------------
+        // ---------------------------------------------------------
         [Fact]
         public async Task Trigger_ShouldPostCorrectUrl()
         {
@@ -153,9 +164,9 @@ namespace LMS.Tests.Gateway
                 ItExpr.IsAny<CancellationToken>());
         }
 
-        // -------------------------------------------------------------
+        // ---------------------------------------------------------
         // GET /{userId}
-        // -------------------------------------------------------------
+        // ---------------------------------------------------------
         [Fact]
         public async Task GetUserNotifications_ShouldGetCorrectUrl()
         {
@@ -174,7 +185,8 @@ namespace LMS.Tests.Gateway
                 Times.Once(),
                 ItExpr.Is<HttpRequestMessage>(req =>
                     req.Method == HttpMethod.Get &&
-                    req.RequestUri!.ToString().EndsWith("/api/notification/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")),
+                    req.RequestUri!.ToString()
+                        .EndsWith("/api/notification/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")),
                 ItExpr.IsAny<CancellationToken>());
         }
     }

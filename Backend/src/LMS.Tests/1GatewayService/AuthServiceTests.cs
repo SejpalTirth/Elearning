@@ -1,46 +1,76 @@
-﻿using GatewayService.DAL.Models;
+﻿using AutoFixture;
+using GatewayService.DAL.Models;
 using GatewayService.DAL.Repo;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 
 namespace LMS.Tests.GatewayService
 {
-    public class AuthServiceTests
+    public class AuthServiceTests : BaseTest
     {
         private readonly Mock<IUserRepository> _userRepo;
         private readonly Mock<IRefreshTokenRepository> _tokenRepo;
         private readonly Mock<IConfiguration> _config;
         private readonly AuthService _service;
+        private readonly Fixture _fixture;
 
         public AuthServiceTests()
         {
+            // -----------------------------
+            // AutoFixture Setup
+            // -----------------------------
+            _fixture = new Fixture();
+
+            // Fix circular reference issue for EF Core models
+            _fixture.Behaviors.OfType<ThrowingRecursionBehavior>()
+                .ToList()
+                .ForEach(b => _fixture.Behaviors.Remove(b));
+
+            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
+
+            // -----------------------------
+            // Mock Repositories & Config
+            // -----------------------------
             _userRepo = new Mock<IUserRepository>();
             _tokenRepo = new Mock<IRefreshTokenRepository>();
             _config = new Mock<IConfiguration>();
 
-            // JWT config
+            // -----------------------------
+            // JWT Config Setup
+            // -----------------------------
             _config.Setup(c => c["Jwt:Key"]).Returns("ThisIsASuperSecretKeyForJwtToken12345");
             _config.Setup(c => c["Jwt:Issuer"]).Returns("TestIssuer");
             _config.Setup(c => c["Jwt:Audience"]).Returns("TestAudience");
 
-            // Admin email
+            // -----------------------------
+            // Admin Account Setup
+            // -----------------------------
             _config.Setup(c => c["SpecialAccounts:AdminEmail"])
                    .Returns("tirths331@gmail.com");
 
+            // -----------------------------
+            // AuthService Instantiation
+            // -----------------------------
             _service = new AuthService(_userRepo.Object, _tokenRepo.Object, _config.Object);
+        }
+
+
+        protected override void ConfigureGatewayDependencies(IServiceCollection services)
+        {
+            // For AuthService specifically, no special gateway dependencies needed now.
+            // But future Gateway tests may add IHttpClientFactory mocks here.
         }
 
         private User CreateUser()
         {
-            return new User
-            {
-                Id = Guid.NewGuid(),
-                Email = "user@mail.com",
-                Name = "Test User",
-                Role = "Student",
-                Ssoprovider = "Google",
-                SsoproviderId = "123"
-            };
+            return _fixture.Build<User>()
+                .With(u => u.Email, "user@mail.com")
+                .With(u => u.Name, "Test User")
+                .With(u => u.Role, "Student")
+                .With(u => u.Ssoprovider, "Google")
+                .With(u => u.SsoproviderId, "123")
+                .Create();
         }
 
         // -----------------------------------------------------
@@ -117,12 +147,12 @@ namespace LMS.Tests.GatewayService
         {
             var user = CreateUser();
 
-            var token = new RefreshToken
-            {
-                Token = "valid",
-                User = user,
-                ExpiresAt = DateTime.UtcNow.AddMinutes(10)
-            };
+            var token = _fixture.Build<RefreshToken>()
+                .With(t => t.Token, "valid")
+                .With(t => t.User, user)
+                .With(t => t.ExpiresAt, DateTime.UtcNow.AddMinutes(10))
+                .With(t => t.RevokedAt, (DateTime?)null)   // Important fix
+                .Create();
 
             _tokenRepo.Setup(r => r.GetByTokenAsync("valid"))
                       .ReturnsAsync(token);
@@ -140,17 +170,17 @@ namespace LMS.Tests.GatewayService
             Assert.NotEmpty(result.RefreshToken);
         }
 
+
         // -----------------------------------------------------
         // REFRESH TOKEN - Expired
         // -----------------------------------------------------
         [Fact]
         public async Task RefreshToken_ShouldReturnNull_WhenExpired()
         {
-            var token = new RefreshToken
-            {
-                Token = "expired",
-                ExpiresAt = DateTime.UtcNow.AddMinutes(-10)
-            };
+            var token = _fixture.Build<RefreshToken>()
+                .With(t => t.Token, "expired")
+                .With(t => t.ExpiresAt, DateTime.UtcNow.AddMinutes(-10))
+                .Create();
 
             _tokenRepo.Setup(r => r.GetByTokenAsync("expired"))
                       .ReturnsAsync(token);
@@ -166,12 +196,11 @@ namespace LMS.Tests.GatewayService
         [Fact]
         public async Task RefreshToken_ShouldReturnNull_WhenRevoked()
         {
-            var token = new RefreshToken
-            {
-                Token = "revoked",
-                ExpiresAt = DateTime.UtcNow.AddMinutes(10),
-                RevokedAt = DateTime.UtcNow
-            };
+            var token = _fixture.Build<RefreshToken>()
+                .With(t => t.Token, "revoked")
+                .With(t => t.ExpiresAt, DateTime.UtcNow.AddMinutes(10))
+                .With(t => t.RevokedAt, DateTime.UtcNow)
+                .Create();
 
             _tokenRepo.Setup(r => r.GetByTokenAsync("revoked"))
                       .ReturnsAsync(token);
@@ -187,10 +216,9 @@ namespace LMS.Tests.GatewayService
         [Fact]
         public async Task RevokeRefreshToken_ShouldRevoke_WhenExists()
         {
-            var token = new RefreshToken
-            {
-                Token = "tok123"
-            };
+            var token = _fixture.Build<RefreshToken>()
+                .With(t => t.Token, "tok123")
+                .Create();
 
             _tokenRepo.Setup(r => r.GetByTokenAsync("tok123"))
                       .ReturnsAsync(token);

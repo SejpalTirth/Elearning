@@ -1,59 +1,125 @@
-﻿using CourseService.DAL.Models;
+﻿using AutoFixture;
+using CourseService.DAL.Models;
 using CourseService.DAL.Repo;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace LMS.Tests.CourseServiceTests.Repository
+namespace LMS.Tests.CourseService.Repository
 {
-    public class ModuleRepositoryTests
+    public class ModuleRepositoryTests : BaseTest
     {
-        private CourseContext CreateDb()
-        {
-            var options = new DbContextOptionsBuilder<CourseContext>()
-                .UseInMemoryDatabase(Guid.NewGuid().ToString())
-                .Options;
+        private readonly ModuleRepository _repo;
+        private readonly Fixture _fixture;
 
-            return new CourseContext(options);
+        public ModuleRepositoryTests()
+        {
+            _fixture = new Fixture();
+
+            // Prevent circular graphs
+            _fixture.Behaviors.OfType<ThrowingRecursionBehavior>()
+                .ToList()
+                .ForEach(b => _fixture.Behaviors.Remove(b));
+            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
+
+            _repo = new ModuleRepository(CourseContext);
+
+            SeedCategoryAndCourse();
         }
 
+        // --------------------------------------------------------------------
+        // SEED REQUIRED CATEGORY + COURSE FOR FK RELATION
+        // --------------------------------------------------------------------
+        private int _courseId;
+
+        private void SeedCategoryAndCourse()
+        {
+            var category = _fixture.Build<Category>()
+                .Without(c => c.Courses)
+                .Create();
+
+            CourseContext.Categories.Add(category);
+            CourseContext.SaveChanges();
+
+            var course = _fixture.Build<Course>()
+                .With(c => c.CategoryId, category.Id)
+                .Without(c => c.Category)
+                .Without(c => c.Modules)
+                .Without(c => c.Enrollments)
+                .Create();
+
+            CourseContext.Courses.Add(course);
+            CourseContext.SaveChanges();
+
+            _courseId = course.Id;
+        }
+
+        // --------------------------------------------------------------------
+        // CLEAN MODULE FACTORY
+        // --------------------------------------------------------------------
+        private Module CreateModule(int? id = null, int? courseId = null)
+        {
+            var module = _fixture.Build<Module>()
+                .With(m => m.CourseId, courseId ?? _courseId)
+                .Without(m => m.Course)  // avoid EF cascade insertion
+                .Create();
+
+            if (id != null)
+                module.Id = id.Value;
+
+            return module;
+        }
+
+        protected override void ConfigureGatewayDependencies(IServiceCollection services)
+        {
+            // No external services needed
+        }
+
+        // ====================================================================
+        // GET BY COURSE ID
+        // ====================================================================
         [Fact]
         public async Task GetByCourseIdAsync_ReturnsModules()
         {
-            using var db = CreateDb();
-            db.Modules.Add(new Module { CourseId = 1, Title = "Module 1", Content = "Content 1" });
-            db.Modules.Add(new Module { CourseId = 2, Title = "Module 2", Content = "Content 2" });
-            await db.SaveChangesAsync();
+            var m1 = CreateModule(courseId: _courseId);
+            var m2 = CreateModule(courseId: _courseId + 1);
 
-            var repo = new ModuleRepository(db);
-            var list = (await repo.GetByCourseIdAsync(1)).ToList();
+            CourseContext.Modules.AddRange(m1, m2);
+            CourseContext.SaveChanges();
+
+            var list = (await _repo.GetByCourseIdAsync(_courseId)).ToList();
 
             Assert.Single(list);
-            Assert.Equal(1, list[0].CourseId);
+            Assert.Equal(_courseId, list[0].CourseId);
         }
 
+        // ====================================================================
+        // GET BY ID
+        // ====================================================================
         [Fact]
         public async Task GetByIdAsync_ReturnsCorrectModule()
         {
-            using var db = CreateDb();
-            db.Modules.Add(new Module { Id = 5, Title = "Module Test", Content = "Test Content" });
-            await db.SaveChangesAsync();
+            var module = CreateModule(id: 5);
 
-            var repo = new ModuleRepository(db);
-            var module = await repo.GetByIdAsync(5);
+            CourseContext.Modules.Add(module);
+            CourseContext.SaveChanges();
 
-            Assert.NotNull(module);
-            Assert.Equal(5, module!.Id);
+            var result = await _repo.GetByIdAsync(5);
+
+            Assert.NotNull(result);
+            Assert.Equal(5, result!.Id);
         }
 
+        // ====================================================================
+        // ADD
+        // ====================================================================
         [Fact]
         public async Task AddAsync_ShouldAddModule()
         {
-            using var db = CreateDb();
-            var repo = new ModuleRepository(db);
+            var module = CreateModule();
 
-            await repo.AddAsync(new Module { Title = "MTest", Content = "Module Test Content" });
-            await repo.SaveChangesAsync();
+            await _repo.AddAsync(module);
+            await _repo.SaveChangesAsync();
 
-            Assert.Single(db.Modules);
+            Assert.Single(CourseContext.Modules);
         }
     }
 }
