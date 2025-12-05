@@ -54,8 +54,12 @@ export class CourseApiService {
   }
 
   deleteCourse(id: number) {
-  return this.http.delete(`${this.baseUrl}/${id}`, { withCredentials: true });
-  }
+  return this.http.delete(`${this.baseUrl}/${id}`, {
+    withCredentials: true,
+    responseType: 'text'
+  });
+}
+
 
   publishCourse(courseId: number) {
   return this.http.post(`${this.baseUrl}/publish/${courseId}`, {});

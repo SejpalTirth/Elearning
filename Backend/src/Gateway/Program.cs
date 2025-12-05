@@ -2,6 +2,7 @@ using GatewayService.BLL.Interface;
 using GatewayService.DAL.Data;
 using GatewayService.DAL.Repo;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -60,13 +61,14 @@ services.AddScoped<IAuthService, AuthService>();
 services
     .AddAuthentication(options =>
     {
-        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-        options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        // JWT is default for API
+        options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
     })
 
-    // Main cookie
-    .AddCookie(options =>
+    // Main cookie scheme for internal GatewayAuthController operations
+    .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
     {
         options.Cookie.Name = ".Gateway.Auth";
         options.Cookie.HttpOnly = true;
@@ -74,7 +76,7 @@ services
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     })
 
-    // External providers cookie
+    // External login cookie (Google/Microsoft)
     .AddCookie("External", options =>
     {
         options.Cookie.Name = ".Gateway.External";
@@ -83,7 +85,7 @@ services
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     })
 
-    // JWT tokens
+    // JWT Bearer for API calls
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
@@ -95,7 +97,8 @@ services
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(config["Jwt:Key"])),
-            ValidateLifetime = true
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
         };
     })
 
@@ -121,6 +124,8 @@ services
         options.Scope.Add("User.Read");
         options.SaveTokens = true;
     });
+
+
 
 // ----------------------
 // Authorization

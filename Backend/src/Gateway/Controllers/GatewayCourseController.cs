@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using System.Net.Http.Json;
 
 namespace Gateway.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class GatewayCourseController : ControllerBase
@@ -35,7 +37,7 @@ namespace Gateway.Controllers
         }
 
         // ------------------- COURSE CRUD -------------------
-
+        [AllowAnonymous]
         [HttpGet]
         public Task<IActionResult> GetAll() =>
             Forward(new HttpRequestMessage(HttpMethod.Get, BASE));

@@ -28,7 +28,7 @@ export class Pending implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("accessToken");
     if (!token) return;
 
     const payload = JSON.parse(atob(token.split('.')[1]));

@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using System.Text;
 using System.Text.Json;
 
 namespace Gateway.Web.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/progress")]
     public class ProgressGatewayController : ControllerBase

@@ -2,46 +2,81 @@
 
   <h2>Create New Course</h2>
 
-  <label>Course Title</label>
-  <input formControlName="title" placeholder="Enter course title" />
+  <!-- TITLE -->
+  <label>
+    Course Title <span class="required">*</span>
+  </label>
+  <input formControlName="title"
+         placeholder="Enter your course title"
+         [ngClass]="{'error-border': fieldInvalid('title')}">
+  <div class="error" *ngIf="fieldInvalid('title')">
+    Course title is required.
+  </div>
 
+  <!-- DESCRIPTION -->
   <label>Description</label>
-  <textarea formControlName="description" placeholder="Enter course description"></textarea>
+  <textarea formControlName="description"
+          (input)="autoResize($event)"
+          placeholder="Enter course description"></textarea>
 
-  <label>Category</label>
-  <select formControlName="categoryId" class="category-dropdown">
+
+  <!-- CATEGORY -->
+  <label>
+    Category <span class="required">*</span>
+  </label>
+  <select formControlName="categoryId"
+          [ngClass]="{'error-border': fieldInvalid('categoryId')}">
     <option value="">Select a category</option>
-    <option *ngFor="let c of categories" [value]="c.id">
-      {{ c.name }}
-    </option>
+    <option *ngFor="let c of categories" [value]="c.id">{{ c.name }}</option>
   </select>
+  <div class="error" *ngIf="fieldInvalid('categoryId')">
+    You must select a category for your course.
+  </div>
 
-  <label style="margin-top: 25px;">Modules</label>
+  <!-- MODULES -->
+  <label style="margin-top: 25px;">
+    Modules <span class="required">*</span>
+  </label>
 
-  <!-- Drag + drop container -->
+  <div class="error" *ngIf="submitted && modules.length === 0">
+    A course must have at least one module.
+  </div>
+
   <div formArrayName="modules" cdkDropList (cdkDropListDropped)="drop($event)">
-
     <div class="module-wrapper" *ngFor="let m of modules.controls; let i = index" [formGroupName]="i" cdkDrag>
 
       <div class="drag-handle" cdkDragHandle>☰</div>
 
       <div class="module-fields">
-        <input formControlName="title" placeholder="Module title" />
-        <textarea formControlName="content" placeholder="Module content"></textarea>
+        
+        <input formControlName="title"
+          placeholder="Module title"
+          [ngClass]="{
+            'error-border': submitted && m.get('title')?.invalid
+          }">
+        <div class="error" *ngIf="submitted && m.get('title')?.invalid">
+          Module title is required.
+        </div>
+
+        <textarea formControlName="content"
+        (input)="autoResize($event)"
+          placeholder="Module content"
+          [ngClass]="{
+            'error-border': submitted && m.get('content')?.invalid
+          }"></textarea>
+        <div class="error" *ngIf="submitted && m.get('content')?.invalid">
+          Module content is required.
+        </div>
+
       </div>
 
-      <button *ngIf="i > 0"
-              type="button"
-              class="remove-btn"
-              (click)="removeModule(i)">
+      <button *ngIf="i > 0" type="button" class="remove-btn" (click)="removeModule(i)">
         ✕
       </button>
 
     </div>
-
   </div>
 
-  <!-- Add module button moved below -->
   <button type="button" class="add-module-btn" (click)="addModule()">+ Add Module</button>
 
   <div class="actions">

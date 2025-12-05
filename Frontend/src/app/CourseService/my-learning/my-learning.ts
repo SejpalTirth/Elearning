@@ -30,7 +30,8 @@ export class MyLearningComponent implements OnInit {
   }
 
   extractUserId() {
-    const token = localStorage.getItem('token');
+
+    const token = localStorage.getItem('accessToken');
 
     if (!token) return;
 

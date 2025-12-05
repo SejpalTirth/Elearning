@@ -20,7 +20,7 @@ export class SharedHeaderComponent implements OnInit {
   constructor(private router: Router) {}
 
   ngOnInit(): void {  // <-- THIS WAS NOT WORKING BEFORE
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
 
     if (token) {
       try {
@@ -39,7 +39,7 @@ export class SharedHeaderComponent implements OnInit {
   }
 
   logout() {
-    localStorage.removeItem('token');
+    localStorage.removeItem('accessToken');
     this.router.navigate(['/']);
   }
 

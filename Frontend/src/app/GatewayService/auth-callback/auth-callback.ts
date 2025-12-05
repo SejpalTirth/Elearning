@@ -12,39 +12,33 @@ export class AuthCallback implements OnInit {
   constructor(private router: Router) {}
 
   ngOnInit() {
-
     const params = new URLSearchParams(window.location.search);
 
-    // NEW USER CHECK
     const isNewUser = params.get('isNewUser');
     const userId = params.get('userId');
 
-    // EXISTING USER TOKENS
-    const token = params.get('token');
-    const refresh = params.get('refresh');
+    const accessToken = params.get('token');
+    const refreshToken = params.get('refresh')?.replace(/ /g, '+');
 
-    // If new user → redirect to complete-profile
+    // NEW USER → redirect
     if (isNewUser === 'true' && userId) {
-      this.router.navigate(
-        ['/complete-profile'],
-        { queryParams: { userId } }
-      );
+      this.router.navigate(['/complete-profile'], {
+        queryParams: { userId }
+      });
       return;
     }
 
-    // If tokens exist → store and redirect to home
-    if (token && refresh) {
-      localStorage.setItem('token', token);
-      localStorage.setItem('refresh', refresh);
+    // EXISTING USER → store tokens with correct keys
+    if (accessToken && refreshToken) {
 
-      setTimeout(() => {
-        this.router.navigate(['/home']);
-      }, 600);
-      
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('refreshToken', refreshToken);
+
+      setTimeout(() => this.router.navigate(['/home']), 300);
       return;
     }
 
-    // Fallback
+    // fallback
     this.router.navigate(['/login']);
   }
 }

@@ -23,7 +23,7 @@ export class ManageCoursesComponent implements OnInit {
   ngOnInit(): void {
     console.log('Manage component loaded');
 
-    this.token = localStorage.getItem('token');
+    this.token = localStorage.getItem('accessToken');
 
     if (!this.token) {
       console.warn('No token found, user may not be logged in.');
@@ -36,7 +36,7 @@ export class ManageCoursesComponent implements OnInit {
     console.log("Extracted userId:", this.userId);
 
     if (!this.userId) {
-      console.error("⚠ Could not extract userId from token");
+      console.error("Could not extract userId from token");
       this.loading = false;
       return;
     }

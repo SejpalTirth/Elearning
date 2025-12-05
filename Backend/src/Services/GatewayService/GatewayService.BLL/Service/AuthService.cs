@@ -14,15 +14,25 @@ public class AuthService : IAuthService
     private readonly IUserRepository _users;
     private readonly IRefreshTokenRepository _refreshTokens;
     private readonly IConfiguration _config;
+    private readonly TimeSpan _accessTokenLifetime;
+    private readonly TimeSpan _refreshTokenLifetime;
+
 
     public AuthService(IUserRepository users, IRefreshTokenRepository refreshTokens, IConfiguration config)
     {
         _users = users;
         _refreshTokens = refreshTokens;
         _config = config;
-    }
 
-    private readonly TimeSpan _accessTokenLifetime = TimeSpan.FromMinutes(4);
+        // Read expiry times from appsettings.json
+        _accessTokenLifetime = TimeSpan.FromMinutes(
+            int.Parse(_config["Jwt:AccessTokenExpiryMinutes"] ?? "4")
+        );
+
+        _refreshTokenLifetime = TimeSpan.FromMinutes(
+            int.Parse(_config["Jwt:RefreshTokenExpiryMinutes"] ?? "3")
+        );
+    }
 
     public async Task<ExternalSignInResultDto> SignInExternalAsync(string provider, string providerUserId, string email, string name)
     {
@@ -102,17 +112,6 @@ public class AuthService : IAuthService
         };
     }
 
-    public async Task<TokenResponseDto?> RefreshTokenAsync(string refreshToken)
-    {
-        var tokenEntity = await _refreshTokens.GetByTokenAsync(refreshToken);
-        if (tokenEntity == null) return null;
-        if (tokenEntity.RevokedAt != null) return null;
-        if (tokenEntity.ExpiresAt < DateTime.UtcNow) return null;
-
-        await _refreshTokens.RevokeTokenAsync(tokenEntity);
-        return await GenerateAndStoreTokensAsync(tokenEntity.User);
-    }
-
     public async Task RevokeRefreshTokenAsync(string refreshToken)
     {
         var tokenEntity = await _refreshTokens.GetByTokenAsync(refreshToken);
@@ -123,6 +122,8 @@ public class AuthService : IAuthService
 
     private async Task<TokenResponseDto> GenerateAndStoreTokensAsync(User user)
     {
+        if (user == null) throw new ArgumentNullException(nameof(user));
+
         var accessToken = CreateJwtToken(user);
         var refreshToken = GenerateSecureToken();
 
@@ -131,18 +132,46 @@ public class AuthService : IAuthService
             UserId = user.Id,
             Token = refreshToken,
             CreatedAt = DateTime.UtcNow,
-            ExpiresAt = DateTime.UtcNow.AddDays(7)
+            ExpiresAt = DateTime.UtcNow.Add(_refreshTokenLifetime)
         };
 
+        // Persist refresh token (ensure AddTokenAsync is awaited)
         await _refreshTokens.AddTokenAsync(refreshEntity);
 
         return new TokenResponseDto
         {
             AccessToken = accessToken,
             RefreshToken = refreshToken,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(4)
+            ExpiresAt = DateTime.UtcNow.Add(_accessTokenLifetime)
         };
     }
+
+    public async Task<TokenResponseDto?> RefreshTokenAsync(string refreshToken)
+    {
+        if (string.IsNullOrWhiteSpace(refreshToken)) return null;
+
+        var tokenEntity = await _refreshTokens.GetByTokenAsync(refreshToken);
+        if (tokenEntity == null) return null;
+
+        if (tokenEntity.RevokedAt != null) return null;
+
+        if (tokenEntity.ExpiresAt < DateTime.UtcNow) return null;
+
+        var user = tokenEntity.User ?? await _users.GetByIdAsync(tokenEntity.UserId);
+        if (user == null) return null;
+
+        var newAccessToken = CreateJwtToken(user);
+
+        return new TokenResponseDto
+        {
+            AccessToken = newAccessToken,
+            RefreshToken = tokenEntity.Token,  // KEEP SAME TOKEN
+            ExpiresAt = tokenEntity.ExpiresAt  // DO NOT EXTEND
+        };
+    }
+
+
+
 
     private string CreateJwtToken(User user)
     {
@@ -166,7 +195,7 @@ public class AuthService : IAuthService
             issuer,
             audience,
             claims,
-            expires: DateTime.UtcNow.AddMinutes(4),
+            expires: DateTime.UtcNow.Add(_accessTokenLifetime),
             signingCredentials: creds
         );
 

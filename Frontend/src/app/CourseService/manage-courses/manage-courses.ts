@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, signal } from '@angular/core';
 import { CourseApiService } from '../services/course-api';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -11,10 +11,13 @@ import { CommonModule } from '@angular/common';
 })
 export class ManageCoursesComponent implements OnInit {
 
-  courses: any[] = [];
-  loading = true;
+  courses = signal<any[]>([]);
+  loading = signal(true);
 
-  constructor(private api: CourseApiService, private router: Router) {}
+  constructor(
+    private api: CourseApiService,
+    private router: Router
+  ) {}
 
   ngOnInit() {
     this.loadCourses();
@@ -23,8 +26,8 @@ export class ManageCoursesComponent implements OnInit {
   loadCourses() {
     this.api.getAll().subscribe({
       next: res => {
-        this.courses = res;
-        this.loading = false;
+        this.courses.set(res);
+        this.loading.set(false);
       },
       error: err => console.error(err)
     });
@@ -35,19 +38,22 @@ export class ManageCoursesComponent implements OnInit {
   }
 
   deleteCourse(id: number) {
-  if (!confirm("Are you sure you want to archive this course?")) return;
+    if (!confirm("Are you sure you want to archive this course?")) return;
 
-  this.api.deleteCourse(id).subscribe({
-    next: () => {
-      alert("Course archived successfully!");
+    this.api.deleteCourse(id).subscribe({
+      next: () => {
+        alert("Course archived successfully!");
+        // window.location.reload();
 
-      //  Remove from UI instantly
-      this.courses = this.courses.filter(c => c.id !== id);
-    },
-    error: err => console.error(err)
-  });
-}
+        this.courses.update(list => list.filter(c => c.id !== id));
+      },
+      error: err => console.error(err)
+    });
+    console.log("SERVICE METHOD USED:", this.api.deleteCourse);
+  }
 
-
+  trackById(index: number, item: any) {
+    return item.id;
+  }
 
 }

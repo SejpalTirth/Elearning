@@ -137,7 +137,7 @@ namespace CourseService.Web.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var deleted = await _courseService.DeleteAsync(id);
-            return deleted ? NoContent() : NotFound();
+            return deleted ? Ok() : NotFound("The course cannot be found");
         }
 
         // ---------------- COURSE PUBLISH ----------------

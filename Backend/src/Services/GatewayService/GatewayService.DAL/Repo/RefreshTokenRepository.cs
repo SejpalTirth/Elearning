@@ -9,9 +9,13 @@ namespace GatewayService.DAL.Repo
         private readonly GatewayServiceContext _ctx;
         public RefreshTokenRepository(GatewayServiceContext ctx) { _ctx = ctx; }
 
-        public async Task<RefreshToken?> GetByTokenAsync(string token) =>
-            await _ctx.RefreshTokens.Include(rt => rt.User)
-                .FirstOrDefaultAsync(rt => rt.Token == token);
+        public async Task<RefreshToken?> GetByTokenAsync(string token)
+        {
+            return await _ctx.RefreshTokens
+                                 .Include(rt => rt.User)
+                                 .SingleOrDefaultAsync(rt => rt.Token == token);
+        }
+
 
         public async Task AddTokenAsync(RefreshToken token)
         {

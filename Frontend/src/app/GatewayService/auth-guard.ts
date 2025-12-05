@@ -1,18 +1,19 @@
 import { Injectable } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
+import { Router } from '@angular/router';
+import { AuthService } from './auth.service';
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class AuthGuard {
 
-  constructor(private router: Router) {}
+  constructor(private auth: AuthService, private router: Router) {}
 
   canActivate(): boolean {
-    const token = localStorage.getItem('token');
+    const access = this.auth.getAccessToken();
+    const refresh = this.auth.getRefreshToken();
 
-    if (!token) {
-      this.router.navigate(['/']);
+    // Only block if BOTH tokens missing → user truly logged out
+    if (!access && !refresh) {
+      this.router.navigate(['/login']);
       return false;
     }
 

@@ -1,13 +1,13 @@
 <div class="container">
   <h2>Manage Courses</h2>
 
-  <div *ngIf="loading">Loading courses...</div>
+  <div *ngIf="loading()">Loading courses...</div>
 
   <div *ngIf="!loading && courses.length === 0">
     <p>No courses available.</p>
   </div>
 
-  <div *ngFor="let c of courses" class="course-card">
+  <div *ngFor="let c of courses() ; trackBy: trackById" class="course-card">
     <div class="info">
       <h3>{{ c.title }}</h3>
       <p>{{ c.description }}</p>

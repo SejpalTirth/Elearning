@@ -36,7 +36,7 @@ export class Home implements OnInit {
 
   // ------------------ Load User Info From JWT ------------------
   loadUserInfo() {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
 
     if (!token) {
       this.router.navigate(['/']);
@@ -57,7 +57,7 @@ export class Home implements OnInit {
 
   // ------------------ Check If Instructor Has Unfinished Course ------------------
   checkForPendingTasks() {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
     if (!token) return;
 
     const payload = JSON.parse(atob(token.split('.')[1]));

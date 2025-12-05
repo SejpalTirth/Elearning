@@ -1,7 +1,9 @@
+using Gateway.DTOs;
 using GatewayService.BLL.Interface;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
@@ -65,6 +67,7 @@ public class GatewayAuthController : ControllerBase
     }
 
     // Callback
+    [AllowAnonymous]
     [HttpGet("external-response")]
     public async Task<IActionResult> ExternalResponse([FromQuery] string? returnUrl)
     {
@@ -114,6 +117,26 @@ public class GatewayAuthController : ControllerBase
         return Redirect(returnUrl);
     }
 
+    [AllowAnonymous]
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh([FromBody] RefreshRequest request)
+    {
+        _log.LogInformation("Refresh called. incoming token length: {len}", request?.RefreshToken?.Length);
+        _log.LogInformation("Raw token (first 40 chars): {t}", request?.RefreshToken?.Substring(0, Math.Min(40, request.RefreshToken?.Length ?? 0)));
+
+        var tokens = await _auth.RefreshTokenAsync(request.RefreshToken);
+
+        if (tokens == null)
+        {
+            _log.LogWarning("Refresh failed for token (maybe not found/expired/revoked)");
+            return Unauthorized(new { message = "Invalid or expired refresh token" });
+        }
+
+        _log.LogInformation("Refresh succeeded. returning tokens. AccessLen={len}", tokens.AccessToken?.Length);
+        return Ok(tokens);
+    }
+
+    [Authorize]
     [HttpPost("logout")]
     public async Task<IActionResult> Logout([FromBody] string refresh)
     {

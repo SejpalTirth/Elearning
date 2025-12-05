@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using UserService.BLL.DTOs;
 using UserService.BLL.Interface;
@@ -33,6 +34,7 @@ namespace UserService.Web.Controllers
         // ----------------------------------------------
         // NEW — Replace all existing roles with a new one
         // ----------------------------------------------
+        [Authorize]
         [HttpPut("update")]
         public async Task<IActionResult> UpdateUserRole([FromBody] UpdateUserRoleRequest request)
         {

@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, FormArray, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { CourseApiService } from '../services/course-api';
@@ -21,6 +21,7 @@ export class AddCourseComponent implements OnInit {
   form: FormGroup;
   categories: any[] = [];
   userId = "";
+  submitted = false;
 
   constructor(
     private fb: FormBuilder,
@@ -28,13 +29,13 @@ export class AddCourseComponent implements OnInit {
     private router: Router
   ) {
     this.form = this.fb.group({
-      title: [''],
+      title: ['', Validators.required],
       description: [''],
-      categoryId: [''],
+      categoryId: ['', Validators.required],
       modules: this.fb.array([
         this.fb.group({
-          title: [''],
-          content: ['']
+          title: ['', Validators.required],
+          content: ['', Validators.required]
         })
       ])
     });
@@ -54,8 +55,8 @@ export class AddCourseComponent implements OnInit {
   addModule() {
     this.modules.push(
       this.fb.group({
-        title: [''],
-        content: ['']
+        title: ['', Validators.required],
+        content: ['', Validators.required]
       })
     );
   }
@@ -68,9 +69,26 @@ export class AddCourseComponent implements OnInit {
     moveItemInArray(this.modules.controls, event.previousIndex, event.currentIndex);
   }
 
-  submit() {
+  fieldInvalid(name: string) {
+    const control = this.form.get(name);
+    return this.submitted && control?.invalid;
+  }
 
-    const token = localStorage.getItem('token');
+  fieldValid(name: string) {
+    const control = this.form.get(name);
+    return control?.valid && control?.touched;
+  }
+
+  submit() {
+    this.submitted = true;
+
+    // Course must have at least one module
+    if (this.modules.length === 0 || this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
+    const token = localStorage.getItem('accessToken');
     if (!token) return;
 
     try {
@@ -85,22 +103,14 @@ export class AddCourseComponent implements OnInit {
       instructorUserId: this.userId
     };
 
-    console.log("DTO sent to gateway:", dto);
-
     this.courseApi.addCourse(dto).subscribe({
       next: (res: any) => {
-
-        console.log("Course created response:", res);
-
         const courseId = res?.id;
-
         if (!courseId) {
           alert("Course created, but no course ID returned.");
           return;
         }
-
-        // 🎯 PHASE 1 MAIN LOGIC: Redirect to Add-Quiz page with course ID
-        this.router.navigate([ '/assessment/add-quiz', courseId ]);
+        this.router.navigate(['/assessment/add-quiz', courseId]);
       },
       error: err => {
         console.error(err);
@@ -112,9 +122,10 @@ export class AddCourseComponent implements OnInit {
   cancel() {
     this.router.navigate(['/courses']);
   }
-
-  getCourseId(): number | undefined {
-  return undefined;
-  }
+  autoResize(event: any) {
+  const textarea = event.target;
+  textarea.style.height = 'auto';
+  textarea.style.height = textarea.scrollHeight + 'px';
+}
 
 }

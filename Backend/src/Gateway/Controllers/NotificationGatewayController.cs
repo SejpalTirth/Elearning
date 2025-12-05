@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Gateway.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/notification")]
     public class NotificationGatewayController : ControllerBase

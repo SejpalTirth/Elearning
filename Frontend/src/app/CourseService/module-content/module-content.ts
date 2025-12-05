@@ -33,7 +33,7 @@ export class ModuleContentComponent implements OnInit {
   }
 
   extractUserId() {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
     if (!token) return;
 
     try {
