@@ -72,6 +72,13 @@ export class TakeQuizComponent implements OnInit {
     return;
   }
 
+  // 🔥 VALIDATION: Ensure all questions are answered
+  const unanswered = this.answers.filter(a => a.selectedAnswerId == null);
+  if (unanswered.length > 0) {
+    alert("Please answer all questions before submitting.");
+    return;
+  }
+
   this.submitting = true;
 
   const payload = {
@@ -107,6 +114,12 @@ export class TakeQuizComponent implements OnInit {
     }
   });
 }
+
+
+  allQuestionsAnswered(): boolean {
+  return this.answers.every(a => a.selectedAnswerId !== null && a.selectedAnswerId !== undefined);
+  }
+
 
 
 

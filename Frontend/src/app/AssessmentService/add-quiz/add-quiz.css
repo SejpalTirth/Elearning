@@ -3,6 +3,7 @@
   width: 100%;
 }
 
+/* MAIN WRAPPER CARD */
 .quiz-wrapper {
   max-width: 720px;
   margin: 40px auto;
@@ -14,10 +15,17 @@
 }
 
 .quiz-wrapper h2 {
-  text-align: center;
-  color: #1a73e8;
   margin-bottom: 25px;
   font-size: 28px;
+  color: #1a73e8;
+  text-align: center;
+}
+
+/* FORM WIDTH FIX */
+.quiz-form,
+.question-form {
+  max-width: 640px;
+  margin: auto;
 }
 
 /* LABELS */
@@ -50,42 +58,85 @@ textarea {
   background: white;
   color: #000;
   font-size: 15px;
+  margin-bottom: 12px;
 }
-select:focus,
-input:focus,
-textarea:focus {
-  border-color: #1a73e8;
-  outline: none;
+
+textarea {
+  min-height: 80px;
+  resize: vertical;
+  max-width: 100%;
+}
+
+/* LOCKED STATE */
+.locked {
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.locked input,
+.locked select,
+.locked textarea {
+  background: #f2f2f2;
+  cursor: not-allowed;
 }
 
 /* BUTTONS */
 button {
-  padding: 12px;
-  border-radius: 6px;
+  padding: 12px 18px;
   border: none;
+  border-radius: 6px;
   cursor: pointer;
-  margin-top: 20px;
   font-size: 15px;
+  transition: 0.2s;
   width: 100%;
 }
 
-.btn-primary { background: #1a73e8; color: white; }
-.btn-primary:hover { background: #155fc2; }
+.btn-primary {
+  background: #1a73e8;
+  color: white;
+}
 
-.btn-success { background: #0f9d58; color: white; }
-.btn-success:hover { background: #0b7f47; }
+.btn-primary:hover {
+  background: #155fc2;
+}
 
-.btn-secondary { background: #e0e0e0; color: #333; }
-.btn-secondary:hover { background: #cacaca; }
+.btn-success {
+  background: #0f9d58;
+  color: white;
+}
 
+.btn-success:hover {
+  background: #0b7f47;
+}
+
+.btn-secondary {
+  background: #e0e0e0;
+  color: #333;
+  margin-top: 10px;
+}
+
+.btn-secondary:hover {
+  background: #cacaca;
+}
+
+/* QUESTION BOX */
 .question-section {
   margin-top: 40px;
   padding: 25px;
   background: #fafafa;
   border-radius: 10px;
   border: 1px solid #ddd;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.question-section h3 {
+  font-size: 22px;
+  margin-bottom: 12px;
+  color: #444;
 }
 
 .options-container input {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }

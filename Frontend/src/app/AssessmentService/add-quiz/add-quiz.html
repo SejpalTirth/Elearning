@@ -9,41 +9,43 @@
   </div>
 
   <!-- QUIZ CREATION SECTION -->
-  <div [formGroup]="quizForm" class="quiz-form">
+  <div [formGroup]="quizForm"
+       class="quiz-form"
+       [class.locked]="quizCreated">
 
     <!-- MODULE -->
     <label>Module <span class="required">*</span></label>
     <select formControlName="moduleId" [disabled]="quizCreated">
       <option value="">Select module</option>
-
       <option
         *ngFor="let m of modules"
         [value]="m.id"
-        [disabled]="!unquizzedModules.includes(m.id)"
-      >
+        [disabled]="!unquizzedModules.includes(m.id)">
         {{ m.title }}
       </option>
     </select>
-
     <div class="error" *ngIf="submittedQuiz && quizForm.controls['moduleId'].invalid">
       Module is required.
     </div>
 
     <!-- QUIZ TITLE -->
     <label>Quiz Title <span class="required">*</span></label>
-    <input formControlName="title" placeholder="Enter quiz title" [disabled]="quizCreated">
+    <input formControlName="title" placeholder="Enter quiz title" [readonly]="quizCreated">
     <div class="error" *ngIf="submittedQuiz && quizForm.controls['title'].invalid">
       Quiz title is required.
     </div>
 
     <!-- TIME LIMIT -->
     <label>Time Limit (minutes) <span class="required">*</span></label>
-    <input type="number" formControlName="timeLimitMinutes" [disabled]="quizCreated">
+    <input type="number" formControlName="timeLimitMinutes" [readonly]="quizCreated">
     <div class="error" *ngIf="submittedQuiz && quizForm.controls['timeLimitMinutes'].invalid">
       Time limit must be at least 1 minute.
     </div>
 
-    <button class="btn-primary" (click)="createQuiz()" [disabled]="quizCreated">
+    <button class="btn-primary"
+            type="button"
+            (click)="createQuiz()"
+            [disabled]="quizCreated">
       Create Quiz
     </button>
   </div>
@@ -71,7 +73,6 @@
 
       <!-- OPTIONS -->
       <label>Options <span class="required">*</span></label>
-
       <div formArrayName="options" class="options-container">
         <div *ngFor="let opt of options.controls; let i = index">
           <input [formControlName]="i" placeholder="Option {{ i + 1 }}">
@@ -89,16 +90,14 @@
         </option>
       </select>
 
-      <button class="btn-success" (click)="addQuestion()">
+      <button class="btn-success" type="button" (click)="addQuestion()">
         Add Question
       </button>
 
-      <button class="btn-secondary" (click)="completeModule()">
+      <button class="btn-secondary" type="button" (click)="completeModule()">
         Complete Module
       </button>
 
     </div>
-
   </div>
-
 </div>

@@ -10,10 +10,10 @@ import { ModuleTitlePipe } from './module-title.pipe';
   selector: 'app-add-quiz',
   standalone: true,
   imports: [
-  CommonModule,
-  ReactiveFormsModule,
-  ModuleTitlePipe
-],
+    CommonModule,
+    ReactiveFormsModule,
+    ModuleTitlePipe
+  ],
   templateUrl: './add-quiz.html',
   styleUrls: ['./add-quiz.css']
 })
@@ -46,20 +46,17 @@ export class AddQuizComponent implements OnInit {
 
     this.courseId = Number(this.route.snapshot.paramMap.get('courseId'));
 
-    // Load modules
     this.courseApi.getModules(this.courseId).subscribe(res => {
       this.modules = res;
       this.loadNextPendingModule();
     });
 
-    // QUIZ FORM
     this.quizForm = this.fb.group({
       moduleId: ['', Validators.required],
       title: ['', Validators.required],
       timeLimitMinutes: [10, [Validators.required, Validators.min(1)]]
     });
 
-    // QUESTION FORM
     this.questionForm = this.fb.group({
       text: ['', Validators.required],
       marks: [1, [Validators.required, Validators.min(1)]],
@@ -77,7 +74,6 @@ export class AddQuizComponent implements OnInit {
     return this.questionForm.get('options') as FormArray;
   }
 
-  // AUTO SELECT NEXT UN-QUIZZED MODULE
   loadNextPendingModule() {
     this.assessmentApi.getUnquizzedModules(this.courseId).subscribe(missing => {
       this.unquizzedModules = missing;
@@ -87,14 +83,12 @@ export class AddQuizComponent implements OnInit {
         return;
       }
 
-      // Auto select next needed module
       this.currentModuleId = missing[0];
-
-      const moduleObj = this.modules.find(x => x.id === this.currentModuleId);
+      const found = this.modules.find(m => m.id === this.currentModuleId);
 
       this.quizForm.patchValue({
         moduleId: this.currentModuleId,
-        title: moduleObj ? `${moduleObj.title} Quiz` : ''
+        title: found ? `${found.title} Quiz` : ''
       });
     });
   }
@@ -104,11 +98,17 @@ export class AddQuizComponent implements OnInit {
 
     if (this.quizForm.invalid) return;
 
-    this.assessmentApi.createQuiz(this.quizForm.value).subscribe((res: any) => {
-      if (res.quizId) {
-        this.quizCreated = true;
-        this.createdQuizId = res.quizId;
-      }
+    this.assessmentApi.createQuiz(this.quizForm.value).subscribe({
+      next: (res: any) => {
+        if (res.quizId) {
+          this.quizCreated = true;
+          this.createdQuizId = res.quizId;
+
+          // Lock form immediately
+          this.quizForm.disable();
+        }
+      },
+      error: err => console.error(err)
     });
   }
 
@@ -119,7 +119,6 @@ export class AddQuizComponent implements OnInit {
 
     this.assessmentApi.addQuestion(this.createdQuizId, this.questionForm.value).subscribe(() => {
 
-      // reset question form
       this.questionForm.reset({
         text: '',
         marks: 1,
@@ -134,13 +133,11 @@ export class AddQuizComponent implements OnInit {
   completeModule() {
     this.assessmentApi.getUnquizzedModules(this.courseId).subscribe(missing => {
 
-      // if still some modules missing
       if (missing && missing.length > 0) {
         alert("Please complete all quizzes for this module before continuing.");
         return;
       }
 
-      // reload and allow next module quiz
       location.reload();
     });
   }

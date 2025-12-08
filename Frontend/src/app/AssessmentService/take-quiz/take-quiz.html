@@ -34,10 +34,10 @@
   </div>
 
   <button class="submit-btn"
-          (click)="submit()"
-          [disabled]="submitting">
-    {{ submitting ? "Submitting..." : "Submit Quiz" }}
-  </button>
+        (click)="submit()"
+        [disabled]="submitting || !allQuestionsAnswered()">
+  {{ submitting ? "Submitting..." : "Submit Quiz" }}
+</button>
 
 </div>
 
