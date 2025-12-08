@@ -12,9 +12,6 @@ namespace LMS.Tests.CourseService.Repository
 
         public CourseRepositoryTests()
         {
-            // -----------------------------
-            // AutoFixture setup
-            // -----------------------------
             _fixture = new Fixture();
 
             // Prevent EF circular recursion (Course → Category → Course…)
@@ -49,7 +46,7 @@ namespace LMS.Tests.CourseService.Repository
         private Course CreateCourse(int? id = null, Guid? instructor = null, bool isDeleted = false)
         {
             var course = _fixture.Build<Course>()
-                .Without(c => c.Category) // Prevent recursion
+                .Without(c => c.Category)
                 .With(c => c.CategoryId, CourseContext.Categories.First().Id)
                 .With(c => c.IsDeleted, isDeleted)
                 .Create();

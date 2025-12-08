@@ -66,11 +66,6 @@ select:focus {
   background: #fff6f6 !important;
 }
 
-.success-border {
-  border-color: #3cb371 !important;
-  background: #f3fff7 !important;
-}
-
 /* Error text */
 .error {
   color: #dc2626;
