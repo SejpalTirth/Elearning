@@ -9,14 +9,7 @@ namespace UserService.DAL.Models
 
         public DbSet<User> Users { get; set; }
         public DbSet<Role> Roles { get; set; }
-        public DbSet<Permission> Permissions { get; set; }
-
-        public DbSet<UserRole> UserRoles { get; set; }
-        public DbSet<RolePermission> RolePermissions { get; set; }
-        public DbSet<UserPermission> UserPermissions { get; set; }
-
         public DbSet<RefreshToken> RefreshTokens { get; set; }
-
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -26,7 +19,6 @@ namespace UserService.DAL.Models
                     "Server=SYN-009738\\SQLEXPRESS;Database=Elearning;Trusted_Connection=True;Encrypt=False;TrustServerCertificate=True");
             }
         }
-
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -39,50 +31,12 @@ namespace UserService.DAL.Models
                 entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getdate())");
                 entity.Property(e => e.IsActive).HasDefaultValue(true);
-
-                // USER ↔ PERMISSIONS
-                entity.HasMany(u => u.Permissions)
-                      .WithMany(p => p.Users)
-                      .UsingEntity<UserPermission>(
-                        j =>
-                        {
-                            j.HasKey(up => new { up.UserId, up.PermissionId });
-                            j.ToTable("UserPermissions");
-                        });
-
-                // USER ↔ ROLES
-                entity.HasMany(u => u.Roles)
-                      .WithMany(r => r.Users)
-                      .UsingEntity<UserRole>(
-                        j =>
-                        {
-                            j.HasKey(ur => new { ur.UserId, ur.RoleId });
-                            j.ToTable("UserRoles");
-                        });
             });
 
             //-------------------------------------------------------
             // ROLE
             //-------------------------------------------------------
             modelBuilder.Entity<Role>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-
-                // ROLE ↔ PERMISSIONS
-                entity.HasMany(r => r.Permissions)
-                      .WithMany(p => p.Roles)
-                      .UsingEntity<RolePermission>(
-                        j =>
-                        {
-                            j.HasKey(rp => new { rp.RoleId, rp.PermissionId });
-                            j.ToTable("RolePermissions");
-                        });
-            });
-
-            //-------------------------------------------------------
-            // PERMISSION
-            //-------------------------------------------------------
-            modelBuilder.Entity<Permission>(entity =>
             {
                 entity.HasKey(e => e.Id);
             });

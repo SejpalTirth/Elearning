@@ -8,5 +8,7 @@ namespace UserService.BLL.Interface
         Task<UserDto?> GetById(Guid id);
         Task<UserDto> Create(CreateUserRequest request);
         Task<bool> Delete(Guid id);
+        Task<bool> UpdateUserRoleAsync(UpdateUserRoleRequest request);
     }
+
 }

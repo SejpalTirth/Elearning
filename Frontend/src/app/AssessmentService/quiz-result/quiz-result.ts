@@ -26,7 +26,6 @@ export class QuizResultComponent implements OnInit {
   ngOnInit() {
     this.submissionId = this.route.snapshot.paramMap.get('submissionId') || '';
     
-    // 👇 Read moduleId from query params
     this.moduleId = Number(this.route.snapshot.queryParamMap.get('moduleId'));
 
     this.loadResult();
@@ -43,7 +42,6 @@ export class QuizResultComponent implements OnInit {
   }
 
   backToModules() {
-    // 👇 Return user to correct module
     if (this.moduleId) {
       this.router.navigate([`/courses/module/${this.moduleId}`]);
     } else {

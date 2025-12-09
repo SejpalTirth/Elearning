@@ -31,7 +31,7 @@ export class ManageCoursesComponent implements OnInit {
       return;
     }
 
-    // 🔥 decode JWT to extract "sub"
+    // decode JWT to extract "sub"
     this.userId = this.getUserIdFromToken(this.token);
     console.log("Extracted userId:", this.userId);
 

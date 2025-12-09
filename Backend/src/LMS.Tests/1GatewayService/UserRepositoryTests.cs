@@ -2,6 +2,7 @@
 using GatewayService.DAL.Models;
 using GatewayService.DAL.Repo;
 using Microsoft.Extensions.DependencyInjection;
+using GatewayUser = GatewayService.DAL.Models.User;
 
 namespace LMS.Tests.GatewayService
 {
@@ -13,26 +14,23 @@ namespace LMS.Tests.GatewayService
         public UserRepositoryTests()
         {
             // -----------------------------
-            // AutoFixture Setup
+            // AutoFixture setup (avoid recursion)
             // -----------------------------
             _fixture = new Fixture();
-
-            // Fix circular references (User <-> Tokens)
             _fixture.Behaviors.OfType<ThrowingRecursionBehavior>()
                 .ToList()
                 .ForEach(b => _fixture.Behaviors.Remove(b));
-
             _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
 
             // -----------------------------
-            // Repository Under Test
+            // Repository under test
             // -----------------------------
             _repo = new UserRepository(GatewayContext);
         }
 
         protected override void ConfigureGatewayDependencies(IServiceCollection services)
         {
-            // Nothing special needed for UserRepository now
+            // No special dependencies needed
         }
 
         // -----------------------------------------------------
@@ -41,10 +39,10 @@ namespace LMS.Tests.GatewayService
         [Fact]
         public async Task AddUser_ShouldAssignId_AndSave()
         {
-            // AutoFixture builds user but we override Email
-            var user = _fixture.Build<User>()
+            var user = _fixture.Build<GatewayUser>()
+                .Without(u => u.RefreshTokens)
                 .With(u => u.Email, "new@mail.com")
-                .Without(u => u.RefreshTokens)   // Avoid random token list
+                .With(u => u.Id, Guid.Empty) // ensure repo sets new ID
                 .Create();
 
             var saved = await _repo.AddUserAsync(user);
@@ -52,6 +50,7 @@ namespace LMS.Tests.GatewayService
             Assert.NotEqual(Guid.Empty, saved.Id);
             Assert.Equal("new@mail.com", saved.Email);
             Assert.True(GatewayContext.Users.Any(u => u.Email == "new@mail.com"));
+            Assert.NotNull(saved.CreatedAt);
         }
 
         // -----------------------------------------------------
@@ -60,9 +59,9 @@ namespace LMS.Tests.GatewayService
         [Fact]
         public async Task GetByEmail_ShouldReturnUser()
         {
-            var user = _fixture.Build<User>()
-                .With(u => u.Email, "findme@mail.com")
+            var user = _fixture.Build<GatewayUser>()
                 .Without(u => u.RefreshTokens)
+                .With(u => u.Email, "findme@mail.com")
                 .Create();
 
             GatewayContext.Users.Add(user);
@@ -80,9 +79,9 @@ namespace LMS.Tests.GatewayService
         [Fact]
         public async Task GetById_ShouldReturnUser()
         {
-            var user = _fixture.Build<User>()
-                .With(u => u.Email, "byid@mail.com")
+            var user = _fixture.Build<GatewayUser>()
                 .Without(u => u.RefreshTokens)
+                .With(u => u.Email, "byid@mail.com")
                 .Create();
 
             GatewayContext.Users.Add(user);

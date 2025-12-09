@@ -43,8 +43,4 @@ export class SharedHeaderComponent implements OnInit {
     this.router.navigate(['/']);
   }
 
-  toggleTheme() {
-  document.body.classList.toggle('dark-theme');
-  }
-
 }

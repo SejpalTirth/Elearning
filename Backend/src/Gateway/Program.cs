@@ -47,6 +47,11 @@ services.AddHttpClient("ProgressService", c =>
 {
     c.BaseAddress = new Uri("https://localhost:7175/");
 });
+services.AddHttpClient("UserService", c =>
+{
+    c.BaseAddress = new Uri("https://localhost:7130/");
+});
+
 
 // ----------------------
 // Repositories + Services

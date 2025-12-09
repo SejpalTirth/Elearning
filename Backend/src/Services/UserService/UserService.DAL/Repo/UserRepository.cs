@@ -24,14 +24,22 @@ namespace UserService.DAL.Repo
         public async Task AddAsync(User user)
             => await _context.Users.AddAsync(user);
 
-        public async Task UpdateAsync(User user)
-            => _context.Users.Update(user);
+        public Task UpdateAsync(User user)
+        {
+            _context.Users.Update(user);
+            return Task.CompletedTask;
+        }
 
-        public async Task DeleteAsync(User user)
-            => _context.Users.Remove(user);
+        public Task DeleteAsync(User user)
+        {
+            _context.Users.Remove(user);
+            return Task.CompletedTask;
+        }
+
+        public async Task<int> CountByRoleAsync(string role)
+            => await _context.Users.CountAsync(u => u.Role == role);
 
         public async Task SaveAsync()
             => await _context.SaveChangesAsync();
     }
-
 }

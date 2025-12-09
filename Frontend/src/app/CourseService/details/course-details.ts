@@ -17,14 +17,14 @@ export class CourseDetailsComponent implements OnInit {
   isEnrolled = false;
   userId = "";
 
-  isLoading = false;      // overlay loader + block UI
-  btnLoading = false;     // loader inside button
+  isLoading = false;
+  btnLoading = false;
 
   constructor(
     private route: ActivatedRoute,
     private courseApi: CourseApiService,
     private router: Router,
-    private renderer: Renderer2     // NEW: disable nav click
+    private renderer: Renderer2
   ) {}
 
   ngOnInit(): void {
@@ -36,14 +36,20 @@ export class CourseDetailsComponent implements OnInit {
   }
 
   extractUserId() {
-    const token = localStorage.getItem('accessToken');
-    if (!token) return;
-
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      this.userId = payload["sub"];
-    } catch {}
+  const token = localStorage.getItem('accessToken');
+  if (!token) {
+    this.userId = "";
+    return;
   }
+
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    this.userId = payload["sub"] ?? "";
+  } catch {
+    this.userId = "";
+  }
+}
+
 
   loadCourse(id: number) {
     this.courseApi.getById(id).subscribe({
@@ -82,7 +88,7 @@ export class CourseDetailsComponent implements OnInit {
     // Start loading
     this.btnLoading = true;
     this.isLoading = true;
-    this.disableNavbarClicks();     //  block navbar clicks
+    this.disableNavbarClicks();
 
     this.courseApi.enroll({
       courseId: this.courseId,
@@ -91,9 +97,9 @@ export class CourseDetailsComponent implements OnInit {
       next: () => {
         this.isEnrolled = true;
 
-        // Small delay for smooth UX
+        
         setTimeout(() => {
-          this.enableNavbarClicks();     // ✔ re-enable navbar
+          this.enableNavbarClicks();
           this.router.navigate([`/courses/${this.courseId}/modules`]);
         }, 800);
       },

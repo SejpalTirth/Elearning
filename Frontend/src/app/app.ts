@@ -10,7 +10,7 @@ import { ToastContainerComponent } from "./shared/toast/toast";
   selector: 'app-root',
   standalone: true,
   imports: [
-    CommonModule, // REQUIRED for *ngIf
+    CommonModule,
     RouterOutlet,
     HeaderComponent,
     SharedHeaderComponent,

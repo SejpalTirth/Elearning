@@ -1,9 +1,10 @@
 ﻿using AutoFixture;
 using AutoFixture.AutoMoq;
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using UserService.BLL.DTOs;
-using UserService.BLL.Service;
+using UserService.BLL.Interface;
 using UserService.DAL.Models;
 using UserService.DAL.Repo;
 
@@ -13,6 +14,7 @@ namespace LMS.Tests.UserService
     {
         private readonly IFixture _fixture;
         private readonly Mock<IUserRepository> _repoMock;
+        private readonly UserContext _context;
         private readonly IMapper _mapper;
         private readonly UserServiceImpl _service;
 
@@ -35,8 +37,16 @@ namespace LMS.Tests.UserService
             });
 
             _mapper = config.CreateMapper();
+            
+            // Fresh isolated DB per test class instance
+            var options = new DbContextOptionsBuilder<UserContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            _context = new UserContext(options);
+            
             _repoMock = new Mock<IUserRepository>();
-            _service = new UserServiceImpl(_repoMock.Object, _mapper);
+            _service = new UserServiceImpl(_repoMock.Object, _context, _mapper);
         }
 
 
@@ -52,7 +62,7 @@ namespace LMS.Tests.UserService
                 .ToList();
 
             _repoMock.Setup(r => r.GetAllAsync())
-                .ReturnsAsync(users);
+                .Returns(Task.FromResult(users));
 
             var result = await _service.GetAll();
 
@@ -74,7 +84,7 @@ namespace LMS.Tests.UserService
                 .Create();
 
             _repoMock.Setup(r => r.GetByIdAsync(id))
-                .ReturnsAsync(user);
+                .Returns(Task.FromResult((User?)user));
 
             var result = await _service.GetById(id);
 
@@ -88,7 +98,7 @@ namespace LMS.Tests.UserService
             var id = Guid.NewGuid();
 
             _repoMock.Setup(r => r.GetByIdAsync(id))
-                .ReturnsAsync((User?)null);
+                .Returns(Task.FromResult((User?)null));
 
             var result = await _service.GetById(id);
 
@@ -133,8 +143,14 @@ namespace LMS.Tests.UserService
         {
             var user = _fixture.Create<User>();
 
-            _repoMock.Setup(r => r.GetByIdAsync(user.Id)).ReturnsAsync(user);
-            _repoMock.Setup(r => r.DeleteAsync(user)).Returns(Task.CompletedTask);
+            _repoMock.Setup(r => r.GetByIdAsync(user.Id))
+                .Returns(Task.FromResult((User?)user));
+            
+            _repoMock.Setup(r => r.DeleteAsync(user))
+                .Returns(Task.CompletedTask);
+            
+            _repoMock.Setup(r => r.SaveAsync())
+                .Returns(Task.CompletedTask);
 
             var result = await _service.Delete(user.Id);
 
@@ -147,7 +163,7 @@ namespace LMS.Tests.UserService
             var id = Guid.NewGuid();
 
             _repoMock.Setup(r => r.GetByIdAsync(id))
-                .ReturnsAsync((User?)null);
+                .Returns(Task.FromResult((User?)null));
 
             var result = await _service.Delete(id);
 

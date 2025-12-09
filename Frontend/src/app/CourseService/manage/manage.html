@@ -11,7 +11,7 @@
     <div class="course-card" *ngFor="let c of courses">
       
       <div class="title">{{ c.title }}</div>
-      <div class="meta">Category: {{ c.categoryName || 'Uncategorized' }}</div>
+      <!-- <div class="meta">Category: {{ c.categoryName || 'Uncategorized' }}</div> -->
 
       <div class="actions">
         <button class="view-btn" (click)="viewCourse(c.id)">View</button>

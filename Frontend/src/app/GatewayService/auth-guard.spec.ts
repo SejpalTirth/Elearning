@@ -1,47 +1,76 @@
 import { TestBed } from '@angular/core/testing';
-import { AuthGuard } from './auth-guard';
 import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
+
+import { AuthGuard } from './auth-guard';
+import { AuthService } from './auth.service';
+
+class MockAuthService {
+  access: string | null = null;
+  refresh: string | null = null;
+
+  getAccessToken() {
+    return this.access;
+  }
+
+  getRefreshToken() {
+    return this.refresh;
+  }
+}
 
 describe('AuthGuard', () => {
   let guard: AuthGuard;
   let router: Router;
-  let mockStorage: Record<string, string> = {};
+  let auth: MockAuthService;
 
   beforeEach(() => {
+    auth = new MockAuthService();
+
     TestBed.configureTestingModule({
       imports: [RouterTestingModule],
-      providers: [AuthGuard]
+      providers: [
+        AuthGuard,
+        { provide: AuthService, useValue: auth }
+      ]
     });
 
     guard = TestBed.inject(AuthGuard);
     router = TestBed.inject(Router);
 
-    // localStorage mock
-    spyOn(localStorage, 'getItem').and.callFake((key: string) => {
-      return mockStorage[key] || null;
-    });
-
-    // spy navigate
     spyOn(router, 'navigate');
-    mockStorage = {};
   });
 
+  // -------------------------------------------
   it('should be created', () => {
     expect(guard).toBeTruthy();
   });
 
-  it('should block and redirect when no token', () => {
-    mockStorage = {};
+  // -------------------------------------------
+  it('should block and redirect to /login when BOTH tokens missing', () => {
+    auth.access = null;
+    auth.refresh = null;
 
     const result = guard.canActivate();
 
     expect(result).toBeFalse();
-    expect(router.navigate).toHaveBeenCalledWith(['/']);
+    expect(router.navigate).toHaveBeenCalledWith(['/login']);
   });
 
-  it('should allow activation when token exists', () => {
-    mockStorage = { token: 'abc123' };
+  // -------------------------------------------
+  it('should allow activation when accessToken exists', () => {
+    auth.access = 'abc123';
+    auth.refresh = null;
+
+    const result = guard.canActivate();
+
+    expect(result).toBeTrue();
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  // -------------------------------------------
+  it('should allow activation when refreshToken exists', () => {
+    auth.access = null;
+    auth.refresh = 'refresh123';
 
     const result = guard.canActivate();
 

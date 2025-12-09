@@ -26,7 +26,6 @@ namespace LMS.Tests.UserService
             _fixture.Build<User>()
                 .With(u => u.Id, Guid.NewGuid())
                 .With(u => u.Email, email)
-                .Without(u => u.UserRoles)
                 .Without(u => u.RefreshTokens)
                 .Create();
 

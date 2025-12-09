@@ -138,7 +138,11 @@ export class AddQuizComponent implements OnInit {
         return;
       }
 
-      location.reload();
+      this.reloadPage();
     });
+  }
+
+  reloadPage() {
+    window.location.reload();
   }
 }

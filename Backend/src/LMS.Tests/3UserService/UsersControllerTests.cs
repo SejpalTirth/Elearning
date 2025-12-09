@@ -1,26 +1,22 @@
 ﻿using AutoFixture;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
-using System.Text.Json;
 using UserService.BLL.DTOs;
 using UserService.BLL.Interface;
-using UserService.Web.Controllers;
 
 namespace LMS.Tests.UserService
 {
     public class UsersControllerTests
     {
         private readonly UsersController _controller;
-        private readonly Mock<IUserAuthService> _authMock;
         private readonly Mock<IUserService> _userMock;
         private readonly Fixture _fixture;
 
         public UsersControllerTests()
         {
-            _authMock = new Mock<IUserAuthService>();
             _userMock = new Mock<IUserService>();
 
-            _controller = new UsersController(_authMock.Object, _userMock.Object);
+            _controller = new UsersController(_userMock.Object);
 
             _fixture = new Fixture();
         }
@@ -31,12 +27,12 @@ namespace LMS.Tests.UserService
         [Fact]
         public async Task GetUser_ShouldReturnUser_WhenExists()
         {
-            var dto = _fixture.Build<UserAuthDto>()
+            var dto = _fixture.Build<UserDto>()
                 .With(x => x.Email, "test@mail.com")
                 .Create();
 
-            _authMock.Setup(s => s.GetUserAuthorizationAsync(dto.Id))
-                .ReturnsAsync(dto);
+            _userMock.Setup(s => s.GetById(dto.Id))
+                .Returns(Task.FromResult((UserDto?)dto));
 
             var result = await _controller.GetUser(dto.Id) as OkObjectResult;
 
@@ -49,8 +45,8 @@ namespace LMS.Tests.UserService
         {
             var id = Guid.NewGuid();
 
-            _authMock.Setup(s => s.GetUserAuthorizationAsync(id))
-                .ReturnsAsync((UserAuthDto?)null);
+            _userMock.Setup(s => s.GetById(id))
+                .Returns(Task.FromResult((UserDto?)null));
 
             var result = await _controller.GetUser(id);
 
@@ -58,70 +54,61 @@ namespace LMS.Tests.UserService
         }
 
         // -----------------------------------------------------
-        // COMPLETE PROFILE
+        // DELETE USER
         // -----------------------------------------------------
         [Fact]
-        public async Task CompleteProfile_ShouldReturnOk_WhenSuccess()
+        public async Task Delete_ShouldReturnOk_WhenUserExists()
         {
-            var dto = _fixture.Build<CompleteProfileDto>()
-                .With(x => x.RoleId, 2)
-                .With(x => x.Name, "Kira")
-                .Create();
+            var id = Guid.NewGuid();
 
-            _authMock.Setup(s => s.CompleteUserProfileAsync(dto))
-                .ReturnsAsync(new CompleteProfileResultDto { Success = true });
+            _userMock.Setup(s => s.Delete(id))
+                .Returns(Task.FromResult(true));
 
-            var result = await _controller.CompleteProfile(dto) as OkObjectResult;
+            var result = await _controller.Delete(id);
 
-            Assert.NotNull(result);
-
-            // Convert anonymous object → JSON → Dictionary
-            var json = JsonSerializer.Serialize(result!.Value);
-            var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(json)!;
-
-            Assert.True(bool.Parse(dict["success"]!.ToString()!));
-        }
-
-
-        [Fact]
-        public async Task CompleteProfile_ShouldReturnBadRequest_WhenValidationFails()
-        {
-            var dto = new CompleteProfileDto(); // invalid
-
-            _controller.ModelState.AddModelError("Name", "Required");
-
-            var result = await _controller.CompleteProfile(dto);
-
-            Assert.IsType<BadRequestObjectResult>(result);
+            Assert.IsType<OkResult>(result);
         }
 
         [Fact]
-        public async Task CompleteProfile_ShouldReturnBadRequest_WhenServiceFails()
+        public async Task Delete_ShouldReturnNotFound_WhenUserNotFound()
         {
-            var dto = _fixture.Build<CompleteProfileDto>()
-                .With(x => x.RoleId, 1)
-                .With(x => x.Name, "Test")
-                .Create();
+            var id = Guid.NewGuid();
 
-            var failResult = new CompleteProfileResultDto
-            {
-                Success = false,
-                Message = "Cannot assign Admin"
-            };
+            _userMock.Setup(s => s.Delete(id))
+                .Returns(Task.FromResult(false));
 
-            _authMock.Setup(s => s.CompleteUserProfileAsync(dto))
-                .ReturnsAsync(failResult);
+            var result = await _controller.Delete(id);
 
-            var result = await _controller.CompleteProfile(dto) as BadRequestObjectResult;
-
-            Assert.NotNull(result);
-
-            // Convert anonymous object → JSON → Dictionary
-            var json = JsonSerializer.Serialize(result!.Value);
-            var dict = JsonSerializer.Deserialize<Dictionary<string, object>>(json)!;
-
-            Assert.Equal("Cannot assign Admin", dict["message"]!.ToString());
+            Assert.IsType<NotFoundResult>(result);
         }
 
+        // -----------------------------------------------------
+        // GET ALL USERS
+        // -----------------------------------------------------
+        [Fact]
+        public async Task GetAllUsers_ShouldReturnUsers()
+        {
+            var users = _fixture.CreateMany<UserDto>(3).ToList();
+
+            _userMock.Setup(s => s.GetAll())
+                .Returns(Task.FromResult(users));
+
+            var result = await _controller.GetAllUsers() as OkObjectResult;
+
+            Assert.NotNull(result);
+            Assert.Equal(users, result!.Value);
+        }
+
+        [Fact]
+        public async Task GetAllUsers_ShouldReturnEmptyList_WhenNoUsers()
+        {
+            _userMock.Setup(s => s.GetAll())
+                .Returns(Task.FromResult(new List<UserDto>()));
+
+            var result = await _controller.GetAllUsers() as OkObjectResult;
+
+            Assert.NotNull(result);
+            Assert.Empty((List<UserDto>)result!.Value!);
+        }
     }
 }
