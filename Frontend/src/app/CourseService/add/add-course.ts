@@ -1,9 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { CourseApiService } from '../services/course-api';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+import { SecureTokenService } from '../../GatewayService/Security/secure-token.service';
 
 @Component({
   selector: 'app-add-course',
@@ -17,17 +18,19 @@ import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-
   styleUrls: ['./add-course.css']
 })
 export class AddCourseComponent implements OnInit {
-  
+
   form: FormGroup;
   categories: any[] = [];
-  userId = "";
+  userId = '';
   submitted = false;
 
-  constructor(
-    private fb: FormBuilder,
-    private courseApi: CourseApiService,
-    private router: Router
-  ) {
+  private readonly fb = inject(FormBuilder);
+  private readonly courseApi = inject(CourseApiService);
+  private readonly router = inject(Router);
+  private readonly tokenService = inject(SecureTokenService);
+
+  constructor()
+  {
     this.form = this.fb.group({
       title: ['', Validators.required],
       description: [''],
@@ -52,7 +55,7 @@ export class AddCourseComponent implements OnInit {
     return this.form.get('modules') as FormArray;
   }
 
-  addModule() {
+  addModule(): void {
     this.modules.push(
       this.fb.group({
         title: ['', Validators.required],
@@ -61,25 +64,25 @@ export class AddCourseComponent implements OnInit {
     );
   }
 
-  removeModule(index: number) {
+  removeModule(index: number): void {
     this.modules.removeAt(index);
   }
 
-  drop(event: CdkDragDrop<any[]>) {
+  drop(event: CdkDragDrop<any[]>): void {
     moveItemInArray(this.modules.controls, event.previousIndex, event.currentIndex);
   }
 
-  fieldInvalid(name: string) {
+  fieldInvalid(name: string): boolean | undefined {
     const control = this.form.get(name);
     return this.submitted && control?.invalid;
   }
 
-  fieldValid(name: string) {
+  fieldValid(name: string): boolean | undefined {
     const control = this.form.get(name);
     return control?.valid && control?.touched;
   }
 
-  submit() {
+  submit():void {
     this.submitted = true;
 
     // Course must have at least one module
@@ -88,15 +91,14 @@ export class AddCourseComponent implements OnInit {
       return;
     }
 
-    const token = localStorage.getItem('accessToken');
-    if (!token) return;
+    const userId = this.tokenService.getUserId();
 
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      this.userId = payload["sub"];
-    } catch {
-      console.warn("Invalid token");
+    if (!userId) {
+      return;
     }
+
+    this.userId = userId;
+
 
     const dto = {
       ...this.form.value,
@@ -107,25 +109,25 @@ export class AddCourseComponent implements OnInit {
       next: (res: any) => {
         const courseId = res?.id;
         if (!courseId) {
-          alert("Course created, but no course ID returned.");
           return;
         }
         this.router.navigate(['/assessment/add-quiz', courseId]);
       },
       error: err => {
         console.error(err);
+        // eslint-disable-next-line no-alert
         alert('Error creating course');
       }
     });
   }
 
-  cancel() {
+  cancel():void {
     this.router.navigate(['/courses']);
   }
-  autoResize(event: any) {
-  const textarea = event.target;
-  textarea.style.height = 'auto';
-  textarea.style.height = textarea.scrollHeight + 'px';
-}
+  autoResize(event: any):void {
+    const textarea = event.target;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight  }px`;
+  }
 
 }

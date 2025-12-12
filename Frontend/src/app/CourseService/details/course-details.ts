@@ -1,7 +1,8 @@
-import { Component, OnInit, Renderer2 } from '@angular/core';
+import { Component, inject, OnInit, Renderer2 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CourseApiService } from '../services/course-api';
 import { CommonModule } from '@angular/common';
+import { SecureTokenService } from 'app/GatewayService/Security/secure-token.service';
 
 @Component({
   selector: 'app-course-details',
@@ -15,17 +16,16 @@ export class CourseDetailsComponent implements OnInit {
   course: any = null;
   courseId!: number;
   isEnrolled = false;
-  userId = "";
+  userId = '';
 
-  isLoading = false;      // overlay loader + block UI
-  btnLoading = false;     // loader inside button
-
-  constructor(
-    private route: ActivatedRoute,
-    private courseApi: CourseApiService,
-    private router: Router,
-    private renderer: Renderer2     // NEW: disable nav click
-  ) {}
+  isLoading = false;
+  btnLoading = false;
+  
+  private readonly route = inject(ActivatedRoute);
+  private readonly courseApi = inject(CourseApiService);
+  private readonly router = inject(Router);
+  private readonly renderer = inject(Renderer2);
+  private readonly tokenService = inject(SecureTokenService);
 
   ngOnInit(): void {
     this.courseId = Number(this.route.snapshot.paramMap.get('id'));
@@ -35,45 +35,39 @@ export class CourseDetailsComponent implements OnInit {
     this.checkEnrollment();
   }
 
-  extractUserId() {
-    const token = localStorage.getItem('accessToken');
-    if (!token) return;
+  extractUserId():void {
+    const userId = this.tokenService.getUserId();
 
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      this.userId = payload["sub"];
-    } catch {}
+    this.userId = userId ?? '';
   }
 
-  loadCourse(id: number) {
+
+
+  loadCourse(id: number): void {
     this.courseApi.getById(id).subscribe({
       next: (res) => this.course = res
     });
   }
 
-  checkEnrollment() {
-    if (!this.userId) return;
+  checkEnrollment(): void {
+    if (!this.userId) {return;}
 
     this.courseApi.getEnrolledCourses(this.userId).subscribe({
       next: (courses) => {
-        this.isEnrolled = courses.some(c => c.id === this.courseId);
+        this.isEnrolled = courses.some((c: { id: number; }) => c.id === this.courseId);
       }
     });
   }
-
-  // ❗ Disable navbar clicks
-  disableNavbarClicks() {
-    const nav = document.querySelector("nav");
-    if (nav) this.renderer.setStyle(nav, "pointer-events", "none");
+  disableNavbarClicks(): void {
+    const nav = document.querySelector('nav');
+    if (nav) {this.renderer.setStyle(nav, 'pointer-events', 'none');}
+  }
+  enableNavbarClicks():void {
+    const nav = document.querySelector('nav');
+    if (nav) {this.renderer.setStyle(nav, 'pointer-events', 'auto');}
   }
 
-  // ❗ Enable navbar clicks
-  enableNavbarClicks() {
-    const nav = document.querySelector("nav");
-    if (nav) this.renderer.setStyle(nav, "pointer-events", "auto");
-  }
-
-  enrollOrContinue() {
+  enrollOrContinue():void  {
     if (this.isEnrolled) {
       this.router.navigate([`/courses/${this.courseId}/modules`]);
       return;
@@ -82,7 +76,7 @@ export class CourseDetailsComponent implements OnInit {
     // Start loading
     this.btnLoading = true;
     this.isLoading = true;
-    this.disableNavbarClicks();     //  block navbar clicks
+    this.disableNavbarClicks();
 
     this.courseApi.enroll({
       courseId: this.courseId,
@@ -91,9 +85,9 @@ export class CourseDetailsComponent implements OnInit {
       next: () => {
         this.isEnrolled = true;
 
-        // Small delay for smooth UX
+
         setTimeout(() => {
-          this.enableNavbarClicks();     // ✔ re-enable navbar
+          this.enableNavbarClicks();
           this.router.navigate([`/courses/${this.courseId}/modules`]);
         }, 800);
       },

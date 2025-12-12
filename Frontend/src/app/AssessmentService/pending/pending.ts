@@ -1,8 +1,12 @@
-import { Component, OnInit } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Component, inject, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { ToastService } from '../../shared/toast.service';
 import { CommonModule } from '@angular/common';
+
+import { ToastService } from '../../shared/toast.service';
+import { SecureTokenService } from 'app/GatewayService/Security/secure-token.service';
+
+import { CourseApiService } from '../../CourseService/services/course-api';
+import { AssessmentApiService } from '../../AssessmentService/services/assessment-api';
 
 @Component({
   selector: 'app-pending',
@@ -13,89 +17,80 @@ import { CommonModule } from '@angular/common';
 })
 export class Pending implements OnInit {
 
-  userId: string = '';
-  course: any = null;
-  pendingModules: number[] = [];
-  allQuizzesDone: boolean = false;
+  userId: string | null = null;
+  pendingCourses: any[] = [];
 
-  private courseGateway = "https://localhost:7249/api/GatewayCourse";
-  private assessmentGateway = "https://localhost:7249/api/AssessmentGateway";
-
-  constructor(
-    private http: HttpClient,
-    private router: Router,
-    private toastService: ToastService
-  ) {}
+  private readonly router = inject(Router);
+  private readonly toastService = inject(ToastService);
+  private readonly tokenService = inject(SecureTokenService);
+  private readonly courseApi = inject(CourseApiService);
+  private readonly assessmentApi = inject(AssessmentApiService);
 
   ngOnInit(): void {
-    const token = localStorage.getItem("accessToken");
-    if (!token) return;
-
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    this.userId = payload.sub;
-
-    this.loadUnfinishedCourse();
+    this.userId = this.tokenService.getUserId();
+    this.loadUnfinishedCourses();
   }
 
-  // STEP 1 — Fetch unfinished course (soft-deleted course)
-  loadUnfinishedCourse() {
-    this.http.get(`${this.courseGateway}/unfinished/${this.userId}`).subscribe({
-      next: (res: any) => {
-        if (!res) {
-          this.course = null;
-          this.toastService.showSuccess("No pending tasks 🎉");
+  // ------------------------------------------
+  // Load ALL unfinished (draft) courses
+  // ------------------------------------------
+  loadUnfinishedCourses(): void {
+    if (!this.userId) {return;}
+
+    this.courseApi.getInstructorUnfinishedCourses(this.userId).subscribe({
+      next: (courses: any[]) => {
+        if (!courses || courses.length === 0) {
+          this.pendingCourses = [];
           return;
         }
 
-        this.course = res;
-        this.loadPendingModules(res.id);
+        // Safety: Filter out admin-deleted courses
+        this.pendingCourses = courses.filter(c => !c.isDeleted);
+
+        // Load module quiz status
+        this.pendingCourses.forEach(course => this.loadPendingModules(course));
       },
       error: () => {
-        this.course = null;
+        this.pendingCourses = [];
       }
     });
   }
 
-  // STEP 2 — Check which modules need quizzes
-  loadPendingModules(courseId: number) {
-    this.http.get<number[]>(`${this.assessmentGateway}/unquizzed-modules/${courseId}`)
-      .subscribe({
-        next: (moduleIds) => {
-          this.pendingModules = moduleIds || [];
-
-          if (this.pendingModules.length > 0) {
-            this.allQuizzesDone = false;
-            this.toastService.showError("Some modules still need quizzes.");
-            return;
-          }
-
-          // ALL QUIZZES DONE → ready to publish
-          this.allQuizzesDone = true;
-          this.toastService.showSuccess("Course is ready to publish.");
-        },
-        error: () => {
-          this.allQuizzesDone = false;
-        }
-      });
+  // ------------------------------------------
+  // Load missing quizzes for each course
+  // ------------------------------------------
+  loadPendingModules(course: any): void {
+    this.assessmentApi.getUnquizzedModules(course.id).subscribe({
+      next: (moduleIds: number[]) => {
+        course.pendingModules = moduleIds || [];
+        course.allQuizzesDone = course.pendingModules.length === 0;
+      },
+      error: () => {
+        course.pendingModules = [];
+        course.allQuizzesDone = false;
+      }
+    });
   }
 
-  continueQuiz() {
-    this.router.navigate(['/assessment/add-quiz', this.course.id]);
+  // ------------------------------------------
+  // Navigate to add quiz
+  // ------------------------------------------
+  continueQuiz(courseId: number): void {
+    this.router.navigate(['/assessment/add-quiz', courseId]);
   }
 
-  publishCourse() {
-  if (!this.course) return;
-
-  this.http.post(`${this.courseGateway}/${this.course.id}/publish`, {})
-    .subscribe({
+  // ------------------------------------------
+  // Publish this specific course
+  // ------------------------------------------
+  publishCourse(courseId: number): void {
+    this.courseApi.publishCourse(courseId).subscribe({
       next: () => {
-        this.toastService.showSuccess("Course published successfully! 🚀");
-        this.router.navigate(['/home']);
+        this.toastService.showSuccess('Course published successfully! 🚀');
+        this.loadUnfinishedCourses();
       },
       error: () => {
-        this.toastService.showError("Failed to publish the course.");
+        this.toastService.showError('Failed to publish the course.');
       }
     });
-}
-
+  }
 }

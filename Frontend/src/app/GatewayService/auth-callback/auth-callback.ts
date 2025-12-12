@@ -1,17 +1,20 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { AuthService } from 'app/GatewayService/Auth/auth.service';
 
 @Component({
   selector: 'app-auth-callback',
   standalone: true,
   templateUrl: './auth-callback.html',
-  styleUrl: './auth-callback.css'
+  styleUrls: ['./auth-callback.css']
 })
 export class AuthCallback implements OnInit {
 
-  constructor(private router: Router) {}
+  private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
 
-  ngOnInit() {
+  ngOnInit(): void {
+
     const params = new URLSearchParams(window.location.search);
 
     const isNewUser = params.get('isNewUser');
@@ -20,7 +23,9 @@ export class AuthCallback implements OnInit {
     const accessToken = params.get('token');
     const refreshToken = params.get('refresh')?.replace(/ /g, '+');
 
-    // NEW USER → redirect
+    // -------------------------------
+    // NEW USER → Go to Complete Profile
+    // -------------------------------
     if (isNewUser === 'true' && userId) {
       this.router.navigate(['/complete-profile'], {
         queryParams: { userId }
@@ -28,17 +33,23 @@ export class AuthCallback implements OnInit {
       return;
     }
 
-    // EXISTING USER → store tokens with correct keys
+    // -------------------------------
+    // EXISTING USER → Store tokens
+    // -------------------------------
     if (accessToken && refreshToken) {
 
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
+      this.auth.storeTokens({
+        accessToken,
+        refreshToken
+      });
 
       setTimeout(() => this.router.navigate(['/home']), 300);
       return;
     }
 
-    // fallback
+    // -------------------------------
+    // FALLBACK
+    // -------------------------------
     this.router.navigate(['/login']);
   }
 }

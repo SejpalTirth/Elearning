@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using UserService.BLL.Interface;
 using UserService.BLL.Mapping;
-using UserService.BLL.Service;
 using UserService.DAL.Models;
 using UserService.DAL.Repo;
 
@@ -17,7 +16,6 @@ builder.Services.AddDbContext<UserContext>(options =>
 // DI
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserServiceImpl>();
-builder.Services.AddScoped<IUserAuthService, UserAuthService>();
 
 builder.Services.AddAutoMapper(typeof(UserProfile));
 

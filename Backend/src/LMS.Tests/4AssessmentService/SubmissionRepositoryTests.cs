@@ -15,7 +15,7 @@ namespace LMS.Tests.AssessmentService
 
             _fixture = new Fixture();
 
-            // ---- FIX AUTO-FIXTURE RECURSION ----
+            // FIX CIRCULAR REFERENCES
             _fixture.Behaviors
                 .OfType<ThrowingRecursionBehavior>()
                 .ToList()
@@ -25,79 +25,94 @@ namespace LMS.Tests.AssessmentService
         }
 
         // -------------------------------------------------------
-        // HELPERS
+        // FACTORY: CLEAN SUBMISSION (NO NAVIGATION PROPERTIES)
         // -------------------------------------------------------
-        private QuizSubmission CreateSubmission() =>
-            _fixture.Build<QuizSubmission>()
-                .Without(s => s.Quiz) // avoid navigation properties
+        private QuizSubmission CreateSubmission(Guid? userId = null, int? quizId = null, int? score = null)
+        {
+            var submission = _fixture.Build<QuizSubmission>()
+                .Without(s => s.Quiz)
                 .Create();
+
+            if (userId != null) submission.UserId = userId.Value;
+            if (quizId != null) submission.QuizId = quizId.Value;
+            if (score != null) submission.Score = score.Value;
+
+            return submission;
+        }
 
         // -------------------------------------------------------
         // ADD SUBMISSION
         // -------------------------------------------------------
         [Fact]
-        public async Task AddAsync_ShouldAddSubmission()
+        public async Task AddAsync_ShouldInsertSubmission()
         {
-            var submission = CreateSubmission();
-            submission.Score = 50;
+            var submission = CreateSubmission(score: 45);
 
             await _repo.AddAsync(submission);
             await _repo.SaveChangesAsync();
 
-            Assert.Single(AssessmentContext.QuizSubmissions);
-            Assert.Equal(50, AssessmentContext.QuizSubmissions.First().Score);
+            var stored = AssessmentContext.QuizSubmissions.First();
+            Assert.Equal(45, stored.Score);
         }
 
         // -------------------------------------------------------
-        // GET BEST SUBMISSION
+        // BEST SUBMISSION — RETURNS HIGHEST SCORE
         // -------------------------------------------------------
         [Fact]
         public async Task GetBestSubmissionAsync_ShouldReturnHighestScore()
         {
             var userId = Guid.NewGuid();
 
-            var s1 = CreateSubmission();
-            s1.QuizId = 2;
-            s1.UserId = userId;
-            s1.Score = 20;
-
-            var s2 = CreateSubmission();
-            s2.QuizId = 2;
-            s2.UserId = userId;
-            s2.Score = 80;
-
-            var s3 = CreateSubmission();
-            s3.QuizId = 2;
-            s3.UserId = userId;
-            s3.Score = 50;
+            var s1 = CreateSubmission(userId, quizId: 5, score: 20);
+            var s2 = CreateSubmission(userId, quizId: 5, score: 90);
+            var s3 = CreateSubmission(userId, quizId: 5, score: 60);
 
             await _repo.AddAsync(s1);
             await _repo.AddAsync(s2);
             await _repo.AddAsync(s3);
             await _repo.SaveChangesAsync();
 
-            var result = await _repo.GetBestSubmissionAsync(2, userId);
+            var best = await _repo.GetBestSubmissionAsync(5, userId);
 
-            Assert.NotNull(result);
-            Assert.Equal(80, result!.Score);
+            Assert.NotNull(best);
+            Assert.Equal(90, best!.Score);
         }
 
         // -------------------------------------------------------
-        // GET BY ID
+        // BEST SUBMISSION — RETURNS NULL WHEN NO DATA
         // -------------------------------------------------------
         [Fact]
-        public async Task GetByIdAsync_ShouldReturnCorrectSubmission()
+        public async Task GetBestSubmissionAsync_ShouldReturnNull_WhenNoSubmissions()
         {
-            var submission = CreateSubmission();
-            submission.Score = 15;
+            var result = await _repo.GetBestSubmissionAsync(10, Guid.NewGuid());
+            Assert.Null(result);
+        }
+
+        // -------------------------------------------------------
+        // GET BY ID — RETURNS CORRECT SUBMISSION
+        // -------------------------------------------------------
+        [Fact]
+        public async Task GetByIdAsync_ShouldReturnSubmission_WhenExists()
+        {
+            var submission = CreateSubmission(score: 33);
 
             await _repo.AddAsync(submission);
             await _repo.SaveChangesAsync();
 
-            var result = await _repo.GetByIdAsync(submission.Id);
+            var found = await _repo.GetByIdAsync(submission.Id);
 
-            Assert.NotNull(result);
-            Assert.Equal(15, result!.Score);
+            Assert.NotNull(found);
+            Assert.Equal(33, found!.Score);
+        }
+
+        // -------------------------------------------------------
+        // GET BY ID — RETURN NULL WHEN NOT FOUND
+        // -------------------------------------------------------
+        [Fact]
+        public async Task GetByIdAsync_ShouldReturnNull_WhenMissing()
+        {
+            var result = await _repo.GetByIdAsync(Guid.NewGuid());
+            Assert.Null(result);
         }
     }
 }

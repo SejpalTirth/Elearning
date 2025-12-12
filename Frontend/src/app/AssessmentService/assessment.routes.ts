@@ -19,7 +19,7 @@ export const ASSESSMENT_ROUTES: Routes = [
     canDeactivate: [CourseQuizGuard]   // ← IMPORTANT
   },
   {
-  path: 'pending',
-  component: Pending
+    path: 'pending',
+    component: Pending
   }
 ];

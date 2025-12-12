@@ -1,6 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { CommonModule } from '@angular/common'; // Required for *ngIf
+import { CommonModule } from '@angular/common';
+import { AuthService } from 'app/GatewayService/Auth/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -10,9 +11,10 @@ import { CommonModule } from '@angular/common'; // Required for *ngIf
   styleUrls: ['./login.css']
 })
 export class LoginComponent implements OnInit {
-  loginMessage: string | null = null;
 
-  constructor(private route: ActivatedRoute) {}
+  loginMessage: string | null = null;
+  private readonly route = inject(ActivatedRoute);
+  private readonly auth = inject(AuthService);
 
   ngOnInit(): void {
     this.route.queryParams.subscribe(params => {
@@ -23,10 +25,10 @@ export class LoginComponent implements OnInit {
   }
 
   loginWithGoogle(): void {
-    window.location.href = 'https://localhost:7249/api/GatewayAuth/google-login';
+    this.auth.loginWithGoogle();
   }
 
   loginWithMicrosoft(): void {
-    window.location.href = 'https://localhost:7249/api/GatewayAuth/microsoft-login';
+    this.auth.loginWithMicrosoft();
   }
 }

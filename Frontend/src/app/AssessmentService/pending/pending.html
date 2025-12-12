@@ -1,33 +1,55 @@
 <h2 class="page-title">Pending Tasks</h2>
 
-<div class="pending-card" *ngIf="course">
-
-  <h3 class="course-title">{{ course.title }}</h3>
-
-  <!-- CASE 1 — MODULES NEED QUIZZES -->
-  <div *ngIf="pendingModules.length > 0">
-    <p class="subtext">These modules need quizzes:</p>
-
-    <ul class="module-list">
-      <li *ngFor="let m of pendingModules">Module ID: {{ m }}</li>
-    </ul>
-
-    <button class="action-btn" (click)="continueQuiz()">
-      Continue Quiz Creation →
-    </button>
+<!-- Empty State -->
+@if (pendingCourses.length === 0) {
+  <div class="empty-state-box">
+    <h3>All caught up!</h3>
+    <p>You have no pending modules or quizzes to complete.</p>
   </div>
+}
 
-  <!-- CASE 2 — ALL QUIZZES DONE, READY TO PUBLISH -->
-  <div *ngIf="pendingModules.length === 0 && allQuizzesDone">
-    <p class="subtext">All quizzes are completed! 🎉</p>
+<!-- List of pending courses -->
+@if (pendingCourses.length > 0) {
+  <div class="pending-list">
 
-    <button class="action-btn publish" (click)="publishCourse()">
-      Publish Course 🚀
-    </button>
+    @for (c of pendingCourses; track c.id) {
+      <div class="pending-card">
+
+        <h3 class="course-title">{{ c.title }}</h3>
+
+        <!-- Safety Badge -->
+        @if (c.isDeleted) {
+          <div class="deleted-badge">
+            ❌ Deleted by Admin — Cannot continue
+          </div>
+        }
+
+        <!-- Missing quizzes -->
+        @if (!c.isDeleted && c.pendingModules?.length > 0) {
+          <p class="subtext">These modules still need quizzes:</p>
+
+          <ul class="module-list">
+            @for (m of c.pendingModules; track m) {
+              <li>Module ID: {{ m }}</li>
+            }
+          </ul>
+
+          <button class="action-btn" (click)="continueQuiz(c.id)">
+            Continue Quiz Creation →
+          </button>
+        }
+
+        <!-- Ready to publish -->
+        @if (!c.isDeleted && c.pendingModules?.length === 0 && c.allQuizzesDone) {
+          <p class="subtext success">All quizzes completed! 🎉</p>
+
+          <button class="action-btn publish" (click)="publishCourse(c.id)">
+            Publish Course 🚀
+          </button>
+        }
+
+      </div>
+    }
+
   </div>
-
-</div>
-
-<div *ngIf="!course" class="empty-state">
-  <p>No pending tasks 🎉</p>
-</div>
+}

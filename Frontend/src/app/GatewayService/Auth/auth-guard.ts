@@ -1,11 +1,12 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from './auth.service';
 
 @Injectable({ providedIn: 'root' })
 export class AuthGuard {
 
-  constructor(private auth: AuthService, private router: Router) {}
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
 
   canActivate(): boolean {
     const access = this.auth.getAccessToken();

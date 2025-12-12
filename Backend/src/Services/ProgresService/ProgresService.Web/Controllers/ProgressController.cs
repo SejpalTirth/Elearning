@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ProgressService.BLL.Interface;
 using ProgresService.BLL.DTOs;
-using System.Net.Http;
-using System.Net.Http.Json;
 
 namespace ProgressService.Web.Controllers
 {
@@ -34,7 +32,7 @@ namespace ProgressService.Web.Controllers
             if (request == null)
                 return BadRequest("Invalid request body.");
 
-            // 1️⃣ Call CourseService to get the correct courseId for this module
+            // Call CourseService to get the correct courseId for this module
             var client = _httpClientFactory.CreateClient("CourseService");
 
             CourseIdResponse? courseInfo = null;
@@ -52,7 +50,7 @@ namespace ProgressService.Web.Controllers
             if (courseInfo == null)
                 return NotFound(new { message = $"Module {request.ModuleId} not found in CourseService." });
 
-            // 2️⃣ Now call existing service with correct courseId
+            // Now call existing service with correct courseId
             await _service.MarkModuleCompletedAsync(
                 request.UserId,
                 courseInfo.CourseId,

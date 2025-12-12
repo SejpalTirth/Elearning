@@ -58,7 +58,5 @@ namespace AssessmentService.DAL.Repo
                 .Select(q => q.ModuleId.Value)
                 .ToListAsync();
         }
-
-
     }
 }

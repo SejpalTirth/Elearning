@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
+using UserService.DAL.Models;
 
-namespace UserService.DAL.Models;
-
-[Index("Email", Name = "UQ__Users__A9D105346C2116B7", IsUnique = true)]
 public partial class User
 {
     [Key]
@@ -29,8 +24,9 @@ public partial class User
     [StringLength(255)]
     public string? PasswordHash { get; set; }
 
+    // SINGLE ROLE stored as string
     [StringLength(50)]
-    public string? Role { get; set; }
+    public string Role { get; set; } = "Student";
 
     public bool? IsActive { get; set; }
 
@@ -40,18 +36,7 @@ public partial class User
     [Column(TypeName = "datetime")]
     public DateTime? UpdatedAt { get; set; }
 
+    // Refresh tokens
     [InverseProperty("User")]
     public virtual ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
-
-    [ForeignKey("UserId")]
-    [InverseProperty("Users")]
-    public virtual ICollection<Permission> Permissions { get; set; } = new List<Permission>();
-
-    [ForeignKey("UserId")]
-    [InverseProperty("Users")]
-    public virtual ICollection<Role> Roles { get; set; } = new List<Role>();
-
-    public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
-    public virtual ICollection<UserPermission> UserPermissions { get; set; } = new List<UserPermission>();
-
 }

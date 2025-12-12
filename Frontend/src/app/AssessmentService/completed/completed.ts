@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 
 @Component({
@@ -8,15 +8,14 @@ import { Router } from '@angular/router';
   styleUrl: './completed.css',
 })
 export class CompletedComponent implements OnInit {
-  quizTitle: string = '';
+  quizTitle = '';
+  private readonly router = inject(Router);
 
-  constructor(private router: Router) {}
-
-  ngOnInit() {
-    this.quizTitle = history.state.quizTitle ?? "this module";
+  ngOnInit(): void {
+    this.quizTitle = history.state.quizTitle ?? 'this module';
   }
 
-  goBack() {
+  goBack(): void {
     this.router.navigate(['/my-learning']);
   }
 }

@@ -1,23 +1,55 @@
 <div class="container">
 
-  <h2>Your Courses</h2>
+  <h2 class="page-title">Your Courses</h2>
 
-  <div *ngIf="loading" class="loading">Loading...</div>
-  <div *ngIf="!loading && courses.length === 0" class="empty">
-    You haven't created any courses yet.
-  </div>
+  @if (loading) {
+    <div class="loading">Loading...</div>
+  }
 
-  <div *ngIf="courses.length > 0">
-    <div class="course-card" *ngFor="let c of courses">
-      
-      <div class="title">{{ c.title }}</div>
-      <div class="meta">Category: {{ c.categoryName || 'Uncategorized' }}</div>
-
-      <div class="actions">
-        <button class="view-btn" (click)="viewCourse(c.id)">View</button>
-        <button class="edit-btn" (click)="editCourse(c.id)">Edit</button>
-      </div>
+  @if (!loading && courses.length === 0) {
+    <div class="empty">
+      You haven't created any courses yet.
     </div>
-  </div>
+  }
 
+  @if (!loading && courses.length > 0) {
+
+    <div class="course-list">
+
+      @for (c of courses; track c.id) {
+
+        <div class="course-card"
+             [class.deleted]="c.isDeleted"
+             [class.draft]="c.isDraft && !c.isDeleted">
+
+          <div class="top">
+            <h3 class="title">{{ c.title }}</h3>
+
+            <div class="status">
+
+              @if (c.isDeleted) {
+                <span class="status-deleted">❌ Deleted by Admin</span>
+              }
+
+              @if (!c.isDeleted && c.isDraft) {
+                <span class="status-draft">⏳ Draft</span>
+              }
+
+              @if (!c.isDeleted && !c.isDraft) {
+                <span class="status-published">✔ Published</span>
+              }
+
+            </div>
+          </div>
+
+          @if (!c.isDeleted) {
+            <div class="actions">
+              <button class="btn view" (click)="viewCourse(c.id)">View</button>
+              <button class="btn edit" (click)="editCourse(c.id, c.isDeleted)">Edit</button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
 </div>

@@ -3,78 +3,90 @@
   <h2>Create New Course</h2>
 
   <!-- TITLE -->
-  <label>
+  <label for="courseTitle">
     Course Title <span class="required">*</span>
   </label>
-  <input formControlName="title"
+  <input id="courseTitle"
+         formControlName="title"
          placeholder="Enter your course title"
          [ngClass]="{'error-border': fieldInvalid('title')}">
-  <div class="error" *ngIf="fieldInvalid('title')">
-    Course title is required.
-  </div>
+
+  @if (fieldInvalid('title')) {
+    <div class="error">Course title is required.</div>
+  }
 
   <!-- DESCRIPTION -->
-  <label>Description</label>
-  <textarea formControlName="description"
-          (input)="autoResize($event)"
-          placeholder="Enter course description"></textarea>
-
+  <label for="courseDescription">Description</label>
+  <textarea id="courseDescription"
+            formControlName="description"
+            (input)="autoResize($event)"
+            placeholder="Enter course description"></textarea>
 
   <!-- CATEGORY -->
-  <label>
+  <label for="categorySelect">
     Category <span class="required">*</span>
   </label>
-  <select formControlName="categoryId"
+
+  <select id="categorySelect"
+          formControlName="categoryId"
           [ngClass]="{'error-border': fieldInvalid('categoryId')}">
     <option value="">Select a category</option>
-    <option *ngFor="let c of categories" [value]="c.id">{{ c.name }}</option>
+
+    @for (c of categories; track c.id) {
+      <option [value]="c.id">{{ c.name }}</option>
+    }
   </select>
-  <div class="error" *ngIf="fieldInvalid('categoryId')">
-    You must select a category for your course.
-  </div>
+
+  @if (fieldInvalid('categoryId')) {
+    <div class="error">You must select a category for your course.</div>
+  }
 
   <!-- MODULES -->
-  <label style="margin-top: 25px;">
+  <label for="modulesList" style="margin-top: 25px;">
     Modules <span class="required">*</span>
   </label>
 
-  <div class="error" *ngIf="submitted && modules.length === 0">
-    A course must have at least one module.
-  </div>
+  @if (submitted && modules.length === 0) {
+    <div class="error">A course must have at least one module.</div>
+  }
 
-  <div formArrayName="modules" cdkDropList (cdkDropListDropped)="drop($event)">
-    <div class="module-wrapper" *ngFor="let m of modules.controls; let i = index" [formGroupName]="i" cdkDrag>
+  <div id="modulesList" formArrayName="modules" cdkDropList (cdkDropListDropped)="drop($event)">
 
-      <div class="drag-handle" cdkDragHandle>☰</div>
+    @for (m of modules.controls; let i = $index; track i) {
+      <div class="module-wrapper" [formGroupName]="i" cdkDrag>
 
-      <div class="module-fields">
-        
-        <input formControlName="title"
-          placeholder="Module title"
-          [ngClass]="{
-            'error-border': submitted && m.get('title')?.invalid
-          }">
-        <div class="error" *ngIf="submitted && m.get('title')?.invalid">
-          Module title is required.
+        <div class="drag-handle" cdkDragHandle>☰</div>
+
+        <div class="module-fields">
+
+          <input
+            formControlName="title"
+            placeholder="Module title"
+            [ngClass]="{ 'error-border': submitted && m.get('title')?.invalid }">
+
+          @if (submitted && m.get('title')?.invalid) {
+            <div class="error">Module title is required.</div>
+          }
+
+          <textarea
+            formControlName="content"
+            (input)="autoResize($event)"
+            placeholder="Module content"
+            [ngClass]="{ 'error-border': submitted && m.get('content')?.invalid }">
+          </textarea>
+
+          @if (submitted && m.get('content')?.invalid) {
+            <div class="error">Module content is required.</div>
+          }
+
         </div>
 
-        <textarea formControlName="content"
-        (input)="autoResize($event)"
-          placeholder="Module content"
-          [ngClass]="{
-            'error-border': submitted && m.get('content')?.invalid
-          }"></textarea>
-        <div class="error" *ngIf="submitted && m.get('content')?.invalid">
-          Module content is required.
-        </div>
+        @if (i > 0) {
+          <button type="button" class="remove-btn" (click)="removeModule(i)">✕</button>
+        }
 
       </div>
-
-      <button *ngIf="i > 0" type="button" class="remove-btn" (click)="removeModule(i)">
-        ✕
-      </button>
-
-    </div>
+    }
   </div>
 
   <button type="button" class="add-module-btn" (click)="addModule()">+ Add Module</button>

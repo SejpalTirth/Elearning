@@ -121,9 +121,6 @@ public class GatewayAuthController : ControllerBase
     [HttpPost("refresh")]
     public async Task<IActionResult> Refresh([FromBody] RefreshRequest request)
     {
-        _log.LogInformation("Refresh called. incoming token length: {len}", request?.RefreshToken?.Length);
-        _log.LogInformation("Raw token (first 40 chars): {t}", request?.RefreshToken?.Substring(0, Math.Min(40, request.RefreshToken?.Length ?? 0)));
-
         var tokens = await _auth.RefreshTokenAsync(request.RefreshToken);
 
         if (tokens == null)
@@ -131,18 +128,25 @@ public class GatewayAuthController : ControllerBase
             _log.LogWarning("Refresh failed for token (maybe not found/expired/revoked)");
             return Unauthorized(new { message = "Invalid or expired refresh token" });
         }
-
-        _log.LogInformation("Refresh succeeded. returning tokens. AccessLen={len}", tokens.AccessToken?.Length);
         return Ok(tokens);
     }
 
-    [Authorize]
-    [HttpPost("logout")]
-    public async Task<IActionResult> Logout([FromBody] string refresh)
+    public class LogoutRequest
     {
-        await _auth.RevokeRefreshTokenAsync(refresh);
+        public string RefreshToken { get; set; } = string.Empty;
+    }
+
+    [AllowAnonymous]
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout([FromBody] LogoutRequest req)
+    {
+        if (!string.IsNullOrWhiteSpace(req.RefreshToken))
+            await _auth.RevokeRefreshTokenAsync(req.RefreshToken);
+
+        // Clears identity cookies
         await HttpContext.SignOutAsync();
         await HttpContext.SignOutAsync("External");
+
         return Ok(new { message = "Logged out" });
     }
 }

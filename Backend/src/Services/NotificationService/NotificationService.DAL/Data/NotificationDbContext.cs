@@ -13,9 +13,6 @@ public partial class NotificationDbContext : DbContext
     public virtual DbSet<Notification> Notifications { get; set; }
 
     public virtual DbSet<NotificationTemplate> NotificationTemplates { get; set; }
-
-    public virtual DbSet<UserNotificationPreference> UserNotificationPreferences { get; set; }
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Notification>(entity =>
@@ -40,15 +37,6 @@ public partial class NotificationDbContext : DbContext
             entity.Property(e => e.Name).HasMaxLength(100);
             entity.Property(e => e.Subject).HasMaxLength(250);
         });
-
-        modelBuilder.Entity<UserNotificationPreference>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PK__UserNoti__3214EC0703112E59");
-
-            entity.Property(e => e.IsEnabled).HasDefaultValue(true);
-            entity.Property(e => e.NotificationType).HasMaxLength(100);
-        });
-
         OnModelCreatingPartial(modelBuilder);
     }
 

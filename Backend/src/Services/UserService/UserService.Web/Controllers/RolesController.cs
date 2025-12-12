@@ -4,65 +4,46 @@ using UserService.BLL.DTOs;
 using UserService.BLL.Interface;
 using UserService.DAL.Models;
 
-namespace UserService.Web.Controllers
+[ApiController]
+[Route("api/roles")]
+public class RolesController : ControllerBase
 {
-    [ApiController]
-    [Route("api/roles")]
-    public class RolesController : ControllerBase
+    private readonly IUserService _users;
+    private readonly UserContext _context;
+
+    public RolesController(IUserService users, UserContext context)
     {
-        private readonly IUserAuthService _service;
-        private readonly UserContext _context;
+        _users = users;
+        _context = context;
+    }
 
-        public RolesController(IUserAuthService service, UserContext context)
-        {
-            _service = service;
-            _context = context;
-        }
+    [HttpGet]
+    public async Task<IActionResult> GetAllRoles()
+    {
+        var roles = await _context.Roles
+            .Select(r => new { r.Id, r.Name })
+            .ToListAsync();
 
+        return Ok(roles);
+    }
 
-        // ----------------------------------------------
-        // OLD — Assign a new role (still available)
-        // ----------------------------------------------
-        [HttpPost("assign")]
-        public async Task<IActionResult> AssignRole([FromBody] AssignRoleRequest request)
-        {
-            await _service.AssignRoleAsync(request);
-            return Ok("Role assigned successfully");
-        }
+    [HttpPut("update")]
+    public async Task<IActionResult> UpdateUserRole([FromBody] UpdateUserRoleRequest request)
+    {
+        var result = await _users.UpdateUserRoleAsync(request);
+        if (!result)
+            return BadRequest("Could not update role");
 
-        // ----------------------------------------------
-        // NEW — Replace all existing roles with a new one
-        // ----------------------------------------------
-        [HttpPut("update")]
-        public async Task<IActionResult> UpdateUserRole([FromBody] UpdateUserRoleRequest request)
-        {
-            var result = await _service.UpdateUserRoleAsync(request);
+        return Ok("User role updated successfully");
+    }
 
-            if (!result)
-                return BadRequest("Failed to update user role");
+    [HttpGet("{userId}")]
+    public async Task<IActionResult> GetUserRole(Guid userId)
+    {
+        var user = await _users.GetById(userId);
+        if (user == null)
+            return NotFound();
 
-            return Ok("User role updated successfully");
-        }
-
-        // ----------------------------------------------
-        // Get all roles assigned to user
-        // ----------------------------------------------
-        [HttpGet("{userId}")]
-        public async Task<IActionResult> GetRoles(Guid userId)
-        {
-            var roles = await _service.GetUserRolesAsync(userId);
-            return Ok(roles);
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetAllRoles()
-        {
-            var roles = await _context.Roles
-                .Select(r => new { r.Id, r.Name })
-                .ToListAsync();
-
-            return Ok(roles);
-        }
-
+        return Ok(new List<string> { user.Role });
     }
 }

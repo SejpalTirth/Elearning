@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { FormBuilder, FormArray, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -33,14 +33,13 @@ export class AddQuizComponent implements OnInit {
   courseId = 0;
 
   currentModuleId: number | null = null;
+  questionCount = 0;
 
-  constructor(
-    private fb: FormBuilder,
-    private assessmentApi: AssessmentApiService,
-    private courseApi: CourseApiService,
-    private route: ActivatedRoute,
-    private router: Router
-  ) {}
+  private readonly fb = inject(FormBuilder);
+  private readonly assessmentApi = inject(AssessmentApiService);
+  private readonly courseApi = inject(CourseApiService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   ngOnInit(): void {
 
@@ -74,12 +73,13 @@ export class AddQuizComponent implements OnInit {
     return this.questionForm.get('options') as FormArray;
   }
 
-  loadNextPendingModule() {
+  loadNextPendingModule():void {
     this.assessmentApi.getUnquizzedModules(this.courseId).subscribe(missing => {
       this.unquizzedModules = missing;
 
       if (!missing || missing.length === 0) {
         this.currentModuleId = null;
+        this.router.navigate(['/courses']);
         return;
       }
 
@@ -90,13 +90,21 @@ export class AddQuizComponent implements OnInit {
         moduleId: this.currentModuleId,
         title: found ? `${found.title} Quiz` : ''
       });
+
+      // Reset quiz state for next module
+      this.quizCreated = false;
+      this.createdQuizId = 0;
+      this.questionCount = 0;
+
+      this.quizForm.enable();
     });
   }
 
-  createQuiz() {
+  /** Create quiz for the current module */
+  createQuiz(): void {
     this.submittedQuiz = true;
 
-    if (this.quizForm.invalid) return;
+    if (this.quizForm.invalid) {return;}
 
     this.assessmentApi.createQuiz(this.quizForm.value).subscribe({
       next: (res: any) => {
@@ -104,41 +112,60 @@ export class AddQuizComponent implements OnInit {
           this.quizCreated = true;
           this.createdQuizId = res.quizId;
 
-          // Lock form immediately
           this.quizForm.disable();
         }
-      },
-      error: err => console.error(err)
+      }
     });
   }
 
-  addQuestion() {
+  /** Add question to quiz */
+  addQuestion(): void {
     this.submittedQuestion = true;
 
-    if (this.questionForm.invalid) return;
+    if (this.questionForm.invalid) {return;}
 
-    this.assessmentApi.addQuestion(this.createdQuizId, this.questionForm.value).subscribe(() => {
+    this.assessmentApi.addQuestion(this.createdQuizId, this.questionForm.value)
+      .subscribe(() => {
 
-      this.questionForm.reset({
-        text: '',
-        marks: 1,
-        correctAnswerIndex: 0,
-        options: ['', '', '', '']
+        this.questionCount++;
+        this.questionForm.reset({
+          text: '',
+          marks: 1,
+          correctAnswerIndex: 0,
+          options: ['', '', '', '']
+        });
+
+        this.submittedQuestion = false;
       });
-
-      this.submittedQuestion = false;
-    });
   }
 
-  completeModule() {
+  /** Complete only the CURRENT module, not all */
+  completeModule(): void {
+
+    if (!this.quizCreated) {
+      // eslint-disable-next-line no-alert
+      alert('Please create a quiz first.');
+      return;
+    }
+
+    if (this.questionCount < 1) {
+      // eslint-disable-next-line no-alert
+      alert('Please add at least one question to the quiz.');
+      return;
+    }
+
+    // Reload missing modules AFTER quiz creation
     this.assessmentApi.getUnquizzedModules(this.courseId).subscribe(missing => {
 
-      if (missing && missing.length > 0) {
-        alert("Please complete all quizzes for this module before continuing.");
+      // If this module is still missing → stay on page
+      if (missing.includes(this.currentModuleId!)) {
+        // eslint-disable-next-line no-alert
+        alert('Please finish quiz creation for this module.');
         return;
       }
 
-      location.reload();
+      // Otherwise go to next module
+      this.loadNextPendingModule();
     });
   }
 }

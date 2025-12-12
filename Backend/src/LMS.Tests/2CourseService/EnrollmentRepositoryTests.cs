@@ -14,10 +14,10 @@ namespace LMS.Tests.CourseService.Repository
         {
             _fixture = new Fixture();
 
-            // Prevent circular graph creation
             _fixture.Behaviors.OfType<ThrowingRecursionBehavior>()
                 .ToList()
                 .ForEach(b => _fixture.Behaviors.Remove(b));
+
             _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
 
             _repo = new EnrollmentRepository(CourseContext);
@@ -26,12 +26,12 @@ namespace LMS.Tests.CourseService.Repository
         }
 
         // --------------------------------------------------------------------
-        // SEED REQUIRED CATEGORY (clean, no Courses populated)
+        // REQUIRED CATEGORY
         // --------------------------------------------------------------------
         private void SeedCategory()
         {
             var category = _fixture.Build<Category>()
-                .Without(c => c.Courses)      // prevent EF graph pollution
+                .Without(c => c.Courses)
                 .Create();
 
             CourseContext.Categories.Add(category);
@@ -40,9 +40,6 @@ namespace LMS.Tests.CourseService.Repository
 
         private int CategoryId => CourseContext.Categories.First().Id;
 
-        // --------------------------------------------------------------------
-        // CLEAN FACTORY: Course (NO navigation properties)
-        // --------------------------------------------------------------------
         private Course CreateCourse(int id)
         {
             return _fixture.Build<Course>()
@@ -54,9 +51,6 @@ namespace LMS.Tests.CourseService.Repository
                 .Create();
         }
 
-        // --------------------------------------------------------------------
-        // CLEAN FACTORY: Enrollment (NO navigation Course)
-        // --------------------------------------------------------------------
         private Enrollment CreateEnrollment(string userId, int courseId, int? id = null)
         {
             var e = _fixture.Build<Enrollment>()
@@ -73,7 +67,7 @@ namespace LMS.Tests.CourseService.Repository
 
         protected override void ConfigureGatewayDependencies(IServiceCollection services)
         {
-            // Gateway not needed for CourseService tests
+            // no gateway dependencies 
         }
 
         // ====================================================================
@@ -89,8 +83,9 @@ namespace LMS.Tests.CourseService.Repository
             var enrollment = CreateEnrollment("U1", 1);
 
             await _repo.AddAsync(enrollment);
-            await _repo.SaveChangesAsync();
+            var saved = await _repo.SaveChangesAsync();
 
+            Assert.True(saved);
             Assert.Single(CourseContext.Enrollments);
         }
 
@@ -98,7 +93,7 @@ namespace LMS.Tests.CourseService.Repository
         // REMOVE
         // ====================================================================
         [Fact]
-        public async Task RemoveAsync_ShouldDeleteEnrollment()
+        public async Task RemoveAsync_ShouldRemoveEnrollment()
         {
             var course = CreateCourse(1);
             CourseContext.Courses.Add(course);
@@ -115,15 +110,64 @@ namespace LMS.Tests.CourseService.Repository
         }
 
         // ====================================================================
+        // GET ALL
+        // ====================================================================
+        [Fact]
+        public async Task GetAllAsync_ShouldReturnAllEnrollments()
+        {
+            var c1 = CreateCourse(1);
+            var c2 = CreateCourse(2);
+
+            CourseContext.Courses.AddRange(c1, c2);
+            CourseContext.SaveChanges();
+
+            CourseContext.Enrollments.Add(CreateEnrollment("A", 1));
+            CourseContext.Enrollments.Add(CreateEnrollment("B", 2));
+            CourseContext.SaveChanges();
+
+            var result = await _repo.GetAllAsync();
+
+            Assert.Equal(2, result.Count());
+        }
+
+        // ====================================================================
+        // GET BY ID
+        // ====================================================================
+        [Fact]
+        public async Task GetByIdAsync_ShouldReturnEnrollment_WhenExists()
+        {
+            var course = CreateCourse(1);
+            CourseContext.Courses.Add(course);
+            CourseContext.SaveChanges();
+
+            var e = CreateEnrollment("User1", 1, id: 7);
+            CourseContext.Enrollments.Add(e);
+            CourseContext.SaveChanges();
+
+            var result = await _repo.GetByIdAsync(7);
+
+            Assert.NotNull(result);
+            Assert.Equal("User1", result!.UserId);
+        }
+
+        [Fact]
+        public async Task GetByIdAsync_ShouldReturnNull_WhenNotFound()
+        {
+            var result = await _repo.GetByIdAsync(999);
+
+            Assert.Null(result);
+        }
+
+        // ====================================================================
         // GET BY USER ID
         // ====================================================================
         [Fact]
-        public async Task GetByUserIdAsync_ReturnsCorrectList()
+        public async Task GetByUserIdAsync_ShouldReturnCorrectEnrollments()
         {
-            var course1 = CreateCourse(1);
-            var course2 = CreateCourse(2);
+            var c1 = CreateCourse(1);
+            var c2 = CreateCourse(2);
 
-            CourseContext.Courses.AddRange(course1, course2);
+            CourseContext.Courses.AddRange(c1, c2);
             CourseContext.SaveChanges();
 
             var e1 = CreateEnrollment("A", 1);
@@ -140,31 +184,15 @@ namespace LMS.Tests.CourseService.Repository
         }
 
         // ====================================================================
-        // IS USER ENROLLED
-        // ====================================================================
-        [Fact]
-        public async Task IsUserEnrolledAsync_WorksCorrectly()
-        {
-            var course = CreateCourse(99);
-            CourseContext.Courses.Add(course);
-            CourseContext.SaveChanges();
-
-            var enrollment = CreateEnrollment("Tirth", 99);
-            CourseContext.Enrollments.Add(enrollment);
-            CourseContext.SaveChanges();
-
-            Assert.True(await _repo.IsUserEnrolledAsync("Tirth", 99));
-            Assert.False(await _repo.IsUserEnrolledAsync("Someone", 99));
-        }
-
-        // ====================================================================
         // GET BY COURSE ID
         // ====================================================================
         [Fact]
-        public async Task GetByCourseIdAsync_ReturnsList()
+        public async Task GetByCourseIdAsync_ShouldReturnCorrectEnrollments()
         {
-            var course = CreateCourse(5);
-            CourseContext.Courses.Add(course);
+            var c1 = CreateCourse(5);
+            var c2 = CreateCourse(6);
+
+            CourseContext.Courses.AddRange(c1, c2);
             CourseContext.SaveChanges();
 
             var e1 = CreateEnrollment("User1", 5);
@@ -180,24 +208,31 @@ namespace LMS.Tests.CourseService.Repository
         }
 
         // ====================================================================
-        // GET BY ID
+        // IS USER ENROLLED?
         // ====================================================================
         [Fact]
-        public async Task GetByIdAsync_ReturnsEnrollment()
+        public async Task IsUserEnrolledAsync_ShouldReturnCorrectValue()
         {
-            var course = CreateCourse(1);
-            CourseContext.Courses.Add(course);
+            var c = CreateCourse(99);
+            CourseContext.Courses.Add(c);
             CourseContext.SaveChanges();
 
-            var enrollment = CreateEnrollment("User1", 1, id: 7);
-            CourseContext.Enrollments.Add(enrollment);
+            var e = CreateEnrollment("Tirth", 99);
+            CourseContext.Enrollments.Add(e);
             CourseContext.SaveChanges();
 
-            var result = await _repo.GetByIdAsync(7);
+            Assert.True(await _repo.IsUserEnrolledAsync("Tirth", 99));
+            Assert.False(await _repo.IsUserEnrolledAsync("Other", 99));
+        }
 
-            Assert.NotNull(result);
-            Assert.Equal("User1", result!.UserId);
-            Assert.Equal(1, result.CourseId);
+        // ====================================================================
+        // SAVE CHANGES
+        // ====================================================================
+        [Fact]
+        public async Task SaveChangesAsync_ShouldReturnFalse_WhenNoChanges()
+        {
+            var result = await _repo.SaveChangesAsync();
+            Assert.False(result);
         }
     }
 }

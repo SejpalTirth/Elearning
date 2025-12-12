@@ -7,17 +7,17 @@ export class ToastService {
 
   toasts: { type: 'success' | 'error', message: string }[] = [];
 
-  showSuccess(message: string) {
+  showSuccess(message: string): void {
     this.toasts.push({ type: 'success', message });
     this.autoRemove();
   }
 
-  showError(message: string) {
+  showError(message: string): void {
     this.toasts.push({ type: 'error', message });
     this.autoRemove();
   }
 
-  private autoRemove() {
+  private autoRemove():void {
     setTimeout(() => {
       this.toasts.shift();
     }, 3000);

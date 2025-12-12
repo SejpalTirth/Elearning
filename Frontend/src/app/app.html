@@ -1,8 +1,12 @@
-<!-- Show Login Header ONLY on login page -->
-<app-header *ngIf="isLoginPage()"></app-header>
+@if(isLoginPage())
+{
+    <app-header></app-header>
+}
 
-<!-- Show Shared Header for all logged-in pages -->
-<shared-header *ngIf="!isLoginPage()"></shared-header>
+@if(!isLoginPage())
+{
+    <app-shared-header></app-shared-header>
+}
 
 <app-toast-container></app-toast-container>
 

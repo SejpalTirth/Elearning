@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Net.Http.Json;
 
 namespace Gateway.Controllers
 {
@@ -118,6 +117,9 @@ namespace Gateway.Controllers
                 new HttpRequestMessage(HttpMethod.Post, $"{BASE}/{courseId}/publish")
             );
         }
+        [HttpPut("{id:int}/restore")]
+        public Task<IActionResult> Restore(int id) =>
+            Forward(new HttpRequestMessage(HttpMethod.Put, $"{BASE}/{id}/restore"));
 
     }
 }

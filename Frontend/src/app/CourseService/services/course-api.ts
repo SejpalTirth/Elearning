@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../Environment/environment';
 
 @Injectable({
   providedIn: 'root',
@@ -8,7 +9,7 @@ import { Observable } from 'rxjs';
 export class CourseApiService {
 
   private http = inject(HttpClient);
-  private baseUrl = 'https://localhost:7249/api/GatewayCourse';
+  private baseUrl = `${environment.baseapiurl}/GatewayCourse`;
 
   getAll(): Observable<any[]> {
     return this.http.get<any[]>(this.baseUrl);
@@ -23,24 +24,22 @@ export class CourseApiService {
   }
 
   updateCourse(id: number, payload: any): Observable<any> {
-  return this.http.put<any>(`${this.baseUrl}/${id}`, payload);
-}
-
+    return this.http.put<any>(`${this.baseUrl}/${id}`, payload);
+  }
 
   enroll(payload: any): Observable<any> {
     return this.http.post<any>(`${this.baseUrl}/enroll`, payload);
   }
 
-  getModules(courseId: number) {
+  getModules(courseId: number): Observable<any> {
     return this.http.get<any[]>(`${this.baseUrl}/${courseId}/modules`);
   }
 
-  getModuleById(moduleId: number) {
-  return this.http.get<any>(`${this.baseUrl}/module/${moduleId}`);
+  getModuleById(moduleId: number): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/module/${moduleId}`);
   }
 
-
-  getEnrolledCourses(userId: string) {
+  getEnrolledCourses(userId: string): Observable<any> {
     return this.http.get<any[]>(`${this.baseUrl}/enrolled/${userId}`);
   }
 
@@ -48,29 +47,28 @@ export class CourseApiService {
     return this.http.get<any[]>(`${this.baseUrl}/categories`);
   }
 
-  //  Fixed missing method
-  getCoursesByInstructor(instructorId: string) {
-  return this.http.get<any[]>(`${this.baseUrl}/instructor/${instructorId}`);
+  getCoursesByInstructor(instructorId: string): Observable<any> {
+    return this.http.get<any[]>(`${this.baseUrl}/instructor/${instructorId}`);
   }
 
-  deleteCourse(id: number) {
-  return this.http.delete(`${this.baseUrl}/${id}`, {
-    withCredentials: true,
-    responseType: 'text'
-  });
-}
-
-
-  publishCourse(courseId: number) {
-  return this.http.post(`${this.baseUrl}/publish/${courseId}`, {});
+  deleteCourse(id: number): Observable<string> {
+    return this.http.delete(`${this.baseUrl}/${id}`, {
+      withCredentials: true,
+      responseType: 'text'
+    });
   }
 
-  getInstructorUnpublishedCourse(userId: string) {
-  return this.http.get(`${this.baseUrl}/instructor/unpublished/${userId}`);
-  }
-  getInstructorDraftCourse() {
-  return this.http.get(`${this.baseUrl}/instructor/draft`);
+  publishCourse(courseId: number): Observable<object> {
+    return this.http.post(`${this.baseUrl}/${courseId}/publish`, {});
   }
 
-
+  getInstructorUnfinishedCourses(instructorId: string): Observable<any> {
+    return this.http.get<any[]>(`${this.baseUrl}/unfinished/${instructorId}`);
+  }
+  restoreCourse(id: number): Observable<string> {
+    return this.http.put(`${this.baseUrl}/${id}/restore`, {}, {
+      withCredentials: true,
+      responseType: 'text'
+    });
+  }
 }

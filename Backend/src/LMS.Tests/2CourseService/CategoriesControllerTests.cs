@@ -18,21 +18,19 @@ namespace LMS.Tests.CourseService
             // -----------------------------
             _fixture = new Fixture();
 
-            // Remove recursion issue for EF navigation
             _fixture.Behaviors.OfType<ThrowingRecursionBehavior>()
                 .ToList()
                 .ForEach(b => _fixture.Behaviors.Remove(b));
             _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
 
             // -----------------------------
-            // Seed Categories (AutoFixture)
+            // Seed Categories
             // -----------------------------
             var categories = _fixture.Build<Category>()
-                .Without(c => c.Courses)     // Prevent recursion
+                .Without(c => c.Courses)
                 .CreateMany(2)
                 .ToList();
 
-            // Override predictable names
             categories[0].Name = "Backend";
             categories[1].Name = "Frontend";
 
@@ -51,21 +49,68 @@ namespace LMS.Tests.CourseService
         }
 
         // -----------------------------------------------------
-        // TEST: GET ALL CATEGORIES
+        // BASIC: GET ALL COUNT
         // -----------------------------------------------------
         [Fact]
         public async Task GetAll_ShouldReturnAllCategories()
         {
-            // Act
             var result = await _controller.GetAll() as OkObjectResult;
 
-            // Assert
             Assert.NotNull(result);
 
-            var list = result.Value as IEnumerable<object>;
-            Assert.NotNull(list);
+            var list = Assert.IsAssignableFrom<IEnumerable<object>>(result!.Value);
             Assert.Equal(2, list.Count());
         }
 
+        // -----------------------------------------------------
+        // SHAPE: each object has Id & Name
+        // -----------------------------------------------------
+        [Fact]
+        public async Task GetAll_ShouldReturnObjectsWithIdAndName()
+        {
+            var result = await _controller.GetAll() as OkObjectResult;
+
+            Assert.NotNull(result);
+
+            var list = Assert.IsAssignableFrom<IEnumerable<object>>(result!.Value);
+            Assert.NotEmpty(list);
+
+            var first = list.First();
+            var type = first.GetType();
+
+            var idProp = type.GetProperty("Id");
+            var nameProp = type.GetProperty("Name");
+
+            Assert.NotNull(idProp);
+            Assert.NotNull(nameProp);
+
+            var idValue = idProp!.GetValue(first);
+            var nameValue = nameProp!.GetValue(first) as string;
+
+            Assert.NotNull(idValue);
+            Assert.True((int)idValue! > 0);
+
+            Assert.False(string.IsNullOrWhiteSpace(nameValue));
+        }
+
+        // -----------------------------------------------------
+        // CONTENT: contains Backend & Frontend names
+        // -----------------------------------------------------
+        [Fact]
+        public async Task GetAll_ShouldContainSeededCategoryNames()
+        {
+            var result = await _controller.GetAll() as OkObjectResult;
+
+            Assert.NotNull(result);
+
+            var list = Assert.IsAssignableFrom<IEnumerable<object>>(result!.Value);
+
+            var names = list
+                .Select(o => (string)o.GetType().GetProperty("Name")!.GetValue(o)!)
+                .ToList();
+
+            Assert.Contains("Backend", names);
+            Assert.Contains("Frontend", names);
+        }
     }
 }

@@ -1,50 +1,49 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using UserService.BLL.Interface;
 using UserService.BLL.DTOs;
+using UserService.BLL.Interface;
 
-namespace UserService.Web.Controllers
+[ApiController]
+[Route("api/users")]
+public class UsersController : ControllerBase
 {
-    [ApiController]
-    [Route("api/users")]
-    public class UsersController : ControllerBase
+    private readonly IUserService _userService;
+
+    public UsersController(IUserService userService)
     {
-        private readonly IUserAuthService _service;
-        private readonly IUserService _userService;
+        _userService = userService;
+    }
 
-        public UsersController(IUserAuthService authService, IUserService userService)
-        {
-            _service = authService;
-            _userService = userService;
-        }
+    [HttpGet]
+    public async Task<IActionResult> GetAllUsers()
+    {
+        var users = await _userService.GetAll();
+        return Ok(users);
+    }
 
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetUser(Guid id)
+    {
+        var user = await _userService.GetById(id);
+        return user == null ? NotFound() : Ok(user);
+    }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetUser(Guid id)
-        {
-            var user = await _service.GetUserAuthorizationAsync(id);
-            return user == null ? NotFound() : Ok(user);
-        }
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        var result = await _userService.Delete(id);
+        return result ? Ok() : NotFound();
+    }
+    [HttpPost("complete-profile")]
+    public async Task<IActionResult> CompleteProfile([FromBody] CompleteProfileDto dto)
+    {
+        if (dto == null || string.IsNullOrEmpty(dto.UserId))
+            return BadRequest("UserId is required.");
 
-        [HttpPost("complete-profile")]
-        public async Task<IActionResult> CompleteProfile([FromBody] CompleteProfileDto dto)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+        var success = await _userService.CompleteProfileAsync(dto);
 
-            var result = await _service.CompleteUserProfileAsync(dto);
+        if (!success)
+            return NotFound("User not found.");
 
-            if (!result.Success)
-                return BadRequest(new { message = result.Message });
-
-            return Ok(new { success = true });
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetAllUsers()
-        {
-            var users = await _userService.GetAll();
-            return Ok(users);
-        }
-
+        return Ok(new { message = "Profile updated successfully" });
     }
 }

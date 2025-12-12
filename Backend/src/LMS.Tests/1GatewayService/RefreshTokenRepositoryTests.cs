@@ -2,6 +2,7 @@
 using GatewayService.DAL.Models;
 using GatewayService.DAL.Repo;
 using Microsoft.Extensions.DependencyInjection;
+using GatewayUser = GatewayService.DAL.Models.User;
 
 namespace LMS.Tests.GatewayService
 {
@@ -9,6 +10,7 @@ namespace LMS.Tests.GatewayService
     {
         private readonly RefreshTokenRepository _repo;
         private readonly Fixture _fixture;
+        private readonly GatewayUser _seedUser;
 
         public RefreshTokenRepositoryTests()
         {
@@ -17,11 +19,10 @@ namespace LMS.Tests.GatewayService
             // -----------------------------
             _fixture = new Fixture();
 
-            // Fix circular references for EF entities (User <-> RefreshToken)
+            // Prevent circular navigation loops
             _fixture.Behaviors.OfType<ThrowingRecursionBehavior>()
                 .ToList()
                 .ForEach(b => _fixture.Behaviors.Remove(b));
-
             _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
 
             // -----------------------------
@@ -30,22 +31,27 @@ namespace LMS.Tests.GatewayService
             _repo = new RefreshTokenRepository(GatewayContext);
 
             // -----------------------------
-            // Seed required user
+            // Seed a single user (static)
             // -----------------------------
-            var user = _fixture.Build<User>()
-                .With(u => u.Email, "tester@mail.com")
-                .Create();
+            _seedUser = new GatewayUser
+            {
+                Id = Guid.NewGuid(),
+                Email = "tester@mail.com",
+                Name = "Test User",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
 
-            GatewayContext.Users.Add(user);
+            GatewayContext.Users.Add(_seedUser);
             GatewayContext.SaveChanges();
         }
 
         protected override void ConfigureGatewayDependencies(IServiceCollection services)
         {
-            // No special dependencies needed for this repository right now.
+            // No extra dependencies needed
         }
 
-        private User GetSeedUser() => GatewayContext.Users.First();
+        private GatewayUser GetSeedUser() => _seedUser;
 
         // -----------------------------------------------------
         // ADD TOKEN
@@ -56,6 +62,7 @@ namespace LMS.Tests.GatewayService
             var user = GetSeedUser();
 
             var token = _fixture.Build<RefreshToken>()
+                .Without(t => t.User) // avoid EF tracking issues
                 .With(t => t.Token, "abc123")
                 .With(t => t.UserId, user.Id)
                 .With(t => t.RevokedAt, (DateTime?)null)
@@ -68,7 +75,7 @@ namespace LMS.Tests.GatewayService
         }
 
         // -----------------------------------------------------
-        // GET BY TOKEN
+        // GET BY TOKEN — Should include User
         // -----------------------------------------------------
         [Fact]
         public async Task GetByToken_ShouldReturnTokenWithUser()
@@ -76,12 +83,14 @@ namespace LMS.Tests.GatewayService
             var user = GetSeedUser();
 
             var token = _fixture.Build<RefreshToken>()
+                .Without(t => t.User) // manually set below
                 .With(t => t.Token, "xyz999")
                 .With(t => t.UserId, user.Id)
-                .With(t => t.User, user)                    // IMPORTANT FIX
                 .With(t => t.RevokedAt, (DateTime?)null)
                 .With(t => t.ExpiresAt, DateTime.UtcNow.AddHours(1))
                 .Create();
+
+            token.User = user; // explicit assignment
 
             GatewayContext.RefreshTokens.Add(token);
             GatewayContext.SaveChanges();
@@ -91,7 +100,7 @@ namespace LMS.Tests.GatewayService
             Assert.NotNull(res);
             Assert.Equal("xyz999", res!.Token);
             Assert.NotNull(res.User);
-            Assert.Equal("tester@mail.com", res.User.Email);     // Now passes
+            Assert.Equal("tester@mail.com", res.User.Email);
         }
 
 
@@ -104,6 +113,7 @@ namespace LMS.Tests.GatewayService
             var user = GetSeedUser();
 
             var token = _fixture.Build<RefreshToken>()
+                .Without(t => t.User)
                 .With(t => t.Token, "rev123")
                 .With(t => t.UserId, user.Id)
                 .With(t => t.RevokedAt, (DateTime?)null)
@@ -126,44 +136,40 @@ namespace LMS.Tests.GatewayService
         {
             var user = GetSeedUser();
 
-            // 🔥 VALID TOKEN (should be returned)
+            // VALID TOKEN
             var valid = _fixture.Build<RefreshToken>()
+                .Without(t => t.User)
                 .With(t => t.Token, "valid")
                 .With(t => t.UserId, user.Id)
-                .With(t => t.User, null as User)         // IMPORTANT
                 .With(t => t.ExpiresAt, DateTime.UtcNow.AddHours(1))
                 .With(t => t.RevokedAt, (DateTime?)null)
                 .Create();
 
-            // ❌ EXPIRED TOKEN (should be excluded)
+            // EXPIRED TOKEN
             var expired = _fixture.Build<RefreshToken>()
+                .Without(t => t.User)
                 .With(t => t.Token, "expired")
                 .With(t => t.UserId, user.Id)
-                .With(t => t.User, null as User)         // IMPORTANT
                 .With(t => t.ExpiresAt, DateTime.UtcNow.AddHours(-1))
                 .With(t => t.RevokedAt, (DateTime?)null)
                 .Create();
 
-            // ❌ REVOKED TOKEN (should be excluded)
+            // REVOKED TOKEN
             var revoked = _fixture.Build<RefreshToken>()
+                .Without(t => t.User)
                 .With(t => t.Token, "revoked")
                 .With(t => t.UserId, user.Id)
-                .With(t => t.User, null as User)         // IMPORTANT
                 .With(t => t.ExpiresAt, DateTime.UtcNow.AddHours(1))
                 .With(t => t.RevokedAt, DateTime.UtcNow)
                 .Create();
 
-            // save all tokens
             GatewayContext.RefreshTokens.AddRange(valid, expired, revoked);
             GatewayContext.SaveChanges();
 
-            // act
             var list = await _repo.GetActiveTokensForUserAsync(user.Id);
 
-            // assert
-            Assert.Single(list);
+            Assert.Single(list); // only "valid" should remain
             Assert.Equal("valid", list.First().Token);
         }
-
     }
 }

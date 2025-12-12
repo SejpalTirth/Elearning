@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace GatewayService.DAL.Models;
+﻿namespace GatewayService.DAL.Models;
 
 public partial class RefreshToken
 {

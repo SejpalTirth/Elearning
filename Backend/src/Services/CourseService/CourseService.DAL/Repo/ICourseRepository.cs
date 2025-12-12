@@ -16,6 +16,7 @@ namespace CourseService.DAL.Repo
         Task<Course?> GetFirstUnpublishedCourse(Guid instructorUserId);
         Task<Course?> GetLatestUnfinishedCourseAsync(Guid instructorId);
         Task<Course?> GetByIdAllowDeletedAsync(int id);
-
+        void RemoveModule(Module module);
+        Task RestoreAsync(Course course);
     }
 }

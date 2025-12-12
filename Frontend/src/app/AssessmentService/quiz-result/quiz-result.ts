@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AssessmentApiService } from '../services/assessment-api';
 import { CommonModule } from '@angular/common';
@@ -17,22 +17,19 @@ export class QuizResultComponent implements OnInit {
   result: any;
   loading = true;
 
-  constructor(
-    private route: ActivatedRoute,
-    private api: AssessmentApiService,
-    private router: Router
-  ) {}
+  private readonly route = inject(ActivatedRoute);
+  private readonly api = inject(AssessmentApiService);
+  private readonly router = inject(Router);
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.submissionId = this.route.snapshot.paramMap.get('submissionId') || '';
-    
-    // 👇 Read moduleId from query params
+
     this.moduleId = Number(this.route.snapshot.queryParamMap.get('moduleId'));
 
     this.loadResult();
   }
 
-  loadResult() {
+  loadResult(): void {
     this.api.getResult(this.submissionId).subscribe({
       next: (res) => {
         this.result = res;
@@ -42,12 +39,11 @@ export class QuizResultComponent implements OnInit {
     });
   }
 
-  backToModules() {
-    // 👇 Return user to correct module
+  backToModules(): void {
     if (this.moduleId) {
       this.router.navigate([`/courses/module/${this.moduleId}`]);
     } else {
-      this.router.navigate(['/courses']); // fallback
+      this.router.navigate(['/courses']);
     }
   }
 }

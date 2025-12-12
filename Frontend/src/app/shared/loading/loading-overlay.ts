@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 
 @Component({
-  selector: 'loading-overlay',
+  selector: 'app-loading-overlay',
   standalone: true,
   imports: [CommonModule],
   templateUrl: './loading-overlay.html',
@@ -11,6 +11,6 @@ import { Component } from '@angular/core';
 export class LoadingOverlay {
   visible = false;
 
-  show() { this.visible = true; }
-  hide() { this.visible = false; }
+  show(): void { this.visible = true; }
+  hide(): void { this.visible = false; }
 }

@@ -46,6 +46,8 @@ namespace CourseService.BLL.Service
                     CategoryId = c.CategoryId,
                     InstructorId = c.InstructorUserId ?? Guid.Empty,
                     InstructorName = instructor?.Name ?? "Unknown Instructor",
+                    IsDraft = c.IsDraft,
+                    IsDeleted = c.IsDeleted,
                     Modules = modules.Select(m => new ModuleSummaryDto
                     {
                         Id = m.Id,
@@ -77,6 +79,8 @@ namespace CourseService.BLL.Service
                 CategoryId = c.CategoryId,
                 InstructorId = c.InstructorUserId ?? Guid.Empty,
                 InstructorName = instructor?.Name ?? "Unknown Instructor",
+                IsDraft = c.IsDraft,
+                IsDeleted = c.IsDeleted,
                 Modules = modules.Select(m => new ModuleSummaryDto
                 {
                     Id = m.Id,
@@ -97,7 +101,8 @@ namespace CourseService.BLL.Service
                 Description = dto.Description,
                 CategoryId = dto.CategoryId,
                 InstructorUserId = Guid.Parse(dto.InstructorUserId),
-                IsDeleted = true // UNPUBLISHED UNTIL QUIZZES DONE
+                IsDeleted = false,
+                IsDraft = true
             };
 
             await _repo.AddAsync(course);
@@ -121,7 +126,6 @@ namespace CourseService.BLL.Service
 
             return course;
         }
-
         // --------------------------------------------------------------------
         // UPDATE COURSE
         // --------------------------------------------------------------------
@@ -134,22 +138,61 @@ namespace CourseService.BLL.Service
             course.Description = dto.Description;
             course.CategoryId = dto.CategoryId;
 
-            if (dto.Modules != null)
-            {
-                course.Modules.Clear();
+            var existingModules = course.Modules.ToList();
 
-                foreach (var m in dto.Modules)
+            foreach (var m in dto.Modules)
+            {
+                if (m.Id > 0)
+                {
+                    var existing = existingModules.FirstOrDefault(x => x.Id == m.Id);
+                    if (existing != null)
+                    {
+                        existing.Title = m.Title;
+                        existing.Content = m.Content;
+                    }
+                }
+                else
                 {
                     course.Modules.Add(new Module
                     {
                         Title = m.Title,
                         Content = m.Content,
-                        CourseId = course.Id
+                        CourseId = id
                     });
                 }
             }
 
-            await _repo.UpdateAsync(course);
+            var dtoIds = dto.Modules.Where(x => x.Id > 0).Select(x => x.Id).ToList();
+            var removed = existingModules.Where(x => !dtoIds.Contains(x.Id)).ToList();
+
+            foreach (var rm in removed)
+                _repo.RemoveModule(rm);
+
+            await _repo.SaveChangesAsync();
+
+            var client = _httpFactory.CreateClient("AssessmentService");
+            var quizResp = await client.GetAsync($"api/assessment/course-status/{id}");
+
+            bool allQuizzesCreated = false;
+
+            if (quizResp.IsSuccessStatusCode)
+            {
+                var data = await quizResp.Content.ReadFromJsonAsync<CourseQuizStatusDto>();
+                if (data != null)
+                    allQuizzesCreated = data.AllQuizzesCreated;
+            }
+
+            if (!allQuizzesCreated)
+            {
+                course.IsDraft = true;
+                course.IsDeleted = false;
+            }
+            else
+            {
+                course.IsDraft = false;
+                course.IsDeleted = false;
+            }
+
             await _repo.SaveChangesAsync();
 
             return course;
@@ -178,19 +221,17 @@ namespace CourseService.BLL.Service
         // --------------------------------------------------------------------
         // UNFINISHED COURSE (Instructor pending task)
         // --------------------------------------------------------------------
-        public async Task<object?> GetUnfinishedCourseAsync(Guid instructorId)
+        public async Task<IEnumerable<Course>> GetAllUnfinishedCoursesAsync(Guid instructorId)
         {
-            // Only courses with IsDeleted = true (i.e., unpublished)
-            var course = await _repo.GetLatestUnfinishedCourseAsync(instructorId);
-            if (course == null) return null;
+            var courses = await _repo.GetAllAsync();
 
-            return new
-            {
-                id = course.Id,
-                title = course.Title,
-                description = course.Description,
-                categoryId = course.CategoryId
-            };
+            return courses
+                .Where(c =>
+                    c.InstructorUserId == instructorId &&
+                    c.IsDraft == true &&
+                    c.IsDeleted == false
+                )
+                .ToList();
         }
 
         // --------------------------------------------------------------------
@@ -224,8 +265,8 @@ namespace CourseService.BLL.Service
             if (missing == null || missing.Any())
                 return false;
 
-            // ✓ All quizzes complete → publish it
             course.IsDeleted = false;
+            course.IsDraft = false;
 
             await _repo.UpdateAsync(course);
             await _repo.SaveChangesAsync();
@@ -287,7 +328,21 @@ namespace CourseService.BLL.Service
             if (course == null) return false;
 
             course.IsDeleted = true;
+            course.IsDraft = false;
 
+            await _repo.UpdateAsync(course);
+            await _repo.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> RestoreAsync(int id)
+        {
+            var course = await _repo.GetByIdAllowDeletedAsync(id);
+            if (course == null)
+                return false;
+
+            course.IsDeleted = false;
+            
             await _repo.UpdateAsync(course);
             await _repo.SaveChangesAsync();
             return true;

@@ -1,21 +1,52 @@
 <div class="container">
+
   <h2>Manage Courses</h2>
 
-  <div *ngIf="loading()">Loading courses...</div>
+  @if (loading()) {
+    <div>Loading courses...</div>
+  }
 
-  <div *ngIf="!loading && courses.length === 0">
+  @if (!loading() && courses().length === 0) {
     <p>No courses available.</p>
-  </div>
+  }
 
-  <div *ngFor="let c of courses() ; trackBy: trackById" class="course-card">
-    <div class="info">
-      <h3>{{ c.title }}</h3>
-      <p>{{ c.description }}</p>
-    </div>
+  @if (!loading() && courses().length > 0) {
 
-    <div class="actions">
-      <button (click)="editCourse(c.id)" class="edit-btn">Edit</button>
-      <button (click)="deleteCourse(c.id)" class="delete-btn">Delete</button>
-    </div>
-  </div>
+    @for (c of courses(); track c.id) {
+
+      <div class="course-card" [class.deleted]="c.isDeleted">
+
+        <div class="info">
+          <h3>{{ c.title }}</h3>
+          <p>{{ c.description }}</p>
+
+          @if (c.isDeleted) {
+            <div class="status-deleted">❌ Deleted (Archived)</div>
+          }
+        </div>
+
+        <div class="actions">
+
+          @if (!c.isDeleted) {
+            <button class="edit-btn"
+                    (click)="editCourse(c.id, c.isDeleted)">
+              Edit
+            </button>
+
+            <button class="delete-btn"
+                    (click)="deleteCourse(c.id)">
+              Delete
+            </button>
+          }
+
+          @if (c.isDeleted) {
+            <button class="restore-btn"
+                    (click)="restoreCourse(c.id)">
+              Restore
+            </button>
+          }
+        </div>
+      </div>
+    }
+  }
 </div>

@@ -27,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Services\GatewayService\GatewayService.Web\GatewayService.Web.csproj" />
+    <ProjectReference Include="..\Services\GatewayService\GatewayService.BLL\GatewayService.BLL.csproj" />
   </ItemGroup>
 
 </Project>
