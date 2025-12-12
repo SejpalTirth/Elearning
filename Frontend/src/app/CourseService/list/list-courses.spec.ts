@@ -10,14 +10,14 @@ import { CourseApiService } from '../services/course-api';
 class MockCourseApi {
   getAll = jasmine.createSpy().and.returnValue(
     of([
-      { id: 1, title: "Course A" },
-      { id: 2, title: "Course B" }
+      { id: 1, title: 'Course A' },
+      { id: 2, title: 'Course B' }
     ])
   );
 }
 
 class MockRouter {
-  navigate = jasmine.createSpy("navigate");
+  navigate = jasmine.createSpy('navigate');
 }
 
 // --------------------------------------------------------

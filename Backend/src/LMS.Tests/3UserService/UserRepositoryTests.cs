@@ -13,22 +13,29 @@ namespace LMS.Tests.UserService
         {
             _fixture = new Fixture();
 
-            // Prevent circular recursion
+            // Prevent recursion (User → RefreshTokens → User…)
             _fixture.Behaviors.OfType<ThrowingRecursionBehavior>()
                 .ToList()
                 .ForEach(b => _fixture.Behaviors.Remove(b));
+
             _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
 
             _repo = new UserRepository(UserContext);
         }
 
-        private User CreateUser(string email = "test@mail.com") =>
-            _fixture.Build<User>()
+        private User CreateUser(string email = "test@mail.com", string role = "Student")
+        {
+            return _fixture.Build<User>()
                 .With(u => u.Id, Guid.NewGuid())
                 .With(u => u.Email, email)
+                .With(u => u.Role, role)
                 .Without(u => u.RefreshTokens)
                 .Create();
+        }
 
+        // ============================================================
+        // GET BY ID
+        // ============================================================
         [Fact]
         public async Task GetById_ShouldReturnUser_WhenExists()
         {
@@ -43,12 +50,15 @@ namespace LMS.Tests.UserService
         }
 
         [Fact]
-        public async Task GetById_ShouldReturnNull_WhenMissing()
+        public async Task GetById_ShouldReturnNull_WhenNotFound()
         {
             var result = await _repo.GetByIdAsync(Guid.NewGuid());
             Assert.Null(result);
         }
 
+        // ============================================================
+        // GET BY EMAIL
+        // ============================================================
         [Fact]
         public async Task GetByEmail_ShouldReturnUser()
         {
@@ -63,7 +73,17 @@ namespace LMS.Tests.UserService
         }
 
         [Fact]
-        public async Task GetAll_ShouldReturnUsers()
+        public async Task GetByEmail_ShouldReturnNull_WhenMissing()
+        {
+            var result = await _repo.GetByEmailAsync("wrong@mail.com");
+            Assert.Null(result);
+        }
+
+        // ============================================================
+        // GET ALL
+        // ============================================================
+        [Fact]
+        public async Task GetAll_ShouldReturnAllUsers()
         {
             UserContext.Users.Add(CreateUser("a@mail.com"));
             UserContext.Users.Add(CreateUser("b@mail.com"));
@@ -74,6 +94,9 @@ namespace LMS.Tests.UserService
             Assert.Equal(2, list.Count);
         }
 
+        // ============================================================
+        // ADD
+        // ============================================================
         [Fact]
         public async Task Add_ShouldInsertUser()
         {
@@ -85,6 +108,9 @@ namespace LMS.Tests.UserService
             Assert.True(UserContext.Users.Any(u => u.Email == "insert@mail.com"));
         }
 
+        // ============================================================
+        // UPDATE
+        // ============================================================
         [Fact]
         public async Task Update_ShouldModifyUser()
         {
@@ -97,10 +123,13 @@ namespace LMS.Tests.UserService
             await _repo.UpdateAsync(user);
             await _repo.SaveAsync();
 
-            Assert.Equal("Updated Name",
-                UserContext.Users.First(u => u.Email == "update@mail.com").Name);
+            var updated = UserContext.Users.First(u => u.Email == "update@mail.com");
+            Assert.Equal("Updated Name", updated.Name);
         }
 
+        // ============================================================
+        // DELETE
+        // ============================================================
         [Fact]
         public async Task Delete_ShouldRemoveUser()
         {
@@ -112,6 +141,29 @@ namespace LMS.Tests.UserService
             await _repo.SaveAsync();
 
             Assert.False(UserContext.Users.Any(u => u.Email == "delete@mail.com"));
+        }
+
+        // ============================================================
+        // COUNT BY ROLE  🔥 (New test added)
+        // ============================================================
+        [Fact]
+        public async Task CountByRole_ShouldReturnCorrectCount()
+        {
+            UserContext.Users.Add(CreateUser("a@mail.com", role: "Admin"));
+            UserContext.Users.Add(CreateUser("b@mail.com", role: "Admin"));
+            UserContext.Users.Add(CreateUser("c@mail.com", role: "Student"));
+            await UserContext.SaveChangesAsync();
+
+            var count = await _repo.CountByRoleAsync("Admin");
+
+            Assert.Equal(2, count);
+        }
+
+        [Fact]
+        public async Task CountByRole_ShouldReturnZero_WhenNoMatch()
+        {
+            var count = await _repo.CountByRoleAsync("NoRole");
+            Assert.Equal(0, count);
         }
     }
 }

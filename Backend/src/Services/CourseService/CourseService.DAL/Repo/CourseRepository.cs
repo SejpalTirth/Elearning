@@ -16,12 +16,10 @@ namespace CourseService.DAL.Repo
         public async Task<IEnumerable<Course>> GetAllAsync()
         {
             return await _db.Courses
-                .Where(c => !c.IsDeleted)
                 .Include(c => c.Category)
                 .Include(c => c.Modules)
                 .ToListAsync();
         }
-
         // -------------------- GET BY ID --------------------
         public async Task<Course?> GetByIdAsync(int id)
         {
@@ -78,16 +76,15 @@ namespace CourseService.DAL.Repo
         public async Task<IEnumerable<Course>> GetByInstructorIdAsync(Guid instructorId)
         {
             return await _db.Courses
-                .Where(c => c.InstructorUserId == instructorId && !c.IsDeleted)
+                .Where(c => c.InstructorUserId == instructorId)
                 .Include(c => c.Category)
                 .Include(c => c.Modules)
                 .ToListAsync();
         }
-
         public async Task<Course?> GetFirstUnpublishedCourse(Guid instructorUserId)
         {
             return await _db.Courses
-                .Where(c => c.InstructorUserId == instructorUserId && c.IsDeleted == true)
+                .Where(c => c.InstructorUserId == instructorUserId && c.IsDraft == true && c.IsDeleted == false)
                 .OrderBy(c => c.Id)
                 .FirstOrDefaultAsync();
         }
@@ -95,8 +92,8 @@ namespace CourseService.DAL.Repo
         public async Task<Course?> GetLatestUnfinishedCourseAsync(Guid instructorId)
         {
             return await _db.Courses
-                .Where(c => c.InstructorUserId == instructorId && c.IsDeleted == true)
-                .OrderByDescending(c => c.Id)   // use Id instead of CreatedAt
+                .Where(c => c.InstructorUserId == instructorId && c.IsDraft == true && c.IsDeleted == false)
+                .OrderByDescending(c => c.Id)
                 .FirstOrDefaultAsync();
         }
 
@@ -107,5 +104,14 @@ namespace CourseService.DAL.Repo
                 .FirstOrDefaultAsync(c => c.Id == id);
         }
 
+        public void RemoveModule(Module module)
+        {
+            _db.Modules.Remove(module);
+        }
+        public async Task RestoreAsync(Course course)
+        {
+            _db.Courses.Update(course);
+            await _db.SaveChangesAsync();
+        }
     }
 }

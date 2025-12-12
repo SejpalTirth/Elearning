@@ -47,7 +47,7 @@ describe('ManageCoursesComponent', () => {
 
     fixture = TestBed.createComponent(ManageCoursesComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges(); // triggers ngOnInit → loadCourses()
+    fixture.detectChanges(); 
   });
 
   // ---------------------------------------------------------
@@ -70,7 +70,7 @@ describe('ManageCoursesComponent', () => {
   // ---------------------------------------------------------
 
   it('should navigate to edit page', () => {
-    component.editCourse(5);
+    component.editCourse(5,true);
     expect(router.navigate).toHaveBeenCalledWith(['/courses/edit/5']);
   });
 
@@ -103,7 +103,6 @@ describe('ManageCoursesComponent', () => {
     component.deleteCourse(1);
 
     expect(api.deleteCourse).toHaveBeenCalledWith(1);
-    // list should NOT change
     expect(component.courses().length).toBe(2);
   });
 

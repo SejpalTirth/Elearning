@@ -29,8 +29,8 @@ describe('QuizResultComponent', () => {
           provide: ActivatedRoute, 
           useValue: {
             snapshot: {
-              paramMap: { get: () => 'SUB123' },
-              queryParamMap: { get: () => '55' }
+              paramMap: { get: (): string => 'SUB123' },
+              queryParamMap: { get: (): string => '55' }
             }
           }
         },
@@ -41,7 +41,7 @@ describe('QuizResultComponent', () => {
 
     fixture = TestBed.createComponent(QuizResultComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges(); // triggers ngOnInit()
+    fixture.detectChanges(); // Triggers ngOnInit()
   });
 
   // ---------------------------------------------------------
@@ -71,7 +71,7 @@ describe('QuizResultComponent', () => {
 
   // ---------------------------------------------------------
   it('should fallback navigate when no moduleId exists', () => {
-    component.moduleId = 0; // simulate missing moduleId
+    component.moduleId = 0; // Simulate missing moduleId
 
     component.backToModules();
 

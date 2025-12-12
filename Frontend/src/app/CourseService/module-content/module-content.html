@@ -1,37 +1,49 @@
-<div class="module-container" *ngIf="module">
+<app-loading-overlay #loader></app-loading-overlay>
 
-  <h1>{{ module.title }}</h1>
+@if (isLoaded) {
 
-  <div class="content-box">
-    <p>{{ module.content }}</p>
-  </div>
+  @if (module) {
 
-  <div class="quiz-area" *ngIf="quizStatus">
+    <div class="module-container">
 
-  <button 
-    *ngIf="!quizStatus.alreadyPassed && !quizStatus.attempted"
-    class="quiz-btn primary"
-    (click)="takeQuiz()">
-    Take Quiz
-  </button>
+      <h1>{{ module.title }}</h1>
 
-  <button 
-    *ngIf="quizStatus.attempted && !quizStatus.alreadyPassed"
-    class="quiz-btn warning"
-    (click)="takeQuiz()">
-    Retake Quiz
-  </button>
+      <div class="content-box">
+        <p>{{ module.content }}</p>
+      </div>
 
-  <button 
-    *ngIf="quizStatus.alreadyPassed"
-    class="quiz-btn disabled"
-    disabled>
-    ✔ Completed
-  </button>
+      @if (quizStatus) {
 
-</div>
-</div>
+        <div class="quiz-area">
 
-<div *ngIf="!module" class="loading">
-  Loading module...
-</div>
+          @if (!quizStatus.alreadyPassed && !quizStatus.attempted) {
+            <!-- First attempt -->
+            <button 
+              class="quiz-btn primary"
+              (click)="takeQuiz()">
+              Take Quiz
+            </button>
+          }
+
+          @if (quizStatus.attempted && !quizStatus.alreadyPassed) {
+            <!-- Retake -->
+            <button 
+              class="quiz-btn warning"
+              (click)="takeQuiz()">
+              Retake Quiz
+            </button>
+          }
+
+          @if (quizStatus.alreadyPassed) {
+            <!-- Completed -->
+            <button 
+              class="quiz-btn disabled"
+              disabled>
+              ✔ Completed
+            </button>
+          }
+        </div>
+      }
+    </div>
+  }
+}

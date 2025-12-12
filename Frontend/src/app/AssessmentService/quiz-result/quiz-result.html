@@ -1,6 +1,7 @@
-<div class="result-wrapper" *ngIf="!loading">
-
-  <div class="result-card">
+@if(!loading)
+{
+  <div class="result-wrapper">
+     <div class="result-card">
 
     <h2>Quiz Result</h2>
 
@@ -25,8 +26,10 @@
       Return to Modules
     </button>
   </div>
-</div>
+  </div>
+}
 
-<div *ngIf="loading" class="loading">
-  Loading result...
-</div>
+@if(loading)
+{
+  <div class="loading">Loading result...</div>
+}

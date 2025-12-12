@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { CourseApiService } from '../services/course-api';
 import { ProgressService } from '../../CourseService/services/progress.service';
+import { SecureTokenService } from 'app/GatewayService/Security/secure-token.service';
 
 @Component({
   selector: 'app-modules-list',
@@ -18,12 +19,11 @@ export class ModulesListComponent implements OnInit {
   loading = true;
   userId: string | null = null;
 
-  constructor(
-    private route: ActivatedRoute,
-    private api: CourseApiService,
-    private progressService: ProgressService,
-    private router: Router
-  ) {}
+  private readonly route = inject(ActivatedRoute);
+  private readonly api = inject(CourseApiService);
+  private readonly progressService = inject(ProgressService);
+  private readonly router = inject(Router);
+  private readonly tokenService  = inject(SecureTokenService);
 
   ngOnInit(): void {
     this.extractUserId();
@@ -31,17 +31,11 @@ export class ModulesListComponent implements OnInit {
     this.loadData();
   }
 
-  extractUserId() {
-    const token = localStorage.getItem('accessToken');
-    if (!token) return;
-
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      this.userId = payload["sub"];
-    } catch {}
+  extractUserId():void {
+    this.userId = this.tokenService.getUserId();
   }
 
-  loadData() {
+  loadData(): void {
 
     if (!this.userId) {
       this.loading = false;
@@ -72,7 +66,7 @@ export class ModulesListComponent implements OnInit {
     });
   }
 
-  openModule(moduleId: number) {
+  openModule(moduleId: number): void {
     this.router.navigate([`/courses/module/${moduleId}`]);
   }
 }

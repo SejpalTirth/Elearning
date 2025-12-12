@@ -3,10 +3,12 @@
   <h2>Create Quiz</h2>
 
   <!-- AUTO SELECTED MODULE DISPLAY -->
-  <div *ngIf="currentModuleId" class="selected-module">
-    <strong>Current Module:</strong>
-    {{ modules | moduleTitle : currentModuleId }}
-  </div>
+  @if (currentModuleId) {
+    <div class="selected-module">
+      <strong>Current Module:</strong>
+      {{ modules | moduleTitle : currentModuleId }}
+    </div>
+  }
 
   <!-- QUIZ CREATION SECTION -->
   <div [formGroup]="quizForm"
@@ -14,33 +16,46 @@
        [class.locked]="quizCreated">
 
     <!-- MODULE -->
-    <label>Module <span class="required">*</span></label>
-    <select formControlName="moduleId" [disabled]="quizCreated">
+    <label for="moduleSelect">Module <span class="required">*</span></label>
+    <select id="moduleSelect"
+            formControlName="moduleId"
+            [disabled]="quizCreated">
       <option value="">Select module</option>
-      <option
-        *ngFor="let m of modules"
-        [value]="m.id"
-        [disabled]="!unquizzedModules.includes(m.id)">
-        {{ m.title }}
-      </option>
+
+      @for (m of modules; track m.id) {
+        <option
+          [value]="m.id"
+          [disabled]="!unquizzedModules.includes(m.id)">
+          {{ m.title }}
+        </option>
+      }
     </select>
-    <div class="error" *ngIf="submittedQuiz && quizForm.controls['moduleId'].invalid">
-      Module is required.
-    </div>
+
+    @if (submittedQuiz && quizForm.controls['moduleId'].invalid) {
+      <div class="error">Module is required.</div>
+    }
 
     <!-- QUIZ TITLE -->
-    <label>Quiz Title <span class="required">*</span></label>
-    <input formControlName="title" placeholder="Enter quiz title" [readonly]="quizCreated">
-    <div class="error" *ngIf="submittedQuiz && quizForm.controls['title'].invalid">
-      Quiz title is required.
-    </div>
+    <label for="quizTitle">Quiz Title <span class="required">*</span></label>
+    <input id="quizTitle"
+           formControlName="title"
+           placeholder="Enter quiz title"
+           [readonly]="quizCreated">
+
+    @if (submittedQuiz && quizForm.controls['title'].invalid) {
+      <div class="error">Quiz title is required.</div>
+    }
 
     <!-- TIME LIMIT -->
-    <label>Time Limit (minutes) <span class="required">*</span></label>
-    <input type="number" formControlName="timeLimitMinutes" [readonly]="quizCreated">
-    <div class="error" *ngIf="submittedQuiz && quizForm.controls['timeLimitMinutes'].invalid">
-      Time limit must be at least 1 minute.
-    </div>
+    <label for="quizTime">Time Limit (minutes) <span class="required">*</span></label>
+    <input id="quizTime"
+           type="number"
+           formControlName="timeLimitMinutes"
+           [readonly]="quizCreated">
+
+    @if (submittedQuiz && quizForm.controls['timeLimitMinutes'].invalid) {
+      <div class="error">Time limit must be at least 1 minute.</div>
+    }
 
     <button class="btn-primary"
             type="button"
@@ -51,53 +66,66 @@
   </div>
 
   <!-- QUESTION CREATION SECTION -->
-  <div *ngIf="quizCreated" class="question-section">
+  @if (quizCreated) {
+    <div class="question-section">
 
-    <h3>Add Question</h3>
+      <h3>Add Question</h3>
 
-    <div [formGroup]="questionForm" class="question-form">
+      <div [formGroup]="questionForm" class="question-form">
 
-      <!-- QUESTION TEXT -->
-      <label>Question Text <span class="required">*</span></label>
-      <textarea formControlName="text" placeholder="Enter question"></textarea>
-      <div class="error" *ngIf="submittedQuestion && questionForm.controls['text'].invalid">
-        Question text is required.
-      </div>
+        <!-- QUESTION TEXT -->
+        <label for="questionText">Question Text <span class="required">*</span></label>
+        <textarea id="questionText"
+                  formControlName="text"
+                  placeholder="Enter question"></textarea>
 
-      <!-- MARKS -->
-      <label>Marks <span class="required">*</span></label>
-      <input type="number" formControlName="marks">
-      <div class="error" *ngIf="submittedQuestion && questionForm.controls['marks'].invalid">
-        Marks must be at least 1.
-      </div>
+        @if (submittedQuestion && questionForm.controls['text'].invalid) {
+          <div class="error">Question text is required.</div>
+        }
 
-      <!-- OPTIONS -->
-      <label>Options <span class="required">*</span></label>
-      <div formArrayName="options" class="options-container">
-        <div *ngFor="let opt of options.controls; let i = index">
-          <input [formControlName]="i" placeholder="Option {{ i + 1 }}">
-          <div class="error" *ngIf="submittedQuestion && opt.invalid">
-            Option {{ i + 1 }} is required.
-          </div>
+        <!-- MARKS -->
+        <label for="questionMarks">Marks <span class="required">*</span></label>
+        <input id="questionMarks"
+               type="number"
+               formControlName="marks">
+
+        @if (submittedQuestion && questionForm.controls['marks'].invalid) {
+          <div class="error">Marks must be at least 1.</div>
+        }
+
+        <!-- OPTIONS -->
+        <label for="optionsArray">Options <span class="required">*</span></label>
+        <div id="optionsArray" formArrayName="options" class="options-container">
+
+          @for (opt of options.controls; let i = $index; track i) {
+            <div>
+              <input [formControlName]="i" placeholder="Option {{ i + 1 }}">
+              @if (submittedQuestion && opt.invalid) {
+                <div class="error">
+                  Option {{ i + 1 }} is required.
+                </div>
+              }
+            </div>
+          }
         </div>
+
+        <!-- CORRECT ANSWER -->
+        <label for="correctAnswer">Correct Answer <span class="required">*</span></label>
+        <select id="correctAnswer" formControlName="correctAnswerIndex">
+          @for (opt of options.controls; let i = $index; track i) {
+            <option [value]="i">Option {{ i + 1 }}</option>
+          }
+        </select>
+
+        <button class="btn-success" type="button" (click)="addQuestion()">
+          Add Question
+        </button>
+
+        <button class="btn-secondary" type="button" (click)="completeModule()">
+          Complete Module
+        </button>
+
       </div>
-
-      <!-- CORRECT ANSWER -->
-      <label>Correct Answer <span class="required">*</span></label>
-      <select formControlName="correctAnswerIndex">
-        <option *ngFor="let opt of options.controls; let i = index" [value]="i">
-          Option {{ i + 1 }}
-        </option>
-      </select>
-
-      <button class="btn-success" type="button" (click)="addQuestion()">
-        Add Question
-      </button>
-
-      <button class="btn-secondary" type="button" (click)="completeModule()">
-        Complete Module
-      </button>
-
     </div>
-  </div>
+  }
 </div>

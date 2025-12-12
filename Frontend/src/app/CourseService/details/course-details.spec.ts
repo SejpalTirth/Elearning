@@ -16,21 +16,22 @@ class MockRouter {
 
 const mockRoute = {
   snapshot: {
-    paramMap: { get: () => '10' }
+    paramMap: { get: (): string => '10' }
   }
 };
 
-function fakeJWT(payload: any) {
+function fakeJWT(payload: any): string {
   return `aaa.${btoa(JSON.stringify(payload))}.bbb`;
 }
 
-describe('CourseDetailsComponent', () => {
-
+// =======================================================
+// PART 1: Creation, Initialization, Navbar, User Extraction
+// =======================================================
+describe('CourseDetailsComponent - Initialization & Navbar', () => {
   let component: CourseDetailsComponent;
   let fixture: ComponentFixture<CourseDetailsComponent>;
   let api: MockCourseApi;
   let router: MockRouter;
-
   let fakeNav: HTMLElement;
 
   beforeEach(async () => {
@@ -46,65 +47,93 @@ describe('CourseDetailsComponent', () => {
       ]
     }).compileComponents();
 
-    // Create component
     fixture = TestBed.createComponent(CourseDetailsComponent);
     component = fixture.componentInstance;
 
-    // Create fake <nav> element for document.querySelector
-    fakeNav = document.createElement("nav");
+    fakeNav = document.createElement('nav');
     document.body.appendChild(fakeNav);
-
-    spyOn(document, "querySelector").and.returnValue(fakeNav);
-
-    // Spy on renderer.setStyle AFTER Angular initializes it
-    spyOn(component['renderer'], "setStyle").and.callThrough();
+    spyOn(document, 'querySelector').and.returnValue(fakeNav);
+    spyOn(component['renderer'], 'setStyle').and.callThrough();
 
     fixture.detectChanges();
   });
 
   afterEach(() => fakeNav.remove());
 
-  // --------------------------------------
   it('should create', () => {
     expect(component).toBeTruthy();
   });
 
-  // --------------------------------------
   it('should extract userId', () => {
-    localStorage.setItem('accessToken', fakeJWT({ sub: "USER999" }));
+    localStorage.setItem('accessToken', fakeJWT({ sub: 'USER999' }));
     component.extractUserId();
-    expect(component.userId).toBe("USER999");
+    expect(component.userId).toBe('USER999');
   });
 
   it('should NOT extract when token missing', () => {
-    component.userId = "OLD"; // should be cleared
-    localStorage.removeItem("accessToken");
+    component.userId = 'OLD';
+    localStorage.removeItem('accessToken');
     component.extractUserId();
-    expect(component.userId).toBe("");
+    expect(component.userId).toBe('');
   });
 
-  // --------------------------------------
   it('should disable navbar clicks', () => {
     component.disableNavbarClicks();
     expect(component['renderer'].setStyle)
-      .toHaveBeenCalledWith(fakeNav, "pointer-events", "none");
+      .toHaveBeenCalledWith(fakeNav, 'pointer-events', 'none');
   });
 
   it('should enable navbar clicks', () => {
     component.enableNavbarClicks();
     expect(component['renderer'].setStyle)
-      .toHaveBeenCalledWith(fakeNav, "pointer-events", "auto");
+      .toHaveBeenCalledWith(fakeNav, 'pointer-events', 'auto');
+  });
+});
+
+// =======================================================
+// PART 2: Enrollment / Navigation / API interactions
+// =======================================================
+describe('CourseDetailsComponent - Enrollment & Navigation', () => {
+  let component: CourseDetailsComponent;
+  let fixture: ComponentFixture<CourseDetailsComponent>;
+  let api: MockCourseApi;
+  let router: MockRouter;
+  let fakeNav: HTMLElement;
+
+  beforeEach(async () => {
+    api = new MockCourseApi();
+    router = new MockRouter();
+
+    await TestBed.configureTestingModule({
+      imports: [CourseDetailsComponent],
+      providers: [
+        { provide: ActivatedRoute, useValue: mockRoute },
+        { provide: CourseApiService, useValue: api },
+        { provide: Router, useValue: router }
+      ]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(CourseDetailsComponent);
+    component = fixture.componentInstance;
+
+    fakeNav = document.createElement('nav');
+    document.body.appendChild(fakeNav);
+    spyOn(document, 'querySelector').and.returnValue(fakeNav);
+    spyOn(component['renderer'], 'setStyle').and.callThrough();
+
+    fixture.detectChanges();
   });
 
-  // --------------------------------------
+  afterEach(() => fakeNav.remove());
+
   it('should enroll user when not enrolled', fakeAsync(() => {
     component.isEnrolled = false;
-    component.userId = "U1";
+    component.userId = 'U1';
     component.courseId = 10;
 
     component.enrollOrContinue();
 
-    expect(api.enroll).toHaveBeenCalledWith({ courseId: 10, userId: "U1" });
+    expect(api.enroll).toHaveBeenCalledWith({ courseId: 10, userId: 'U1' });
 
     tick(800);
 
@@ -112,12 +141,11 @@ describe('CourseDetailsComponent', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/courses/10/modules']);
   }));
 
-  // --------------------------------------
   it('should handle enrollment failure', () => {
-    api.enroll.and.returnValue(throwError(() => "ERR"));
+    api.enroll.and.returnValue(throwError(() => 'ERR'));
 
     component.isEnrolled = false;
-    component.userId = "U1";
+    component.userId = 'U1';
     component.courseId = 10;
 
     component.enrollOrContinue();
@@ -127,7 +155,6 @@ describe('CourseDetailsComponent', () => {
     expect(component.isLoading).toBeFalse();
   });
 
-  // --------------------------------------
   it('should navigate when already enrolled', () => {
     component.isEnrolled = true;
     component.courseId = 10;
@@ -136,5 +163,4 @@ describe('CourseDetailsComponent', () => {
 
     expect(router.navigate).toHaveBeenCalledWith(['/courses/10/modules']);
   });
-
 });

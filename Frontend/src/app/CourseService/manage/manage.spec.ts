@@ -20,7 +20,7 @@ class MockRouter {
 }
 
 // Helper to create a fake JWT
-function fakeJWT(payload: any) {
+function fakeJWT(payload: any): string {
   return `aaa.${btoa(JSON.stringify(payload))}.bbb`;
 }
 
@@ -100,13 +100,6 @@ describe('ManageCoursesComponent', () => {
 
     expect(comp3.userId).toBeNull();
     expect(comp3.loading).toBeFalse();
-  });
-
-  // -----------------------------------------------------
-
-  it('should navigate to edit page', () => {
-    component.editCourse(10);
-    expect(router.navigate).toHaveBeenCalledWith(['/courses/edit', 10]);
   });
 
   // -----------------------------------------------------

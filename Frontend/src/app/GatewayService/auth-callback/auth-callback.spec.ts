@@ -8,7 +8,7 @@ describe('AuthCallback', () => {
   let fixture: ComponentFixture<AuthCallback>;
   let router: Router;
 
-  function mockParams(map: Record<string, string | null>) {
+  function mockParams(map: Record<string, string | null>): void {
     spyOn(window as any, 'URLSearchParams').and.returnValue({
       get: (key: string) => map[key] ?? null
     });
@@ -72,7 +72,7 @@ describe('AuthCallback', () => {
   it('should convert spaces to + in refresh token', fakeAsync(() => {
     mockParams({
       token: 'aaa',
-      refresh: 'bbb ccc' // raw value
+      refresh: 'bbb ccc' // Raw value
     });
 
     const nav = spyOn(router, 'navigate');

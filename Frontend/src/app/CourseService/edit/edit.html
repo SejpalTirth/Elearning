@@ -1,33 +1,99 @@
+<app-loading-overlay></app-loading-overlay>
+
 <div class="form-container" [formGroup]="form">
 
   <h2>Edit Course</h2>
 
-  <label>Course Title</label>
-  <input formControlName="title" />
+  <!-- TITLE -->
+  <label for="course-title">Course Title <span class="required">*</span></label>
+  <input id="course-title"
+         formControlName="title"
+         placeholder="Enter course title"
+         [ngClass]="{'error-border': fieldInvalid('title')}">
 
-  <label>Description</label>
-  <textarea formControlName="description"></textarea>
+  @if (fieldInvalid('title')) {
+    <div class="error">Course title is required.</div>
+  }
 
-  <label>Category</label>
-  <select formControlName="categoryId">
-    <option value="">Select</option>
-    <option *ngFor="let c of categories" [value]="c.id">{{ c.name }}</option>
+  <!-- DESCRIPTION -->
+  <label for="course-description">Description</label>
+  <textarea id="course-description"
+            formControlName="description"
+            (input)="autoResize($event)"
+            placeholder="Enter course description"></textarea>
+
+  <!-- CATEGORY -->
+  <label for="course-category">
+    Category <span class="required">*</span>
+  </label>
+
+  <select id="course-category"
+          formControlName="categoryId"
+          [ngClass]="{'error-border': fieldInvalid('categoryId')}">
+    <option value="">Select a category</option>
+
+    @for (c of categories; track c.id) {
+      <option [value]="c.id">{{ c.name }}</option>
+    }
   </select>
 
-  <label style="margin-top:20px;">Modules</label>
+  @if (fieldInvalid('categoryId')) {
+    <div class="error">You must select a category for your course.</div>
+  }
+
+  <!-- MODULES -->
+  <label for="modules">Modules <span class="required">*</span></label>
 
   <div formArrayName="modules" cdkDropList (cdkDropListDropped)="drop($event)">
 
-    <div class="module-wrapper" *ngFor="let m of modules.controls; let i = index" [formGroupName]="i" cdkDrag>
-      <div class="drag-handle" cdkDragHandle>☰</div>
+    @for (m of modules.controls; track $index) {
 
-      <div class="module-fields">
-        <input formControlName="title" placeholder="Module title" />
-        <textarea formControlName="content"></textarea>
+      <div class="module-wrapper" [formGroupName]="$index" cdkDrag>
+
+        <div class="drag-handle" cdkDragHandle aria-hidden="true">☰</div>
+
+        <div class="module-fields">
+
+          <!-- Module Title -->
+          <label [for]="'module-title-' + $index">Module title</label>
+          <input
+            [id]="'module-title-' + $index"
+            formControlName="title"
+            placeholder="Module title"
+            [ngClass]="{'error-border': submitted && m.get('title')?.invalid}">
+
+          @if (submitted && m.get('title')?.invalid) {
+            <div class="error">Module title is required.</div>
+          }
+
+          <!-- Module Content -->
+          <label [for]="'module-content-' + $index">Module content</label>
+          <textarea
+            [id]="'module-content-' + $index"
+            formControlName="content"
+            (input)="autoResize($event)"
+            placeholder="Module content"
+            [ngClass]="{'error-border': submitted && m.get('content')?.invalid}">
+          </textarea>
+
+          @if (submitted && m.get('content')?.invalid) {
+            <div class="error">Module content is required.</div>
+          }
+
+        </div>
+
+        <!-- Remove Button (except for first module) -->
+        @if ($index > 0) {
+          <button type="button"
+                  class="remove-btn"
+                  (click)="removeModule($index)">
+            ✕
+          </button>
+        }
+
       </div>
 
-      <button type="button" class="remove-btn" (click)="removeModule(i)" *ngIf="i > 0">✕</button>
-    </div>
+    }
 
   </div>
 

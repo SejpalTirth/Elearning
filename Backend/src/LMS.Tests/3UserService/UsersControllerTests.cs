@@ -15,24 +15,27 @@ namespace LMS.Tests.UserService
         public UsersControllerTests()
         {
             _userMock = new Mock<IUserService>();
-
             _controller = new UsersController(_userMock.Object);
 
             _fixture = new Fixture();
+            _fixture.Behaviors.OfType<ThrowingRecursionBehavior>()
+                .ToList()
+                .ForEach(b => _fixture.Behaviors.Remove(b));
+            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
         }
 
-        // -----------------------------------------------------
-        // GET USER
-        // -----------------------------------------------------
+        // ==================================================================
+        // GET USER BY ID
+        // ==================================================================
         [Fact]
-        public async Task GetUser_ShouldReturnUser_WhenExists()
+        public async Task GetUser_ShouldReturnOk_WhenUserExists()
         {
             var dto = _fixture.Build<UserDto>()
                 .With(x => x.Email, "test@mail.com")
                 .Create();
 
             _userMock.Setup(s => s.GetById(dto.Id))
-                .Returns(Task.FromResult((UserDto?)dto));
+                     .ReturnsAsync(dto);
 
             var result = await _controller.GetUser(dto.Id) as OkObjectResult;
 
@@ -41,28 +44,28 @@ namespace LMS.Tests.UserService
         }
 
         [Fact]
-        public async Task GetUser_ShouldReturnNotFound_WhenMissing()
+        public async Task GetUser_ShouldReturnNotFound_WhenUserNotExists()
         {
             var id = Guid.NewGuid();
 
             _userMock.Setup(s => s.GetById(id))
-                .Returns(Task.FromResult((UserDto?)null));
+                     .ReturnsAsync((UserDto?)null);
 
             var result = await _controller.GetUser(id);
 
             Assert.IsType<NotFoundResult>(result);
         }
 
-        // -----------------------------------------------------
+        // ==================================================================
         // DELETE USER
-        // -----------------------------------------------------
+        // ==================================================================
         [Fact]
-        public async Task Delete_ShouldReturnOk_WhenUserExists()
+        public async Task Delete_ShouldReturnOk_WhenDeletionSucceeds()
         {
             var id = Guid.NewGuid();
 
             _userMock.Setup(s => s.Delete(id))
-                .Returns(Task.FromResult(true));
+                     .ReturnsAsync(true);
 
             var result = await _controller.Delete(id);
 
@@ -70,28 +73,28 @@ namespace LMS.Tests.UserService
         }
 
         [Fact]
-        public async Task Delete_ShouldReturnNotFound_WhenUserNotFound()
+        public async Task Delete_ShouldReturnNotFound_WhenDeletionFails()
         {
             var id = Guid.NewGuid();
 
             _userMock.Setup(s => s.Delete(id))
-                .Returns(Task.FromResult(false));
+                     .ReturnsAsync(false);
 
             var result = await _controller.Delete(id);
 
             Assert.IsType<NotFoundResult>(result);
         }
 
-        // -----------------------------------------------------
+        // ==================================================================
         // GET ALL USERS
-        // -----------------------------------------------------
+        // ==================================================================
         [Fact]
-        public async Task GetAllUsers_ShouldReturnUsers()
+        public async Task GetAllUsers_ShouldReturnListOfUsers()
         {
             var users = _fixture.CreateMany<UserDto>(3).ToList();
 
             _userMock.Setup(s => s.GetAll())
-                .Returns(Task.FromResult(users));
+                     .ReturnsAsync(users);
 
             var result = await _controller.GetAllUsers() as OkObjectResult;
 
@@ -100,15 +103,43 @@ namespace LMS.Tests.UserService
         }
 
         [Fact]
-        public async Task GetAllUsers_ShouldReturnEmptyList_WhenNoUsers()
+        public async Task GetAllUsers_ShouldReturnEmptyList_WhenNoUsersFound()
         {
             _userMock.Setup(s => s.GetAll())
-                .Returns(Task.FromResult(new List<UserDto>()));
+                     .ReturnsAsync(new List<UserDto>());
 
             var result = await _controller.GetAllUsers() as OkObjectResult;
 
             Assert.NotNull(result);
-            Assert.Empty((List<UserDto>)result!.Value!);
+
+            var list = Assert.IsType<List<UserDto>>(result!.Value);
+            Assert.Empty(list);
+        }
+
+        // ==================================================================
+        // EDGE CASES (optional but improves coverage robustness)
+        // ==================================================================
+        [Fact]
+        public async Task GetUser_ShouldCallServiceExactlyOnce()
+        {
+            var id = Guid.NewGuid();
+            _userMock.Setup(s => s.GetById(id))
+                     .ReturnsAsync((UserDto?)null);
+
+            await _controller.GetUser(id);
+
+            _userMock.Verify(s => s.GetById(id), Times.Once);
+        }
+
+        [Fact]
+        public async Task Delete_ShouldCallServiceExactlyOnce()
+        {
+            var id = Guid.NewGuid();
+            _userMock.Setup(s => s.Delete(id)).ReturnsAsync(false);
+
+            await _controller.Delete(id);
+
+            _userMock.Verify(s => s.Delete(id), Times.Once);
         }
     }
 }

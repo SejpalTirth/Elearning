@@ -1,9 +1,12 @@
-import { Component, OnInit } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Component, inject, OnInit } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { environment } from 'Environment/environment';
+import { AuthService } from 'app/GatewayService/Auth/auth.service';
+import { SecureTokenService } from 'app/GatewayService/Security/secure-token.service';
 
 @Component({
-  selector: 'shared-header',
+  selector: 'app-shared-header',
   standalone: true,
   imports: [CommonModule, RouterLink],
   templateUrl: './header.html',
@@ -15,32 +18,32 @@ export class SharedHeaderComponent implements OnInit {
   role: string | null = null;
   loggedIn = false;
 
-  dropdownOpen: boolean = false;
+  dropdownOpen = false;
 
-  constructor(private router: Router) {}
+  private readonly url = `${environment.baseapiurl}/Gatewayauth`;
 
-  ngOnInit(): void {  // <-- THIS WAS NOT WORKING BEFORE
-    const token = localStorage.getItem('accessToken');
+  private readonly auth = inject(AuthService);
+  private readonly tokenService = inject(SecureTokenService);
 
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        this.userName = payload['name'] || payload['email'] || 'User';
-        this.role = payload['role'] || null;
-        this.loggedIn = true;
-      } catch {
-        this.loggedIn = false;
-      }
+
+  ngOnInit(): void {
+    const payload = this.tokenService.getPayload();
+
+    if (payload) {
+      this.userName = payload.name || payload.email || 'User';
+      this.role = payload.role || null;
+      this.loggedIn = true;
+    } else {
+      this.loggedIn = false;
     }
+
   }
 
-  toggleDropdown() {
+  toggleDropdown(): void {
     this.dropdownOpen = !this.dropdownOpen;
   }
 
-  logout() {
-    localStorage.removeItem('accessToken');
-    this.router.navigate(['/']);
+  logout(): void {
+    this.auth.logout();
   }
-
 }

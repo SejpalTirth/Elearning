@@ -13,7 +13,7 @@ describe('decodeToken()', () => {
   });
 
   it('should return null when token has no payload section', () => {
-    const result = decodeToken("invalidtoken");
+    const result = decodeToken('invalidtoken');
     expect(result).toBeNull();
   });
 
@@ -26,7 +26,7 @@ describe('decodeToken()', () => {
   });
 
   it('should return null if payload is not valid Base64', () => {
-    const token = "abc.!@#.xyz"; // invalid base64 content
+    const token = 'abc.!@#.xyz'; // Invalid base64 content
 
     const result = decodeToken(token);
 
@@ -34,8 +34,8 @@ describe('decodeToken()', () => {
   });
 
   it('should return null if JSON.parse throws (corrupted payload)', () => {
-    // valid base64 but invalid JSON
-    const badJSON = btoa("not-json");
+    // Valid base64 but invalid JSON
+    const badJSON = btoa('not-json');
     const token = `aaa.${badJSON}.bbb`;
 
     const result = decodeToken(token);

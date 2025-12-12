@@ -20,7 +20,7 @@ describe('UserApiService', () => {
   });
 
   afterEach(() => {
-    httpMock.verify(); // ensures no open HTTP requests
+    httpMock.verify(); // Ensures no open HTTP requests
   });
 
   // ------------------------------------------------------------

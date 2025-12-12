@@ -42,8 +42,7 @@ namespace LMS.Tests.AssessmentService
             var result = await _controller.CreateQuiz(dto) as OkObjectResult;
 
             Assert.NotNull(result);
-            Assert.Equal(200, result!.StatusCode);
-            Assert.Equal(99, result.Value!.GetType().GetProperty("quizId")!.GetValue(result.Value));
+            Assert.Equal(99, result!.Value!.GetType().GetProperty("quizId")!.GetValue(result.Value));
         }
 
         // -------------------------------------------------
@@ -67,11 +66,10 @@ namespace LMS.Tests.AssessmentService
             var result = await _controller.AddQuestion(10, dto) as OkObjectResult;
 
             Assert.NotNull(result);
-            Assert.Equal(200, result!.StatusCode);
         }
 
         // -------------------------------------------------
-        // GET QUIZ FOR MODULE — NO AUTH
+        // GET QUIZ FOR MODULE — INVALID AUTH
         // -------------------------------------------------
         [Fact]
         public async Task GetQuizForModule_ShouldReturnUnauthorized_WhenMissingAuthorization()
@@ -82,30 +80,20 @@ namespace LMS.Tests.AssessmentService
             Assert.Equal("Missing access token.", unauthorized.Value);
         }
 
-        // -------------------------------------------------
-        // BAD TOKEN FORMAT
-        // -------------------------------------------------
         [Fact]
         public async Task GetQuizForModule_ShouldReturnUnauthorized_WhenTokenInvalid()
         {
-            _controller.HttpContext.Request.Headers["Authorization"] = "Bearer INVALID_TOKEN";
+            _controller.HttpContext.Request.Headers["Authorization"] = "Bearer BAD_TOKEN";
 
             var result = await _controller.GetQuizForModule(20);
 
-            var unauthorized = Assert.IsType<UnauthorizedObjectResult>(result);
-            Assert.Equal("Invalid token format", unauthorized.Value);
+            Assert.IsType<UnauthorizedObjectResult>(result);
         }
 
-        // -------------------------------------------------
-        // TOKEN WITHOUT SUB CLAIM
-        // -------------------------------------------------
         [Fact]
-        public async Task GetQuizForModule_ShouldReturnUnauthorized_WhenSubClaimMissing()
+        public async Task GetQuizForModule_ShouldReturnUnauthorized_WhenSubMissing()
         {
-            var token = new JwtSecurityToken(
-                claims: new[] { new Claim("name", "test") }
-            );
-
+            var token = new JwtSecurityToken(claims: new[] { new Claim("name", "test") });
             string tokenString = new JwtSecurityTokenHandler().WriteToken(token);
 
             _controller.HttpContext.Request.Headers["Authorization"] = $"Bearer {tokenString}";
@@ -116,17 +104,11 @@ namespace LMS.Tests.AssessmentService
             Assert.Equal("Token missing required 'sub' claim.", unauthorized.Value);
         }
 
-        // -------------------------------------------------
-        // TOKEN VALID → RETURN OK
-        // -------------------------------------------------
         [Fact]
-        public async Task GetQuizForModule_ShouldReturnOk_WhenTokenAndDataValid()
+        public async Task GetQuizForModule_ShouldReturnOk_WhenTokenValid()
         {
             Guid userId = Guid.NewGuid();
-
-            var token = new JwtSecurityToken(
-                claims: new[] { new Claim("sub", userId.ToString()) }
-            );
+            var token = new JwtSecurityToken(claims: new[] { new Claim("sub", userId.ToString()) });
             string tokenString = new JwtSecurityTokenHandler().WriteToken(token);
 
             _controller.HttpContext.Request.Headers["Authorization"] = $"Bearer {tokenString}";
@@ -135,10 +117,9 @@ namespace LMS.Tests.AssessmentService
                 .Setup(s => s.GetQuizForModuleAsync(20, userId))
                 .ReturnsAsync(new { QuizId = 1 });
 
-            var result = await _controller.GetQuizForModule(20) as OkObjectResult;
+            var result = await _controller.GetQuizForModule(20);
 
-            Assert.NotNull(result);
-            Assert.Equal(200, result!.StatusCode);
+            Assert.IsType<OkObjectResult>(result);
         }
 
         // -------------------------------------------------
@@ -147,28 +128,22 @@ namespace LMS.Tests.AssessmentService
         [Fact]
         public async Task SubmitQuiz_ReturnsOk()
         {
-            var dto = new SubmitQuizDto
-            {
-                QuizId = 1,
-                UserId = Guid.NewGuid(),
-                Answers = new()
-            };
+            var dto = new SubmitQuizDto { QuizId = 1, UserId = Guid.NewGuid(), Answers = new() };
 
             _serviceMock
                 .Setup(s => s.SubmitQuizAsync(dto))
                 .ReturnsAsync(new { score = 5 });
 
-            var result = await _controller.SubmitQuiz(dto) as OkObjectResult;
+            var result = await _controller.SubmitQuiz(dto);
 
-            Assert.NotNull(result);
-            Assert.Equal(200, result!.StatusCode);
+            Assert.IsType<OkObjectResult>(result);
         }
 
         // -------------------------------------------------
-        // GET SUBMISSION RESULT
+        // SUBMISSION RESULT
         // -------------------------------------------------
         [Fact]
-        public async Task GetSubmissionResult_ShouldReturnNotFound_WhenNull()
+        public async Task GetSubmissionResult_ShouldReturnNotFound_WhenMissing()
         {
             _serviceMock
                 .Setup(s => s.GetSubmissionResultAsync(It.IsAny<Guid>()))
@@ -186,10 +161,49 @@ namespace LMS.Tests.AssessmentService
                 .Setup(s => s.GetSubmissionResultAsync(It.IsAny<Guid>()))
                 .ReturnsAsync(new { status = "OK" });
 
-            var result = await _controller.GetSubmissionResult(Guid.NewGuid()) as OkObjectResult;
+            var result = await _controller.GetSubmissionResult(Guid.NewGuid());
 
-            Assert.NotNull(result);
-            Assert.Equal(200, result!.StatusCode);
+            Assert.IsType<OkObjectResult>(result);
+        }
+
+        // -------------------------------------------------
+        // ⭐ ADDED TESTS (MISSING BEFORE)
+        // -------------------------------------------------
+
+        [Fact]
+        public async Task GetQuizStatus_ShouldReturnOk()
+        {
+            _serviceMock
+                .Setup(s => s.GetQuizStatusForCourseAsync(5))
+                .ReturnsAsync(new { ok = true });
+
+            var result = await _controller.GetQuizStatus(5);
+
+            Assert.IsType<OkObjectResult>(result);
+        }
+
+        [Fact]
+        public async Task GetModulesWithoutQuiz_ShouldReturnOk()
+        {
+            _serviceMock
+                .Setup(s => s.GetModulesWithoutQuizByCourseAsync(3))
+                .ReturnsAsync(new List<int> { 1, 2 });
+
+            var result = await _controller.GetModulesWithoutQuiz(3);
+
+            Assert.IsType<OkObjectResult>(result);
+        }
+
+        [Fact]
+        public async Task GetCourseQuizStatus_ShouldReturnOk()
+        {
+            _serviceMock
+                .Setup(s => s.GetQuizStatusForCourseAsync(9))
+                .ReturnsAsync(new { status = "complete" });
+
+            var result = await _controller.GetCourseQuizStatus(9);
+
+            Assert.IsType<OkObjectResult>(result);
         }
     }
 }

@@ -9,7 +9,7 @@ describe('LoginComponent', () => {
   let component: LoginComponent;
   let fixture: ComponentFixture<LoginComponent>;
 
-  function mockQueryParams(params: any) {
+  function mockQueryParams(params: any): any {
     return { queryParams: of(params) } as any;
   }
 
@@ -69,7 +69,7 @@ describe('LoginComponent', () => {
   // ------------------------------------------------------
 
   it('should return Google login URL when loginWithGoogle is called', () => {
-    const getUrl = () => {
+    const getUrl = () : string=> {
       return 'https://localhost:7249/api/GatewayAuth/google-login';
     };
 
@@ -82,7 +82,7 @@ describe('LoginComponent', () => {
   });
 
   it('should return Microsoft login URL when loginWithMicrosoft is called', () => {
-    const getUrl = () => {
+    const getUrl = (): string => {
       return 'https://localhost:7249/api/GatewayAuth/microsoft-login';
     };
 

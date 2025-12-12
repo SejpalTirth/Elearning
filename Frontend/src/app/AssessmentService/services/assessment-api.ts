@@ -1,56 +1,53 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { environment } from 'Environment/environment';
+import { Observable } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AssessmentApiService {
 
-  private baseUrl = 'https://localhost:7249/api/AssessmentGateway';
-
-  constructor(private http: HttpClient) {}
-
+  private baseUrl = `${environment.baseapiurl}/AssessmentGateway`;
+  private readonly http = inject(HttpClient);
 
   // =====================================================
   //  STUDENT + COMMON
   // =====================================================
 
-  getQuizForModule(moduleId: number) {
-    return this.http.get(`${this.baseUrl}/quiz/module/${moduleId}`);
+  getQuizForModule(moduleId: number): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/quiz/module/${moduleId}`);
   }
 
-  submitQuiz(payload: any) {
-    return this.http.post(`${this.baseUrl}/submit`, payload);
+  submitQuiz(payload: any): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/submit`, payload);
   }
 
-  getResult(submissionId: string) {
-    return this.http.get(`${this.baseUrl}/result/${submissionId}`);
+  getResult(submissionId: string): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/result/${submissionId}`);
   }
-
 
   // =====================================================
   //  INSTRUCTOR — QUIZ CREATION
   // =====================================================
 
-  createQuiz(payload: any) {
-    return this.http.post(`${this.baseUrl}/quiz`, payload);
+  createQuiz(payload: any): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/quiz`, payload);
   }
 
-  addQuestion(quizId: number, payload: any) {
-    return this.http.post(`${this.baseUrl}/quiz/${quizId}/questions`, payload);
+  addQuestion(quizId: number, payload: any): Observable<any> {
+    return this.http.post<any>(`${this.baseUrl}/quiz/${quizId}/questions`, payload);
   }
-
 
   // =====================================================
   // NEW — QUIZ STATUS CHECKS (For Course Locking Flow)
   // =====================================================
 
-  getQuizStatus(courseId: number) {
-    return this.http.get(`${this.baseUrl}/course/${courseId}/quiz-status`);
+  getQuizStatus(courseId: number): Observable<any> {
+    return this.http.get<any>(`${this.baseUrl}/course/${courseId}/quiz-status`);
   }
 
-  getUnquizzedModules(courseId: number) {
-  return this.http.get<number[]>(`${this.baseUrl}/unquizzed-modules/${courseId}`);
+  getUnquizzedModules(courseId: number): Observable<number[]> {
+    return this.http.get<number[]>(`${this.baseUrl}/unquizzed-modules/${courseId}`);
   }
-
 }

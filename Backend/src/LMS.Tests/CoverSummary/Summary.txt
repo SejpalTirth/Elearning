@@ -1,78 +1,79 @@
 Summary
-  Generated on: 03-12-2025 - 12:35:36
-  Coverage date: 03-12-2025 - 12:34:58
+  Generated on: 09-12-2025 - 16:11:22
+  Coverage date: 09-12-2025 - 16:11:12
   Parser: Cobertura
   Assemblies: 19
-  Classes: 75
-  Files: 72
-  Line coverage: 69.8%
-  Covered lines: 1791
-  Uncovered lines: 773
-  Coverable lines: 2564
-  Total lines: 4697
-  Branch coverage: 59.5% (199 of 334)
-  Covered branches: 199
-  Total branches: 334
-  Method coverage: 76.8% (346 of 450)
-  Full method coverage: 74% (333 of 450)
-  Covered methods: 346
-  Fully covered methods: 333
-  Total methods: 450
+  Classes: 69
+  Files: 66
+  Line coverage: 79.4%
+  Covered lines: 1913
+  Uncovered lines: 494
+  Coverable lines: 2407
+  Total lines: 4389
+  Branch coverage: 65.6% (235 of 358)
+  Covered branches: 235
+  Total branches: 358
+  Method coverage: 92.4% (382 of 413)
+  Full method coverage: 88.6% (366 of 413)
+  Covered methods: 382
+  Fully covered methods: 366
+  Total methods: 413
 
-AssessmentService.BLL                                          62.8%
-  AssessmentService.BLL.Services.AssessmentServiceImpl         62.8%
+AssessmentService.BLL                                          77.5%
+  AssessmentService.BLL.Services.AssessmentServiceImpl         77.5%
 
-AssessmentService.DAL                                          92.5%
+AssessmentService.DAL                                          97.9%
   AssessmentService.DAL.AssessmentDbContext                    94.5%
-  AssessmentService.DAL.Models.Answer                            80%
+  AssessmentService.DAL.Models.Answer                           100%
   AssessmentService.DAL.Models.Question                         100%
   AssessmentService.DAL.Models.Quiz                             100%
-  AssessmentService.DAL.Models.QuizSubmission                  85.7%
+  AssessmentService.DAL.Models.QuizSubmission                   100%
   AssessmentService.DAL.Repo.QuestionRepository                 100%
-  AssessmentService.DAL.Repo.QuizRepository                    83.7%
+  AssessmentService.DAL.Repo.QuizRepository                     100%
   AssessmentService.DAL.Repo.SubmissionRepository               100%
 
-AssessmentService.Web                                          50.6%
-  AssessmentService.Web.Controllers.AssessmentController       76.4%
+AssessmentService.Web                                          66.2%
+  AssessmentService.Web.Controllers.AssessmentController        100%
   Program                                                         0%
 
-CourseService.BLL                                              78.7%
-  CourseService.BLL.Service.CourseServiceimpl                  73.7%
+CourseService.BLL                                              90.9%
+  CourseService.BLL.Service.CourseServiceimpl                  88.7%
   CourseService.BLL.Service.ModuleService                       100%
 
-CourseService.DAL                                              77.4%
+CourseService.DAL                                               100%
   CourseService.DAL.Models.Category                             100%
   CourseService.DAL.Models.Course                               100%
   CourseService.DAL.Models.CourseContext                        100%
   CourseService.DAL.Models.Enrollment                           100%
   CourseService.DAL.Models.Module                               100%
-  CourseService.DAL.Repo.CourseRepository                      66.6%
-  CourseService.DAL.Repo.EnrollmentRepository                  46.3%
+  CourseService.DAL.Repo.CourseRepository                       100%
+  CourseService.DAL.Repo.EnrollmentRepository                   100%
   CourseService.DAL.Repo.ModuleRepository                       100%
 
-CourseService.Web                                              37.8%
+CourseService.Web                                              50.8%
   CourseService.Web.Controllers.CategoriesController            100%
-  CourseService.Web.Controllers.CoursesController              30.6%
+  CourseService.Web.Controllers.CoursesController                53%
   CourseService.Web.Controllers.ModulesController               100%
   Program                                                         0%
 
-Gateway                                                        62.2%
+Gateway                                                          66%
   Gateway.Controllers.AssessmentGatewayController              95.5%
   Gateway.Controllers.BaseGatewayController                     100%
-  Gateway.Controllers.GatewayCourseController                  62.7%
+  Gateway.Controllers.GatewayCourseController                   100%
+  Gateway.Controllers.GatewayUsersController                    100%
   Gateway.Controllers.NotificationGatewayController             100%
   Gateway.Web.Controllers.ProgressGatewayController             100%
-  GatewayAuthController                                         100%
+  GatewayAuthController                                        86.9%
   Program                                                         0%
 
-GatewayService.BLL                                             90.4%
-  AuthService                                                  90.4%
+GatewayService.BLL                                             91.4%
+  AuthService                                                  91.4%
 
-GatewayService.DAL                                             92.7%
+GatewayService.DAL                                             94.9%
   GatewayService.DAL.Data.GatewayServiceContext                94.1%
   GatewayService.DAL.Models.RefreshToken                        100%
-  GatewayService.DAL.Models.User                               81.8%
-  GatewayService.DAL.Repo.RefreshTokenRepository               93.7%
+  GatewayService.DAL.Models.User                                100%
+  GatewayService.DAL.Repo.RefreshTokenRepository               94.7%
   GatewayService.DAL.Repo.UserRepository                       90.9%
 
 GatewayService.Web                                                0%
@@ -83,11 +84,10 @@ NotificationService.BLL                                        69.6%
   NotificationService.BLL.Service.NotificationServiceImpl      96.9%
   NotificationService.BLL.Service.SmtpEmailSender                 0%
 
-NotificationService.DAL                                        88.7%
+NotificationService.DAL                                         100%
   NotificationService.DAL.Data.NotificationDbContext            100%
-  NotificationService.DAL.Models.Notification                  62.5%
-  NotificationService.DAL.Models.NotificationTemplate            80%
-  NotificationService.DAL.Models.UserNotificationPreference       0%
+  NotificationService.DAL.Models.Notification                   100%
+  NotificationService.DAL.Models.NotificationTemplate           100%
   NotificationService.DAL.Repo.NotificationRepository           100%
 
 NotificationService.Web                                        57.8%
@@ -99,9 +99,9 @@ NotificationService.Web                                        57.8%
 ProgresService.BLL                                              100%
   ProgressService.BLL.Service.ProgressServiceImpl               100%
 
-ProgresService.DAL                                               93%
+ProgresService.DAL                                               96%
   ProgresService.DAL.Data.ProgressDbContext                     100%
-  ProgresService.DAL.Models.CourseCompletion                     40%
+  ProgresService.DAL.Models.CourseCompletion                    100%
   ProgresService.DAL.Models.ProgressTracking                    100%
   ProgressService.DAL.Repo.ProgressRepository                  93.2%
 
@@ -110,24 +110,18 @@ ProgresService.Web                                             55.2%
   ProgressService.Web.Controllers.CourseIdResponse              100%
   ProgressService.Web.Controllers.ProgressController            100%
 
-UserService.BLL                                                57.2%
+UserService.BLL                                                93.3%
   UserService.BLL.Mapping.UserProfile                             0%
-  UserService.BLL.Service.UserAuthService                      48.6%
-  UserService.BLL.Service.UserServiceImpl                       100%
+  UserServiceImpl                                               100%
 
-UserService.DAL                                                81.8%
-  UserService.DAL.Models.Permission                            85.7%
-  UserService.DAL.Models.RefreshToken                             0%
-  UserService.DAL.Models.Role                                  85.7%
-  UserService.DAL.Models.RolePermission                          50%
-  UserService.DAL.Models.User                                    80%
-  UserService.DAL.Models.UserContext                           94.5%
-  UserService.DAL.Models.UserPermission                           0%
-  UserService.DAL.Models.UserRole                                50%
+UserService.DAL                                                93.2%
+  Role                                                         66.6%
+  User                                                          100%
+  UserService.DAL.Models.RefreshToken                           100%
+  UserService.DAL.Models.UserContext                           88.5%
   UserService.DAL.Repo.UserRepository                           100%
 
-UserService.Web                                                47.1%
+UserService.Web                                                57.3%
   Program                                                         0%
-  UserService.Web.Controllers.PermissionsController             100%
-  UserService.Web.Controllers.RolesController                    52%
-  UserService.Web.Controllers.UsersController                  80.9%
+  RolesController                                               100%
+  UsersController                                               100%

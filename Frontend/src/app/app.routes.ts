@@ -3,7 +3,7 @@ import { Routes } from '@angular/router';
 import { LoginComponent } from './GatewayService/login/login';
 import { AuthCallback } from './GatewayService/auth-callback/auth-callback';
 import { Home } from './GatewayService/home/home';
-import { AuthGuard } from './GatewayService/auth-guard';
+import { AuthGuard } from './GatewayService/Auth/auth-guard';
 
 export const routes: Routes = [
 
@@ -58,12 +58,12 @@ export const routes: Routes = [
       {
         path: 'assessment/pending',
         loadComponent: () =>
-        import('./AssessmentService/pending/pending').then(m => m.Pending)
+          import('./AssessmentService/pending/pending').then(m => m.Pending)
       },
       {
-      path: 'manage-users',
-      loadChildren: () =>
-        import('./UserService/user.routes').then(m => m.USER_ROUTES)
+        path: 'manage-users',
+        loadChildren: () =>
+          import('./UserService/user.routes').then(m => m.USER_ROUTES)
       }
 
     ]

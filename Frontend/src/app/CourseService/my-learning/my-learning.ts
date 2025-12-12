@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CourseApiService } from '../services/course-api';
 import { ProgressService } from '../services/progress.service';
 import { Router } from '@angular/router';
+import { SecureTokenService } from 'app/GatewayService/Security/secure-token.service';
 
 @Component({
   selector: 'app-my-learning',
@@ -18,79 +19,68 @@ export class MyLearningComponent implements OnInit {
   loading = true;
   userId: string | null = null;
 
-  constructor(
-    private api: CourseApiService,
-    private progressService: ProgressService,
-    private router: Router
-  ) {}
+  private readonly api = inject(CourseApiService);
+  private readonly progressService = inject(ProgressService);
+  private readonly router = inject(Router);
+  private readonly tokenService = inject(SecureTokenService);
 
   ngOnInit(): void {
     this.extractUserId();
     this.loadMyCourses();
   }
 
-  extractUserId() {
-
-    const token = localStorage.getItem('accessToken');
-
-    if (!token) return;
-
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      this.userId = payload.sub;
-    } catch {}
+  extractUserId(): void {
+    this.userId = this.tokenService.getUserId();
   }
 
-  loadMyCourses() {
-  if (!this.userId) {
-    this.loading = false;
-    return;
-  }
+  loadMyCourses(): void {
+    if (!this.userId) {
+      this.loading = false;
+      return;
+    }
 
-  this.progressService.getUserProgress(this.userId).subscribe((p: any) => {
-    this.progress = p;
+    this.progressService.getUserProgress(this.userId).subscribe((p: any) => {
+      this.progress = p;
 
-    this.api.getEnrolledCourses(this.userId!).subscribe({
-      next: (res) => {
-        this.courses = res.map(course => {
-          
-          const courseProgressItems = this.progress.filter(pr => pr.courseId === course.id);
+      this.api.getEnrolledCourses(this.userId!).subscribe({
+        next: (res) => {
+          this.courses = res.map((course: any) => {
+            const courseProgressItems = this.progress.filter(pr => pr.courseId === course.id);
 
-          const completedModules = courseProgressItems.length;
-          const totalModules = course.modules?.length || 0;
+            const completedModules = courseProgressItems.length;
+            const totalModules = course.modules?.length || 0;
 
-          const percent = totalModules > 0
-          ? Math.min(100, Math.round((completedModules / totalModules) * 100))
-          : 0;
+            const percent = totalModules > 0
+            ? Math.min(100, Math.round((completedModules / totalModules) * 100))
+            : 0;
 
-
-          return { 
-            ...course, 
-            progressPercent: percent,
-            completedModules,
-            totalModules
-          };
-        });
+            return {
+              ...course,
+              progressPercent: percent,
+              completedModules,
+              totalModules
+            };
+          });
 
         this.loading = false;
       },
-      error: () => (this.loading = false)
+        error: () => (this.loading = false)
+      });
+
     });
-
-  });
-}
+  }
 
 
 
-  getProgress(courseId: number) {
+  getProgress(courseId: number): number {
     const entries = this.progress.filter(p => p.courseId === courseId);
-    if (!entries.length) return 0;
+    if (!entries.length) {return 0;}
 
     return Math.round(entries.reduce((sum, p) => sum + p.progressPercent, 0) / entries.length);
   }
 
-  continueLearning(courseId: number) {
-    localStorage.setItem("currentCourseId", courseId.toString());
+  continueLearning(courseId: number): void {
+    localStorage.setItem('currentCourseId', courseId.toString());
     this.router.navigate([`/courses/${courseId}/modules`]);
   }
 }

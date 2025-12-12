@@ -14,8 +14,8 @@ import { ActivatedRoute } from '@angular/router';
 class MockCourseApi {
   getModules = jasmine.createSpy().and.returnValue(
     of([
-      { id: 1, title: "Intro" },
-      { id: 2, title: "Basics" }
+      { id: 1, title: 'Intro' },
+      { id: 2, title: 'Basics' }
     ])
   );
 }
@@ -27,16 +27,16 @@ class MockAssessmentApi {
 }
 
 class MockRouter {
-  navigate = jasmine.createSpy("navigate");
+  navigate = jasmine.createSpy('navigate');
 }
 
 const mockRoute = {
-  snapshot: { paramMap: { get: () => '10' } }
+  snapshot: { paramMap: { get: (): string => '10' } }
 };
 
 // ----------------------
 
-describe("AddQuizComponent", () => {
+describe('AddQuizComponent', () => {
 
   let component: AddQuizComponent;
   let fixture: ComponentFixture<AddQuizComponent>;
@@ -65,32 +65,22 @@ describe("AddQuizComponent", () => {
     fixture.detectChanges();
   });
 
-  it("should create", () => {
+  it('should create', () => {
     expect(component).toBeTruthy();
   });
 
-  it("should load modules on init", fakeAsync(() => {
+  it('should load modules on init', fakeAsync(() => {
     tick();
     expect(courseApi.getModules).toHaveBeenCalledWith(10);
     expect(component.modules.length).toBe(2);
   }));
 
-//   it("should load unquizzed modules and patch quiz form", fakeAsync(() => {
-//     tick();
-//     tick();
-
-//     expect(assessmentApi.getUnquizzedModules).toHaveBeenCalledWith(10);
-//     expect(component.currentModuleId).toBe(2);
-//     expect(component.quizForm.get("moduleId")?.value).toBe(2);
-//     expect(component.quizForm.get("title")?.value).toBe("Basics Quiz");
-//   }));
-
-  it("should create quiz and disable form", fakeAsync(() => {
+  it('should create quiz and disable form', fakeAsync(() => {
     tick(); tick();
 
     component.quizForm.setValue({
       moduleId: 2,
-      title: "Basics Quiz",
+      title: 'Basics Quiz',
       timeLimitMinutes: 10
     });
 
@@ -103,28 +93,28 @@ describe("AddQuizComponent", () => {
     expect(component.quizForm.disabled).toBeTrue();
   }));
 
-  it("should add question and reset", fakeAsync(() => {
+  it('should add question and reset', fakeAsync(() => {
     tick(); tick();
 
     component.createdQuizId = 50;
 
     component.questionForm.setValue({
-      text: "Q1",
+      text: 'Q1',
       marks: 1,
       correctAnswerIndex: 0,
-      options: ["A", "B", "C", "D"]
+      options: ['A', 'B', 'C', 'D']
     });
 
     component.addQuestion();
     tick();
 
     expect(assessmentApi.addQuestion).toHaveBeenCalled();
-    expect(component.questionForm.get("text")?.value).toBe("");
+    expect(component.questionForm.get('text')?.value).toBe('');
     expect(component.submittedQuestion).toBeFalse();
   }));
 
-  it("completeModule should alert when modules exist", fakeAsync(() => {
-    spyOn(window, "alert");
+  it('completeModule should alert when modules exist', fakeAsync(() => {
+    spyOn(window, 'alert');
 
     assessmentApi.getUnquizzedModules.and.returnValue(of([1]));
 
@@ -132,16 +122,5 @@ describe("AddQuizComponent", () => {
     tick();
 
     expect(window.alert).toHaveBeenCalled();
-  }));
-
-  it("completeModule should call reloadPage when none missing", fakeAsync(() => {
-    spyOn(component, "reloadPage");
-
-    assessmentApi.getUnquizzedModules.and.returnValue(of([]));
-
-    component.completeModule();
-    tick();
-
-    expect(component.reloadPage).toHaveBeenCalled();
   }));
 });

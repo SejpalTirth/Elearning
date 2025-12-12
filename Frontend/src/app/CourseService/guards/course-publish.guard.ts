@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { CanActivate, ActivatedRouteSnapshot, Router } from '@angular/router';
 import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
@@ -9,16 +9,14 @@ import { AssessmentApiService } from '../../AssessmentService/services/assessmen
 })
 export class CoursePublishGuard implements CanActivate {
 
-  constructor(
-    private assessmentApi: AssessmentApiService,
-    private router: Router
-  ) {}
+  private readonly assessmentApi = inject(AssessmentApiService);
+  private readonly router = inject(Router);
 
   canActivate(route: ActivatedRouteSnapshot): Observable<boolean> {
 
     const courseId = Number(route.paramMap.get('id'));
 
-    if (!courseId) return of(true);
+    if (!courseId) {return of(true);}
 
     //  Check if this course still has pending modules without quizzes
     return this.assessmentApi.getUnquizzedModules(courseId).pipe(

@@ -21,7 +21,7 @@ describe('AssessmentApiService', () => {
   });
 
   afterEach(() => {
-    httpMock.verify(); // ensures no unexpected HTTP calls
+    httpMock.verify(); // Ensures no unexpected HTTP calls
   });
 
   // ----------------------------------------------------------

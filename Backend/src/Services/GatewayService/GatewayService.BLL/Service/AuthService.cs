@@ -16,7 +16,7 @@ public class AuthService : IAuthService
     private readonly IConfiguration _config;
     private readonly TimeSpan _accessTokenLifetime;
     private readonly TimeSpan _refreshTokenLifetime;
-
+    private readonly string _tokenEncryptionKey;
 
     public AuthService(IUserRepository users, IRefreshTokenRepository refreshTokens, IConfiguration config)
     {
@@ -26,14 +26,15 @@ public class AuthService : IAuthService
 
         // Read expiry times from appsettings.json
         _accessTokenLifetime = TimeSpan.FromMinutes(
-            int.Parse(_config["Jwt:AccessTokenExpiryMinutes"] ?? "4")
+            int.Parse(_config["Jwt:AccessTokenExpiryMinutes"] ?? "1")
         );
 
         _refreshTokenLifetime = TimeSpan.FromMinutes(
-            int.Parse(_config["Jwt:RefreshTokenExpiryMinutes"] ?? "3")
+            int.Parse(_config["Jwt:RefreshTokenExpiryMinutes"] ?? "7")
         );
-    }
-
+        _tokenEncryptionKey = _config["Jwt:EncryptionKey"]
+        ?? throw new InvalidOperationException("Jwt:EncryptionKey is missing in configuration.");
+}
     public async Task<ExternalSignInResultDto> SignInExternalAsync(string provider, string providerUserId, string email, string name)
     {
         var adminEmail = _config["SpecialAccounts:AdminEmail"] ?? "tirths331@gmail.com";
@@ -111,7 +112,6 @@ public class AuthService : IAuthService
             Tokens = tokens
         };
     }
-
     public async Task RevokeRefreshTokenAsync(string refreshToken)
     {
         var tokenEntity = await _refreshTokens.GetByTokenAsync(refreshToken);
@@ -119,12 +119,13 @@ public class AuthService : IAuthService
 
         await _refreshTokens.RevokeTokenAsync(tokenEntity);
     }
-
     private async Task<TokenResponseDto> GenerateAndStoreTokensAsync(User user)
     {
         if (user == null) throw new ArgumentNullException(nameof(user));
 
         var accessToken = CreateJwtToken(user);
+        var encryptedAccessToken = EncryptToken(accessToken);
+
         var refreshToken = GenerateSecureToken();
 
         var refreshEntity = new RefreshToken
@@ -135,43 +136,37 @@ public class AuthService : IAuthService
             ExpiresAt = DateTime.UtcNow.Add(_refreshTokenLifetime)
         };
 
-        // Persist refresh token (ensure AddTokenAsync is awaited)
         await _refreshTokens.AddTokenAsync(refreshEntity);
 
         return new TokenResponseDto
         {
-            AccessToken = accessToken,
+            AccessToken = encryptedAccessToken,
             RefreshToken = refreshToken,
             ExpiresAt = DateTime.UtcNow.Add(_accessTokenLifetime)
         };
     }
-
     public async Task<TokenResponseDto?> RefreshTokenAsync(string refreshToken)
     {
         if (string.IsNullOrWhiteSpace(refreshToken)) return null;
 
         var tokenEntity = await _refreshTokens.GetByTokenAsync(refreshToken);
         if (tokenEntity == null) return null;
-
         if (tokenEntity.RevokedAt != null) return null;
-
         if (tokenEntity.ExpiresAt < DateTime.UtcNow) return null;
 
         var user = tokenEntity.User ?? await _users.GetByIdAsync(tokenEntity.UserId);
         if (user == null) return null;
 
         var newAccessToken = CreateJwtToken(user);
+        var encryptedAccessToken = EncryptToken(newAccessToken);
 
         return new TokenResponseDto
         {
-            AccessToken = newAccessToken,
-            RefreshToken = tokenEntity.Token,  // KEEP SAME TOKEN
-            ExpiresAt = tokenEntity.ExpiresAt  // DO NOT EXTEND
+            AccessToken = encryptedAccessToken,
+            RefreshToken = tokenEntity.Token,
+            ExpiresAt = tokenEntity.ExpiresAt
         };
     }
-
-
-
 
     private string CreateJwtToken(User user)
     {
@@ -201,7 +196,30 @@ public class AuthService : IAuthService
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+    private string EncryptToken(string plainToken)
+    {
+        if (string.IsNullOrWhiteSpace(plainToken))
+            throw new ArgumentException("Token cannot be null or empty", nameof(plainToken));
 
+        var keyBytes = SHA256.HashData(Encoding.UTF8.GetBytes(_tokenEncryptionKey));
+
+        using var aes = Aes.Create();
+        aes.Key = keyBytes;
+        aes.Mode = CipherMode.CBC;
+        aes.Padding = PaddingMode.PKCS7;
+
+        aes.GenerateIV();
+
+        using var encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
+        var plainBytes = Encoding.UTF8.GetBytes(plainToken);
+        var cipherBytes = encryptor.TransformFinalBlock(plainBytes, 0, plainBytes.Length);
+
+        var result = new byte[aes.IV.Length + cipherBytes.Length];
+        Buffer.BlockCopy(aes.IV, 0, result, 0, aes.IV.Length);
+        Buffer.BlockCopy(cipherBytes, 0, result, aes.IV.Length, cipherBytes.Length);
+
+        return Convert.ToBase64String(result);
+    }
     private static string GenerateSecureToken(int size = 64)
     {
         var bytes = new byte[size];

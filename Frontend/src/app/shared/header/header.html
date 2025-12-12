@@ -4,28 +4,42 @@
     <a routerLink="/">E-Learning</a>
   </div>
 
-  <div class="menu" *ngIf="loggedIn">
+  @if (loggedIn) {
+    <div class="menu">
 
-    <a routerLink="/home">Home</a>
-    <a routerLink="/courses">Courses</a>
-    <a routerLink="/courses/my-learning">My Learning</a>
+      <a routerLink="/home">Home</a>
+      <a routerLink="/courses">Courses</a>
+      <a routerLink="/courses/my-learning">My Learning</a>
 
-    <a *ngIf="role === 'Instructor'" routerLink="/courses/add/new">Add Course</a>
-    <a *ngIf="role === 'Instructor'" routerLink="/courses/manage">Edit Course</a>
-    <a *ngIf="role === 'Instructor'" routerLink="/assessment/pending">Pending task</a>
+      @if (role === 'Instructor') {
+        <a routerLink="/courses/add/new">Add Course</a>
+        <a routerLink="/courses/manage">Edit Course</a>
+        <a routerLink="/assessment/pending">Pending task</a>
+      }
 
-    <a *ngIf="role === 'Admin'" routerLink="/courses/manage-courses">Manage Courses</a>
-    <a *ngIf="role === 'Admin'" routerLink="/manage-users">Manage Users</a>
+      @if (role === 'Admin') {
+        <a routerLink="/courses/manage-courses">Manage Courses</a>
+        <a routerLink="/manage-users">Manage Users</a>
+      }
 
+      <div 
+        class="user-box"
+        tabindex="0"
+        role="button"
+        (click)="toggleDropdown()"
+        (keydown.enter)="toggleDropdown()"
+        (keydown.space)="toggleDropdown()"
+      >
+        <span class="user-name">{{ userName }}</span>
 
-    <div class="user-box" (click)="toggleDropdown()">
-      <span class="user-name">{{ userName }}</span>
-
-      <div class="dropdown" *ngIf="dropdownOpen">
-        <button (click)="logout()">Logout</button>
+        @if (dropdownOpen) {
+          <div class="dropdown">
+            <button (click)="logout()">Logout</button>
+          </div>
+        }
       </div>
-    </div>
 
-  </div>
+    </div>
+  }
 
 </nav>

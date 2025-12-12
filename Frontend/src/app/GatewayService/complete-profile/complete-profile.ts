@@ -1,8 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
+import { UserApiService } from '../../UserService/services/user-api';  // Adjust path if needed
 
 @Component({
   selector: 'app-complete-profile',
@@ -14,50 +14,51 @@ import { HttpClient } from '@angular/common/http';
 export class CompleteProfileComponent implements OnInit {
 
   userId: string | null = null;
-  name: string = "";
-  roleId: number = 3;
+  name = '';
+  roleId = 3;
   loading = false;
 
-  constructor(
-    private route: ActivatedRoute,
-    private http: HttpClient,
-    private router: Router
-  ) {}
+  private readonly route = inject(ActivatedRoute);
+  private readonly userApi = inject(UserApiService);
+  private readonly router = inject(Router);
 
   ngOnInit(): void {
     this.userId = this.route.snapshot.queryParamMap.get('userId');
 
     if (!this.userId) {
-      alert("User ID missing. Please login again.");
+      // eslint-disable-next-line no-alert
+      alert('User ID missing. Please login again.');
       this.router.navigate(['/login']);
       return;
     }
   }
 
-  saveProfile() {
+  saveProfile(): void {
     if (!this.name.trim()) {
-      alert("Please enter your name.");
+      // eslint-disable-next-line no-alert
+      alert('Please enter your name.');
       return;
     }
 
     this.loading = true;
 
     const payload = {
-      userId: this.userId,
+      userId: this.userId!,
       name: this.name,
       roleId: this.roleId
     };
 
-    this.http.post("https://localhost:7130/api/users/complete-profile", payload)
-      .subscribe({
-        next: () => {
-          alert("Profile completed successfully! Please login again.");
-          this.router.navigate(['/login']);
-        },
-        error: (err) => {
-          this.loading = false;
-          alert(err.error?.message || "Something went wrong.");
-        }
-      });
+    this.userApi.completeProfile(payload).subscribe({
+      next: () => {
+        // eslint-disable-next-line no-alert
+        alert('Profile completed successfully! Please login again.');
+        this.router.navigate(['/login']);
+      },
+      error: (err) => {
+        this.loading = false;
+        // eslint-disable-next-line no-alert
+        alert(err.error?.message || 'Something went wrong.');
+      }
+    });
   }
 }

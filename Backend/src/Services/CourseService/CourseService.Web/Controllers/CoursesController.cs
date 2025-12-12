@@ -152,14 +152,12 @@ namespace CourseService.Web.Controllers
             return Ok("Course published successfully.");
         }
 
-
-
         // ================== GET UNFINISHED COURSE FOR INSTRUCTOR ==================
         [HttpGet("unfinished/{instructorId:guid}")]
-        public async Task<IActionResult> GetUnfinishedCourse(Guid instructorId)
+        public async Task<IActionResult> GetUnfinishedCourses(Guid instructorId)
         {
-            var course = await _courseService.GetUnfinishedCourseAsync(instructorId);
-            return Ok(course);
+            var courses = await _courseService.GetAllUnfinishedCoursesAsync(instructorId);
+            return Ok(courses);
         }
 
         // ================== CONTINUE COURSE ==================
@@ -169,6 +167,14 @@ namespace CourseService.Web.Controllers
             var result = await _courseService.ContinueUnfinishedCourseAsync(courseId);
             return Ok(result);
         }
+
+        [HttpPut("{id:int}/restore")]
+        public async Task<IActionResult> Restore(int id)
+        {
+            var restored = await _courseService.RestoreAsync(id);
+            return restored ? Ok("Course restored successfully.") : NotFound("Course not found.");
+        }
+
 
         private class UserInfo
         {

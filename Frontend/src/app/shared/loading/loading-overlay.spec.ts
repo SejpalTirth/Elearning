@@ -34,7 +34,7 @@ describe('LoadingOverlay', () => {
   // ------------------------------------------------------------
   it('should set visible = false when hide() is called', () => {
     component.show();
-    expect(component.visible).toBeTrue();  // sanity check
+    expect(component.visible).toBeTrue();  // Sanity check
 
     component.hide();
     expect(component.visible).toBeFalse();

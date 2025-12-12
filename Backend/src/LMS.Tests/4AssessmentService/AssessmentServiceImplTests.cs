@@ -8,6 +8,20 @@ using Moq;
 
 namespace LMS.Tests.AssessmentService
 {
+    // Helper class for mocking HTTP responses
+    internal class FakeHttpHandler : HttpMessageHandler
+    {
+        public object? ResponseToSend { get; set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var json = JsonSerializer.Serialize(ResponseToSend);
+            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+            var response = new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = content };
+            return Task.FromResult(response);
+        }
+    }
+
     public class AssessmentServiceImplTests
     {
         private readonly Mock<IQuizRepository> _quizRepoMock;
@@ -237,5 +251,274 @@ namespace LMS.Tests.AssessmentService
 
             Assert.Null(result);
         }
+
+        // -----------------------------------------------------------
+        // GET QUIZ FOR MODULE — SUCCESS
+        // -----------------------------------------------------------
+        [Fact]
+        public async Task GetQuizForModule_ReturnsQuizWithQuestions()
+        {
+            var quiz = new Quiz
+            {
+                Id = 10,
+                ModuleId = 5,
+                Title = "Sample Quiz",
+                TimeLimitMinutes = 20,
+                Questions = new List<Question>
+        {
+            new Question
+            {
+                Id = 1,
+                QuestionText = "Q1",
+                Marks = 2,
+                Answers = new List<Answer>
+                {
+                    new Answer { Id = 100, AnswerText = "A1", IsCorrect = true },
+                    new Answer { Id = 101, AnswerText = "A2", IsCorrect = false }
+                }
+            }
+        }
+            };
+
+            _quizRepoMock.Setup(r => r.GetByModuleIdAsync(5))
+                         .ReturnsAsync(quiz);
+
+            _submissionRepoMock.Setup(r => r.GetBestSubmissionAsync(10, It.IsAny<Guid>()))
+                               .ReturnsAsync((QuizSubmission?)null);
+
+            var result = await _service.GetQuizForModuleAsync(5, Guid.NewGuid());
+
+            Assert.NotNull(result);
+
+            var json = JsonSerializer.Serialize(result);
+            Assert.Contains("Sample Quiz", json);
+            Assert.Contains("\"TotalMarks\":2", json);
+        }
+
+
+        // -----------------------------------------------------------
+        // SUBMIT QUIZ — FIRST SUBMISSION (No previous passed)
+        // -----------------------------------------------------------
+        [Fact]
+        public async Task SubmitQuiz_FirstAttempt_ComputesScoreCorrectly()
+        {
+            var quiz = new Quiz
+            {
+                Id = 1,
+                Questions = new List<Question>
+        {
+            new Question
+            {
+                Id = 10, Marks = 2,
+                Answers = new List<Answer>
+                {
+                    new Answer { Id = 100, IsCorrect = true },
+                    new Answer { Id = 101, IsCorrect = false },
+                }
+            }
+        }
+            };
+
+            _quizRepoMock.Setup(r => r.GetByIdWithDetailsAsync(1)).ReturnsAsync(quiz);
+            _submissionRepoMock.Setup(r => r.GetBestSubmissionAsync(1, It.IsAny<Guid>()))
+                               .ReturnsAsync((QuizSubmission?)null);
+
+            _submissionRepoMock.Setup(r => r.AddAsync(It.IsAny<QuizSubmission>()))
+                               .Returns(Task.CompletedTask);
+
+            _submissionRepoMock.Setup(r => r.SaveChangesAsync())
+                               .Returns(Task.CompletedTask);
+
+            var dto = new SubmitQuizDto
+            {
+                QuizId = 1,
+                UserId = Guid.NewGuid(),
+                Answers = new List<SubmitAnswerDto>
+        {
+            new SubmitAnswerDto { QuestionId = 10, SelectedAnswerId = 100 }
+        }
+            };
+
+            var result = await _service.SubmitQuizAsync(dto);
+
+            var json = JsonSerializer.Serialize(result);
+            Assert.Contains("\"Passed\":true", json);
+            Assert.Contains("\"CorrectAnswers\":1", json);
+        }
+
+
+        // -----------------------------------------------------------
+        // SUBMIT QUIZ — ALREADY PASSED EARLIER
+        // -----------------------------------------------------------
+        [Fact]
+        public async Task SubmitQuiz_AlreadyPassed_PreventsNewSubmission()
+        {
+            var quiz = new Quiz
+            {
+                Id = 1,
+                Questions = new List<Question>
+        {
+            new Question { Id = 10, Marks = 2, Answers = new List<Answer> { new Answer { Id = 100, IsCorrect = true } } }
+        }
+            };
+
+            var previous = new QuizSubmission
+            {
+                Id = Guid.NewGuid(),
+                QuizId = 1,
+                UserId = Guid.NewGuid(),
+                Score = 2
+            };
+
+            _quizRepoMock.Setup(r => r.GetByIdWithDetailsAsync(1)).ReturnsAsync(quiz);
+            _submissionRepoMock.Setup(r => r.GetBestSubmissionAsync(1, It.IsAny<Guid>()))
+                               .ReturnsAsync(previous);
+
+            var result = await _service.SubmitQuizAsync(new SubmitQuizDto
+            {
+                QuizId = 1,
+                UserId = previous.UserId,
+                Answers = new List<SubmitAnswerDto>()
+            });
+
+            var json = JsonSerializer.Serialize(result);
+            Assert.Contains("already passed", json.ToLower());
+        }
+
+
+        // -----------------------------------------------------------
+        // GetSubmissionResultAsync — NOT FOUND
+        // -----------------------------------------------------------
+        [Fact]
+        public async Task GetSubmissionResultAsync_WhenMissing_ReturnsNull()
+        {
+            _submissionRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+                               .ReturnsAsync((QuizSubmission?)null);
+
+            var result = await _service.GetSubmissionResultAsync(Guid.NewGuid());
+
+            Assert.Null(result);
+        }
+
+
+        // -----------------------------------------------------------
+        // GetSubmissionResultAsync — SUCCESS
+        // -----------------------------------------------------------
+        [Fact]
+        public async Task GetSubmissionResultAsync_ReturnsComputedResult()
+        {
+            var submission = new QuizSubmission
+            {
+                Id = Guid.NewGuid(),
+                QuizId = 5,
+                Score = 7
+            };
+
+            var quiz = new Quiz
+            {
+                Id = 5,
+                TotalMarks = 10,
+                Questions = new List<Question>()
+            };
+
+            _submissionRepoMock.Setup(r => r.GetByIdAsync(submission.Id))
+                               .ReturnsAsync(submission);
+
+            _quizRepoMock.Setup(r => r.GetByIdAsync(5))
+                         .ReturnsAsync(quiz);
+
+            var result = await _service.GetSubmissionResultAsync(submission.Id);
+
+            Assert.NotNull(result);
+            var json = JsonSerializer.Serialize(result);
+            Assert.Contains("\"Percentage\":70", json);
+            Assert.Contains("\"Passed\":true", json);
+        }
+
+
+        // -----------------------------------------------------------
+        // GetModulesWithoutQuizAsync
+        // -----------------------------------------------------------
+        [Fact]
+        public async Task GetModulesWithoutQuizAsync_ReturnsOnlyModulesWithNoQuiz()
+        {
+            _quizRepoMock.Setup(r => r.GetByModuleIdAsync(1)).ReturnsAsync(new Quiz());
+            _quizRepoMock.Setup(r => r.GetByModuleIdAsync(2)).ReturnsAsync((Quiz?)null);
+            _quizRepoMock.Setup(r => r.GetByModuleIdAsync(3)).ReturnsAsync((Quiz?)null);
+
+            var result = await _service.GetModulesWithoutQuizAsync(new List<int> { 1, 2, 3 });
+
+            Assert.Equal(new List<int> { 2, 3 }, result);
+        }
+
+
+        // -----------------------------------------------------------
+        // GetModulesWithoutQuizByCourseAsync
+        // -----------------------------------------------------------
+        [Fact]
+        public async Task GetModulesWithoutQuizByCourseAsync_FiltersMissingCorrectly()
+        {
+            // Mock CourseService client
+            var handler = new FakeHttpHandler
+            {
+                ResponseToSend = new[]
+                {
+            new { Id = 10, Title = "M1" },
+            new { Id = 11, Title = "M2" }
+        }
+            };
+
+            var client = new HttpClient(handler)
+            {
+                BaseAddress = new Uri("https://fake-course")
+            };
+
+            _httpFactoryMock.Setup(f => f.CreateClient("CourseService"))
+                            .Returns(client);
+
+            _quizRepoMock.Setup(r => r.GetByModuleIdAsync(10)).ReturnsAsync(new Quiz());
+            _quizRepoMock.Setup(r => r.GetByModuleIdAsync(11)).ReturnsAsync((Quiz?)null);
+
+            var result = await _service.GetModulesWithoutQuizByCourseAsync(99);
+
+            Assert.Single(result);
+            Assert.Equal(11, result[0]);
+        }
+
+
+        // -----------------------------------------------------------
+        // GetQuizStatusForCourseAsync
+        // -----------------------------------------------------------
+        [Fact]
+        public async Task GetQuizStatusForCourseAsync_ReturnsModuleStatus()
+        {
+            var handler = new FakeHttpHandler
+            {
+                ResponseToSend = new[]
+                {
+            new { Id = 100, Title = "M1" },
+            new { Id = 101, Title = "M2" }
+        }
+            };
+
+            var client = new HttpClient(handler)
+            {
+                BaseAddress = new Uri("https://fake-course")
+            };
+
+            _httpFactoryMock.Setup(f => f.CreateClient("CourseService"))
+                            .Returns(client);
+
+            _quizRepoMock.Setup(r => r.GetByModuleIdAsync(100)).ReturnsAsync(new Quiz());
+            _quizRepoMock.Setup(r => r.GetByModuleIdAsync(101)).ReturnsAsync((Quiz?)null);
+
+            var result = await _service.GetQuizStatusForCourseAsync(77);
+
+            var json = JsonSerializer.Serialize(result);
+
+            Assert.Contains("\"allQuizzesCreated\":false", json);
+            Assert.Contains("\"nextPendingModuleId\":101", json);
+        }
+
     }
 }

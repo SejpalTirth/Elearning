@@ -9,11 +9,11 @@ class MockAuthService {
   access: string | null = null;
   refresh: string | null = null;
 
-  getAccessToken() {
+  getAccessToken(): any {
     return this.access;
   }
 
-  getRefreshToken() {
+  getRefreshToken(): any {
     return this.refresh;
   }
 }

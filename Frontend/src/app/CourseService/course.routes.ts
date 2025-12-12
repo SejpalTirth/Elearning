@@ -21,8 +21,7 @@ export const COURSE_ROUTES: Routes = [
   {
     path: 'edit/:id',
     loadComponent: () => import('./edit/edit').then(m => m.EditCourseComponent),
-    canActivate: [ UnfinishedCourseGuard ],
-    canDeactivate: [ CourseQuizGuard ]
+    canActivate: [ UnfinishedCourseGuard ]
   },
 
   // Instructor manage OWN courses

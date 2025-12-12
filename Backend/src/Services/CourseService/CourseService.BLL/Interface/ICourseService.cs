@@ -23,7 +23,8 @@ namespace CourseService.BLL.Interface
         Task<bool> PublishCourseIfReadyAsync(int courseId);
 
         // Pending task system (final)
-        Task<object?> GetUnfinishedCourseAsync(Guid instructorId); // works with gateway forwarding
+        Task<IEnumerable<Course>> GetAllUnfinishedCoursesAsync(Guid instructorId);
         Task<bool> ContinueUnfinishedCourseAsync(int courseId);
+        Task<bool> RestoreAsync(int id);
     }
 }

@@ -31,13 +31,13 @@ class MockRouter {
 const mockRoute = {
   snapshot: {
     paramMap: {
-      get: () => '5'
+      get: (): string=> '5'
     }
   }
 };
 
 // Utility to create fake JWT
-function fakeJWT(payload: any) {
+function fakeJWT(payload: any):string {
   return `aaa.${btoa(JSON.stringify(payload))}.bbb`;
 }
 
@@ -65,7 +65,7 @@ describe('ModuleContentComponent', () => {
     }).compileComponents();
 
     // Mock local storage JWT
-    localStorage.setItem("accessToken", fakeJWT({ sub: "USER123" }));
+    localStorage.setItem('accessToken', fakeJWT({ sub: 'USER123' }));
 
     fixture = TestBed.createComponent(ModuleContentComponent);
     component = fixture.componentInstance;
@@ -105,7 +105,7 @@ describe('ModuleContentComponent', () => {
     component.quizStatus = null;
     component.takeQuiz();
 
-    expect(window.alert).toHaveBeenCalledWith("No quiz available.");
+    expect(window.alert).toHaveBeenCalledWith('No quiz available.');
     expect(router.navigate).not.toHaveBeenCalled();
   });
 

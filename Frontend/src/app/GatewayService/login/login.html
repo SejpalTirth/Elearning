@@ -11,5 +11,8 @@
     <span>Sign in with Microsoft</span>
   </button>
 
-  <p *ngIf="loginMessage" class="success-message">{{ loginMessage }}</p>
+  @if(loginMessage)
+  {
+    <p class="success-message">{{ loginMessage }}</p>
+  }
 </div>

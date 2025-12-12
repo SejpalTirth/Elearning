@@ -10,6 +10,8 @@ namespace LMS.Tests.CourseService.Repository
         private readonly ModuleRepository _repo;
         private readonly Fixture _fixture;
 
+        private int _courseId;
+
         public ModuleRepositoryTests()
         {
             _fixture = new Fixture();
@@ -25,11 +27,9 @@ namespace LMS.Tests.CourseService.Repository
             SeedCategoryAndCourse();
         }
 
-        // --------------------------------------------------------------------
-        // SEED REQUIRED CATEGORY + COURSE FOR FK RELATION
-        // --------------------------------------------------------------------
-        private int _courseId;
-
+        // ====================================================================
+        // SEED REQUIRED ENTITIES
+        // ====================================================================
         private void SeedCategoryAndCourse()
         {
             var category = _fixture.Build<Category>()
@@ -52,32 +52,32 @@ namespace LMS.Tests.CourseService.Repository
             _courseId = course.Id;
         }
 
-        // --------------------------------------------------------------------
+        // ====================================================================
         // CLEAN MODULE FACTORY
-        // --------------------------------------------------------------------
+        // ====================================================================
         private Module CreateModule(int? id = null, int? courseId = null)
         {
-            var module = _fixture.Build<Module>()
+            var m = _fixture.Build<Module>()
                 .With(m => m.CourseId, courseId ?? _courseId)
-                .Without(m => m.Course)  // avoid EF cascade insertion
+                .Without(m => m.Course)
                 .Create();
 
             if (id != null)
-                module.Id = id.Value;
+                m.Id = id.Value;
 
-            return module;
+            return m;
         }
 
         protected override void ConfigureGatewayDependencies(IServiceCollection services)
         {
-            // No external services needed
+            // no gateway dependencies
         }
 
         // ====================================================================
         // GET BY COURSE ID
         // ====================================================================
         [Fact]
-        public async Task GetByCourseIdAsync_ReturnsModules()
+        public async Task GetByCourseIdAsync_ShouldReturnModulesForCourse()
         {
             var m1 = CreateModule(courseId: _courseId);
             var m2 = CreateModule(courseId: _courseId + 1);
@@ -91,25 +91,40 @@ namespace LMS.Tests.CourseService.Repository
             Assert.Equal(_courseId, list[0].CourseId);
         }
 
+        [Fact]
+        public async Task GetByCourseIdAsync_ShouldReturnEmpty_WhenNoModules()
+        {
+            var result = await _repo.GetByCourseIdAsync(99999);
+
+            Assert.Empty(result);
+        }
+
         // ====================================================================
         // GET BY ID
         // ====================================================================
         [Fact]
-        public async Task GetByIdAsync_ReturnsCorrectModule()
+        public async Task GetByIdAsync_ShouldReturnModule_WhenExists()
         {
-            var module = CreateModule(id: 5);
+            var module = CreateModule(id: 10);
 
             CourseContext.Modules.Add(module);
             CourseContext.SaveChanges();
 
-            var result = await _repo.GetByIdAsync(5);
+            var result = await _repo.GetByIdAsync(10);
 
             Assert.NotNull(result);
-            Assert.Equal(5, result!.Id);
+            Assert.Equal(10, result!.Id);
+        }
+
+        [Fact]
+        public async Task GetByIdAsync_ShouldReturnNull_WhenNotFound()
+        {
+            var result = await _repo.GetByIdAsync(99999);
+            Assert.Null(result);
         }
 
         // ====================================================================
-        // ADD
+        // ADD MODULE
         // ====================================================================
         [Fact]
         public async Task AddAsync_ShouldAddModule()
@@ -120,6 +135,16 @@ namespace LMS.Tests.CourseService.Repository
             await _repo.SaveChangesAsync();
 
             Assert.Single(CourseContext.Modules);
+        }
+
+        // ====================================================================
+        // SAVE CHANGES (No changes)
+        // ====================================================================
+        [Fact]
+        public async Task SaveChangesAsync_ShouldReturn_WhenNoChanges()
+        {
+            // This should not throw and should return successfully.
+            await _repo.SaveChangesAsync();
         }
     }
 }

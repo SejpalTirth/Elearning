@@ -1,4 +1,6 @@
-<div class="loader-backdrop" *ngIf="visible">
-  <div class="loader"></div>
-  <p>Enrolling...</p>
-</div>
+@if (visible) {
+  <div class="loader-backdrop">
+    <div class="loader"></div>
+    <p>Please wait a moment</p>
+  </div>
+}

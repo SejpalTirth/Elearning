@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using UserService.BLL.DTOs;
 using UserService.BLL.Interface;
 
 [ApiController]
@@ -31,5 +32,18 @@ public class UsersController : ControllerBase
     {
         var result = await _userService.Delete(id);
         return result ? Ok() : NotFound();
+    }
+    [HttpPost("complete-profile")]
+    public async Task<IActionResult> CompleteProfile([FromBody] CompleteProfileDto dto)
+    {
+        if (dto == null || string.IsNullOrEmpty(dto.UserId))
+            return BadRequest("UserId is required.");
+
+        var success = await _userService.CompleteProfileAsync(dto);
+
+        if (!success)
+            return NotFound("User not found.");
+
+        return Ok(new { message = "Profile updated successfully" });
     }
 }

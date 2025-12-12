@@ -1,11 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UserApiService } from '../services/user-api';
 import { ToastService } from '../../shared/toast.service';
 
 @Component({
-  selector: 'manage-users',
+  selector: 'app-manage-users',
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './manage-users.html',
@@ -22,17 +22,15 @@ export class ManageUsersComponent implements OnInit {
   selectedUser: any = null;
   selectedRoleId: number | null = null;
 
-  constructor(
-    private userApi: UserApiService,
-    private toast: ToastService
-  ) {}
+  private readonly userApi = inject(UserApiService);
+  private readonly toast = inject(ToastService);
 
   ngOnInit(): void {
     this.loadUsers();
     this.loadRoles();
   }
 
-  loadUsers() {
+  loadUsers(): void {
     this.loading = true;
 
     this.userApi.getAllUsers().subscribe({
@@ -42,25 +40,25 @@ export class ManageUsersComponent implements OnInit {
       },
       error: () => {
         this.loading = false;
-        this.toast.showError("Failed to load users");
+        this.toast.showError('Failed to load users');
       }
     });
   }
 
-  loadRoles() {
+  loadRoles(): void {
     this.userApi.getAllRoles().subscribe({
       next: (res) => this.roles = res,
-      error: () => this.toast.showError("Failed to load roles")
+      error: () => this.toast.showError('Failed to load roles')
     });
   }
 
-  openRoleModal(user: any) {
+  openRoleModal(user: any): void {
     this.selectedUser = user;
     this.selectedRoleId = null;
   }
 
-  updateRole() {
-    if (!this.selectedRoleId || !this.selectedUser) return;
+  updateRole(): void {
+    if (!this.selectedRoleId || !this.selectedUser) {return;}
 
     this.updating = true;
 
@@ -69,13 +67,13 @@ export class ManageUsersComponent implements OnInit {
       roleId: this.selectedRoleId
     }).subscribe({
       next: () => {
-        this.toast.showSuccess("Role updated successfully");
+        this.toast.showSuccess('Role updated successfully');
         this.selectedUser = null;
         this.updating = false;
         this.loadUsers();
       },
       error: () => {
-        this.toast.showError("Failed to update role");
+        this.toast.showError('Failed to update role');
         this.updating = false;
       }
     });

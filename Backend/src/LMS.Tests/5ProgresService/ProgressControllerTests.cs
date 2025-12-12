@@ -125,7 +125,8 @@ namespace LMS.Tests.ProgressService
         public async Task CompleteModule_ShouldReturnBadRequest_WhenCourseServiceReturnsInvalidJson()
         {
             var handler = new FakeHttpHandler();
-            handler.Add("course-id", "{invalid json}");
+            // Simulate an exception by not adding any response
+            handler.Responses.Clear();
 
             var httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://fake/") };
 
@@ -200,6 +201,31 @@ namespace LMS.Tests.ProgressService
             _serviceMock.Verify(s =>
                 s.MarkModuleCompletedAsync(req.UserId, 5, 10),
                 Times.Once);
+        }
+
+        [Fact]
+        public async Task CompleteModule_ShouldReturnNotFound_WhenHttpClientReturns404()
+        {
+            var handler = new FakeHttpHandler();
+            handler.Responses.Clear(); // no matching URL → 404
+
+            var httpClient = new HttpClient(handler)
+            {
+                BaseAddress = new Uri("http://fake/")
+            };
+
+            var controller = CreateController(httpClient);
+
+            var req = new ModuleCompleteRequest
+            {
+                UserId = Guid.NewGuid(),
+                ModuleId = 123
+            };
+
+            var result = await controller.CompleteModule(req) as BadRequestObjectResult;
+
+            Assert.NotNull(result);
+            Assert.Equal(400, result.StatusCode);
         }
     }
 }

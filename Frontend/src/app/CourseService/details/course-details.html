@@ -1,37 +1,47 @@
-<div class="details-container" *ngIf="course">
+@if(course)
+{
+  <div class="details-container">
+    @if(isLoading)
+    {
+      <div class="loading-overlay">
+        <div class="loader"></div>
+          <p>Enrolling...</p>
+      </div>
+    }
 
-  <!-- FULLSCREEN LOADING OVERLAY (Locks the whole UI) -->
-  <div class="loading-overlay" *ngIf="isLoading">
-    <div class="loader"></div>
-    <p>Enrolling...</p>
+    <!-- HEADER -->
+    <div class="course-header">
+      <h1>{{ course.title }}</h1>
+      <p class="instructor">Instructor: {{ course.instructorName }}</p>
+    </div>
+
+    <!-- COURSE CARD -->
+    <div class="course-card">
+      <h3>Description</h3>
+      <p>{{ course.description }}</p>
+
+      <button 
+        class="enroll-btn"
+        [disabled]="btnLoading"
+        (click)="enrollOrContinue()">
+
+        @if(btnLoading)
+        {
+          <span class="btn-spinner"></span>
+        }
+
+        {{ btnLoading ? 'Processing...' : (isEnrolled ? 'Continue Learning' : 'Enroll Now') }}
+      </button>
+    </div>
   </div>
-
-  <!-- HEADER -->
-  <div class="course-header">
-    <h1>{{ course.title }}</h1>
-    <p class="instructor">Instructor: {{ course.instructorName }}</p>
+}
+@if(course)
+{
+  <div class="details-container"></div> 
+}
+@if(!course)
+{
+  <div class="loading">
+    Loading course details...
   </div>
-
-  <!-- COURSE CARD -->
-  <div class="course-card">
-    <h3>Description</h3>
-    <p>{{ course.description }}</p>
-
-    <button 
-      class="enroll-btn"
-      [disabled]="btnLoading"
-      (click)="enrollOrContinue()">
-
-      <!-- SMALL SPINNER INSIDE BUTTON -->
-      <span *ngIf="btnLoading" class="btn-spinner"></span>
-
-      {{ btnLoading ? 'Processing...' : (isEnrolled ? 'Continue Learning' : 'Enroll Now') }}
-    </button>
-  </div>
-
-</div>
-
-<!-- When course not loaded -->
-<div *ngIf="!course" class="loading">
-  Loading course details...
-</div>
+}

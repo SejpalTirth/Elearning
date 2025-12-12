@@ -19,34 +19,35 @@ namespace LMS.Tests.UserService
         {
             _fixture = new Fixture();
 
-            // Prevent recursion (clean AutoFixture objects)
+            // Fix recursion for DTO/entity graphs
             _fixture.Behaviors.OfType<ThrowingRecursionBehavior>()
                 .ToList()
                 .ForEach(b => _fixture.Behaviors.Remove(b));
+
             _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
 
             _serviceMock = new Mock<IUserService>();
 
-            // Fresh isolated DB per test class instance
-            var options = new DbContextOptionsBuilder<UserContext>()
-                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-                .Options;
-
-            _context = new UserContext(options);
+            // Isolated in-memory DB instance
+            _context = new UserContext(
+                new DbContextOptionsBuilder<UserContext>()
+                    .UseInMemoryDatabase(Guid.NewGuid().ToString())
+                    .Options
+            );
 
             _controller = new RolesController(_serviceMock.Object, _context);
         }
 
-        // -----------------------------------------------------
+        // ============================================================
         // UPDATE USER ROLE
-        // -----------------------------------------------------
+        // ============================================================
         [Fact]
-        public async Task UpdateUserRole_ShouldCallService_AndReturnOk()
+        public async Task UpdateUserRole_ShouldReturnOk_WhenServiceReturnsTrue()
         {
             var req = _fixture.Create<UpdateUserRoleRequest>();
 
             _serviceMock.Setup(s => s.UpdateUserRoleAsync(req))
-                .Returns(Task.FromResult(true));
+                .ReturnsAsync(true);
 
             var result = await _controller.UpdateUserRole(req) as OkObjectResult;
 
@@ -57,12 +58,12 @@ namespace LMS.Tests.UserService
         }
 
         [Fact]
-        public async Task UpdateUserRole_ShouldReturnBadRequest_WhenServiceFails()
+        public async Task UpdateUserRole_ShouldReturnBadRequest_WhenServiceReturnsFalse()
         {
             var req = _fixture.Create<UpdateUserRoleRequest>();
 
             _serviceMock.Setup(s => s.UpdateUserRoleAsync(req))
-                .Returns(Task.FromResult(false));
+                .ReturnsAsync(false);
 
             var result = await _controller.UpdateUserRole(req) as BadRequestObjectResult;
 
@@ -70,73 +71,94 @@ namespace LMS.Tests.UserService
             Assert.Equal("Could not update role", result!.Value);
         }
 
-        // -----------------------------------------------------
+        // ============================================================
         // GET USER ROLE
-        // -----------------------------------------------------
+        // ============================================================
         [Fact]
-        public async Task GetUserRole_ShouldReturnRole_WhenUserExists()
+        public async Task GetUserRole_ShouldReturnRoleList_WhenUserExists()
         {
             var userId = Guid.NewGuid();
-            var userDto = _fixture.Build<UserDto>()
-                .With(x => x.Role, "Student")
+
+            var dto = _fixture.Build<UserDto>()
+                .With(x => x.Role, "Admin")
                 .Create();
 
             _serviceMock.Setup(s => s.GetById(userId))
-                .Returns(Task.FromResult((UserDto?)userDto));
+                .ReturnsAsync(dto);
 
             var result = await _controller.GetUserRole(userId) as OkObjectResult;
 
             Assert.NotNull(result);
 
-            var list = Assert.IsType<List<string>>(result!.Value);
-            Assert.Single(list);
-            Assert.Equal("Student", list[0]);
+            var roles = Assert.IsType<List<string>>(result!.Value);
+            Assert.Single(roles);
+            Assert.Equal("Admin", roles[0]);
         }
 
         [Fact]
-        public async Task GetUserRole_ShouldReturnNotFound_WhenUserNotExists()
+        public async Task GetUserRole_ShouldReturnNotFound_WhenUserMissing()
         {
             var userId = Guid.NewGuid();
 
             _serviceMock.Setup(s => s.GetById(userId))
-                .Returns(Task.FromResult((UserDto?)null));
+                .ReturnsAsync((UserDto?)null);
 
             var result = await _controller.GetUserRole(userId);
 
             Assert.IsType<NotFoundResult>(result);
         }
 
-        // -----------------------------------------------------
+        // ============================================================
         // GET ALL ROLES
-        // -----------------------------------------------------
+        // ============================================================
         [Fact]
-        public async Task GetAllRoles_ShouldReturnRoles()
+        public async Task GetAllRoles_ShouldReturnAllRoles()
         {
-            // Seed the in-memory database with roles
-            var role1 = new Role { Id = 1, Name = "Admin" };
-            var role2 = new Role { Id = 2, Name = "Student" };
-            var role3 = new Role { Id = 3, Name = "Instructor" };
+            var roles = new[]
+            {
+                new Role { Id = 1, Name = "Admin" },
+                new Role { Id = 2, Name = "Student" },
+                new Role { Id = 3, Name = "Instructor" }
+            };
 
-            _context.Roles.AddRange(role1, role2, role3);
+            await _context.Roles.AddRangeAsync(roles);
             await _context.SaveChangesAsync();
 
             var result = await _controller.GetAllRoles() as OkObjectResult;
 
             Assert.NotNull(result);
+
+            var list = result!.Value as System.Collections.IEnumerable;
+            Assert.NotNull(list);
             
-            var roles = Assert.IsType<List<object>>(result!.Value);
-            Assert.Equal(3, roles.Count);
+            // Count the items in the enumerable
+            var count = 0;
+            foreach (var item in list)
+            {
+                count++;
+            }
+            
+            Assert.Equal(3, count);
         }
 
         [Fact]
-        public async Task GetAllRoles_ShouldReturnEmptyList_WhenNoRoles()
+        public async Task GetAllRoles_ShouldReturnEmptyList_WhenNoRolesExist()
         {
             var result = await _controller.GetAllRoles() as OkObjectResult;
 
             Assert.NotNull(result);
 
-            var roles = Assert.IsType<List<object>>(result!.Value);
-            Assert.Empty(roles);
+            var list = result!.Value as System.Collections.IEnumerable;
+            Assert.NotNull(list);
+            
+            // Count the items in the enumerable
+            var count = 0;
+            foreach (var item in list)
+            {
+                count++;
+            }
+            
+            Assert.Equal(0, count);
         }
     }
 }

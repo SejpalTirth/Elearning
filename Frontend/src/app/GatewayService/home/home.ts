@@ -1,8 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { ToastService } from 'app/shared/toast.service';
+import { CourseApiService } from '../../CourseService/services/course-api';
+import { AssessmentApiService } from '../../AssessmentService/services/assessment-api';
+import { SecureTokenService } from '../Security/secure-token.service';
 
 @Component({
   selector: 'app-home',
@@ -16,83 +18,64 @@ export class Home implements OnInit {
   userName: string | null = null;
   role: string | null = null;
 
-  private gatewayCourseUrl = 'https://localhost:7249/api/GatewayCourse';
-  private gatewayAssessmentUrl = 'https://localhost:7249/api/AssessmentGateway';
-
-  constructor(
-    private router: Router,
-    private http: HttpClient,
-    private toastService: ToastService
-  ) {}
+  private readonly tokenService = inject(SecureTokenService);
+  private readonly toastService = inject(ToastService);
+  private readonly assessmentApi = inject(AssessmentApiService);
+  private readonly courseApi = inject(CourseApiService);
+  private readonly router = inject(Router);
 
   ngOnInit(): void {
     this.loadUserInfo();
 
-    // Only instructors should see pending task reminders
     if (this.role === 'Instructor') {
       this.checkForPendingTasks();
     }
   }
 
-  // ------------------ Load User Info From JWT ------------------
-  loadUserInfo() {
-    const token = localStorage.getItem('accessToken');
+  // ------------------ Load User Info From Decrypted JWT ------------------
+  loadUserInfo(): void {
+    const payload = this.tokenService.getPayload();
 
-    if (!token) {
+    if (!payload) {
       this.router.navigate(['/']);
       return;
     }
 
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-
-      this.userName = payload['name'] || 'User';
-      this.role = payload['role'] || null;
-
-    } catch (err) {
-      console.error('JWT Decode Failed:', err);
-      this.router.navigate(['/']);
-    }
+    this.userName = payload['name'] || 'User';
+    this.role = payload['role'] || null;
   }
 
   // ------------------ Check If Instructor Has Unfinished Course ------------------
-  checkForPendingTasks() {
-    const token = localStorage.getItem('accessToken');
-    if (!token) return;
+  checkForPendingTasks(): void {
+    const userId = this.tokenService.getUserId();
+    if (!userId) { return; }
 
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const userId = payload.sub;
-
-    // STEP 1 — Fetch unfinished course
-    this.http.get<any>(`${this.gatewayCourseUrl}/unfinished/${userId}`).subscribe({
-      next: (course) => {
-        if (!course || !course.id) {
-          return; // no unfinished course
-        }
+    this.courseApi.getInstructorUnfinishedCourses(userId).subscribe({
+      next: (course: any): void => {
+        if (!course || !course.id) { return; }
 
         const courseId = course.id;
 
-        // STEP 2 — Check quiz status
-        this.http.get<number[]>(
-          `${this.gatewayAssessmentUrl}/unquizzed-modules/${courseId}`
-        ).subscribe({
-          next: (modules) => {
+        this.assessmentApi.getUnquizzedModules(courseId).subscribe({
+          next: (modules: number[]): void => {
             if (modules && modules.length > 0) {
-              // Modules missing quizzes → SHOW TOAST
               this.toastService.showError(
-                "You have pending course tasks — quizzes need to be completed."
+                'You have pending course tasks — quizzes need to be completed.'
               );
             }
           },
-          error: () => {}
+          error: (err: any): void => {
+            console.error('Failed to fetch unquizzed modules', err);
+          }
         });
       },
-      error: () => {}
+      error: (err: any): void => {
+        console.error('Failed to fetch unfinished courses', err);
+      }
     });
   }
 
-  // ------------------ Navigation ------------------
-  goToCourses() {
+  goToCourses(): void {
     this.router.navigate(['/courses']);
   }
 }

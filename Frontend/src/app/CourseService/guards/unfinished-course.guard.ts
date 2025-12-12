@@ -1,5 +1,5 @@
-// src/app/CourseService/guards/unfinished-course.guard.ts
-import { Injectable } from '@angular/core';
+// Src/app/CourseService/guards/unfinished-course.guard.ts
+import { inject, Injectable } from '@angular/core';
 import {
   CanActivate,
   Router,
@@ -13,10 +13,10 @@ import { Observable, of } from 'rxjs';
 })
 export class UnfinishedCourseGuard implements CanActivate {
 
-  constructor(private router: Router) {}
+  private readonly router = inject(Router);
 
   canActivate(): Observable<boolean | UrlTree> {
-    
+
     const data = localStorage.getItem('unfinishedCourse');
     if (!data) {
       // Nothing unfinished → allow access

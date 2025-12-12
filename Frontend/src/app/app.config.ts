@@ -2,8 +2,9 @@ import { ApplicationConfig, inject } from '@angular/core';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
-import { AuthInterceptor } from './GatewayService/auth.interceptor';
-import { HttpRequest, HttpHandler } from '@angular/common/http';
+import { AuthInterceptor } from './GatewayService/Auth/auth.interceptor';
+import { HttpRequest, HttpHandler, HttpEvent } from '@angular/common/http';
+import { Observable } from 'rxjs';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -13,7 +14,7 @@ export const appConfig: ApplicationConfig = {
 
     provideHttpClient(
       withInterceptors([
-        (req, nextFn) => {
+        (req, nextFn): Observable<HttpEvent<any>> => {
 
           const interceptor = inject(AuthInterceptor);
 

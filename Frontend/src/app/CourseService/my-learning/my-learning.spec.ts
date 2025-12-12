@@ -34,7 +34,7 @@ class MockRouter {
 }
 
 // Fake JWT generator
-function fakeJWT(payload: any) {
+function fakeJWT(payload: any): any {
   return `aaa.${btoa(JSON.stringify(payload))}.bbb`;
 }
 
@@ -116,7 +116,7 @@ describe('MyLearningComponent', () => {
   it('should navigate when continueLearning() is called', () => {
     component.continueLearning(5);
 
-    expect(localStorage.setItem).toHaveBeenCalledWith("currentCourseId", "5");
+    expect(localStorage.setItem).toHaveBeenCalledWith('currentCourseId', '5');
     expect(router.navigate).toHaveBeenCalledWith(['/courses/5/modules']);
   });
 

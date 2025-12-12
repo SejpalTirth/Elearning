@@ -10,18 +10,18 @@ import { CourseApiService } from '../services/course-api';
 
 class MockCourseApi {
   getCategories = jasmine.createSpy().and.returnValue(of([
-    { id: 1, name: "Programming" },
-    { id: 2, name: "Math" }
+    { id: 1, name: 'Programming' },
+    { id: 2, name: 'Math' }
   ]));
 
   getById = jasmine.createSpy().and.returnValue(of({
     id: 10,
-    title: "Course A",
-    description: "Desc A",
+    title: 'Course A',
+    description: 'Desc A',
     categoryId: 1,
     modules: [
-      { id: 101, title: "Module 1", content: "Content 1" },
-      { id: 102, title: "Module 2", content: "Content 2" }
+      { id: 101, title: 'Module 1', content: 'Content 1' },
+      { id: 102, title: 'Module 2', content: 'Content 2' }
     ]
   }));
 
@@ -29,13 +29,13 @@ class MockCourseApi {
 }
 
 class MockRouter {
-  navigate = jasmine.createSpy("navigate");
+  navigate = jasmine.createSpy('navigate');
 }
 
 const mockRoute = {
   snapshot: {
     paramMap: {
-      get: () => "10"
+      get: (): string=> '10'
     }
   }
 };
@@ -76,8 +76,8 @@ describe('EditCourseComponent', () => {
   it('should load course and patch form', () => {
     expect(api.getById).toHaveBeenCalledWith(10);
 
-    expect(component.form.value.title).toBe("Course A");
-    expect(component.form.value.description).toBe("Desc A");
+    expect(component.form.value.title).toBe('Course A');
+    expect(component.form.value.description).toBe('Desc A');
     expect(component.form.value.categoryId).toBe(1);
 
     expect(component.modules.length).toBe(2);

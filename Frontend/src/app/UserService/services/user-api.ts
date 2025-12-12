@@ -1,16 +1,17 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from 'Environment/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class UserApiService {
 
-  // Gateway URL (NOT UserService URL)
-  private baseUrl = 'https://localhost:7249/api/GatewayUsers';
+  // Gateway URL (NOT UserService)
+  private baseUrl = `${environment.baseapiurl}/GatewayUsers`;
 
-  constructor(private http: HttpClient) {}
+  private readonly http = inject(HttpClient);
 
   // --- USERS ---
 
@@ -24,6 +25,11 @@ export class UserApiService {
 
   deleteUser(userId: string): Observable<any> {
     return this.http.delete(`${this.baseUrl}/${userId}`);
+  }
+
+  // NEW — COMPLETE PROFILE
+  completeProfile(payload: { userId: string; name: string; roleId: number }): Observable<any> {
+    return this.http.post(`${this.baseUrl}/complete-profile`, payload);
   }
 
   // --- ROLES ---

@@ -36,12 +36,12 @@ class MockRouter {
 // Fake route → id = 10
 const mockRoute = {
   snapshot: {
-    paramMap: { get: () => '10' }
+    paramMap: { get: (): string => '10' }
   }
 };
 
 // Fake JWT generator
-function fakeJWT(payload: any) {
+function fakeJWT(payload: any): string {
   return `aaa.${btoa(JSON.stringify(payload))}.bbb`;
 }
 

@@ -87,4 +87,23 @@ public class UserServiceImpl : IUserService
 
         return true;
     }
+    public async Task<bool> CompleteProfileAsync(CompleteProfileDto dto)
+    {
+        if (dto == null || string.IsNullOrWhiteSpace(dto.UserId))
+            return false;
+
+        var userId = Guid.Parse(dto.UserId);
+
+        var user = await _repo.GetByIdAsync(userId);
+        if (user == null)
+            return false;
+
+        user.Name = dto.Name;
+        user.Role = dto.Role;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _repo.SaveAsync();
+        return true;
+    }
+
 }
