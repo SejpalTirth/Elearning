@@ -37,9 +37,12 @@ public class RolesController : ControllerBase
         return Ok("User role updated successfully");
     }
 
-    [HttpGet("{userId}")]
+    [HttpGet("{userId:guid}")]
     public async Task<IActionResult> GetUserRole(Guid userId)
     {
+        if (userId == Guid.Empty)
+            return BadRequest("userId cannot be empty.");
+
         var user = await _users.GetById(userId);
         if (user == null)
             return NotFound();

@@ -15,17 +15,23 @@ namespace CourseService.Web.Controllers
         }
 
         // GET /api/modules/course/5
-        [HttpGet("course/{courseId}")]
+        [HttpGet("course/{courseId:int}")]
         public async Task<IActionResult> GetByCourse(int courseId)
         {
+            if (courseId <= 0)
+                return BadRequest("courseId must be greater than zero.");
+
             var modules = await _moduleService.GetModulesByCourseAsync(courseId);
             return Ok(modules);
         }
 
         // GET /api/modules/10
-        [HttpGet("{moduleId}")]
+        [HttpGet("{moduleId:int}")]
         public async Task<IActionResult> GetContent(int moduleId)
         {
+            if (moduleId <= 0)
+                return BadRequest("courseId must be greater than zero.");
+
             var module = await _moduleService.GetModuleContentAsync(moduleId);
 
             if (module == null)
@@ -34,9 +40,12 @@ namespace CourseService.Web.Controllers
             return Ok(module);
         }
 
-        [HttpGet("course-id/{moduleId}")]
+        [HttpGet("course-id/{moduleId:int}")]
         public async Task<IActionResult> GetCourseId(int moduleId)
         {
+            if (moduleId <= 0)
+                return BadRequest("courseId must be greater than zero.");
+
             var data = await _moduleService.GetModuleAndCourseIdAsync(moduleId);
 
             if (data == null)

@@ -4,6 +4,7 @@ using AssessmentService.BLL.DTOs;
 using AssessmentService.BLL.Services;
 using AssessmentService.DAL.Models;
 using AssessmentService.DAL.Repo;
+using AutoMapper;
 using Moq;
 
 namespace LMS.Tests.AssessmentService
@@ -28,6 +29,7 @@ namespace LMS.Tests.AssessmentService
         private readonly Mock<ISubmissionRepository> _submissionRepoMock;
         private readonly Mock<IQuestionRepository> _questionRepoMock;
         private readonly Mock<IHttpClientFactory> _httpFactoryMock;
+        private readonly Mock<IMapper> _mapperMock;
 
         private readonly AssessmentServiceImpl _service;
         private readonly Fixture _fixture;
@@ -42,12 +44,14 @@ namespace LMS.Tests.AssessmentService
             _submissionRepoMock = new Mock<ISubmissionRepository>();
             _questionRepoMock = new Mock<IQuestionRepository>();
             _httpFactoryMock = new Mock<IHttpClientFactory>();
+            _mapperMock = new Mock<IMapper>();
 
             _service = new AssessmentServiceImpl(
                 _quizRepoMock.Object,
                 _submissionRepoMock.Object,
                 _questionRepoMock.Object,
-                _httpFactoryMock.Object
+                _httpFactoryMock.Object,
+                _mapperMock.Object
             );
         }
 
@@ -188,7 +192,7 @@ namespace LMS.Tests.AssessmentService
 
             var dto = new CreateQuestionDto
             {
-                Text = "Q",
+                Question = "Q",
                 Marks = 1,
                 Options = new List<string> { "A", "B" },
                 CorrectAnswerIndex = 99
@@ -222,7 +226,7 @@ namespace LMS.Tests.AssessmentService
 
             var dto = new CreateQuestionDto
             {
-                Text = "New Q",
+                Question = "New Q",
                 Marks = 3,
                 Options = new List<string> { "A", "B", "C" },
                 CorrectAnswerIndex = 1
@@ -280,8 +284,20 @@ namespace LMS.Tests.AssessmentService
         }
             };
 
+            var quizDto = new QuizForModuleDto
+            {
+                QuizId = 10,
+                Title = "Sample Quiz",
+                ModuleId = 5,
+                TotalMarks = 2,
+                AlreadyPassed = false
+            };
+
             _quizRepoMock.Setup(r => r.GetByModuleIdAsync(5))
                          .ReturnsAsync(quiz);
+
+            _mapperMock.Setup(m => m.Map<QuizForModuleDto>(It.IsAny<Quiz>()))
+                       .Returns(quizDto);
 
             _submissionRepoMock.Setup(r => r.GetBestSubmissionAsync(10, It.IsAny<Guid>()))
                                .ReturnsAsync((QuizSubmission?)null);

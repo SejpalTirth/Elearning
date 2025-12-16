@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Gateway.Contracts.Notification;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Gateway.Controllers
@@ -6,58 +7,43 @@ namespace Gateway.Controllers
     [Authorize]
     [ApiController]
     [Route("api/notification")]
-    public class NotificationGatewayController : ControllerBase
+    public class NotificationGatewayController : BaseGatewayController
     {
-        private readonly HttpClient _client;
+        private const string BASE = "api/notification";
 
         public NotificationGatewayController(IHttpClientFactory factory)
+            : base(factory.CreateClient("NotificationService"))
         {
-            _client = factory.CreateClient("NotificationService");
         }
 
-        // Test Endpoint
+        // ------------------- TEST -------------------
+
         [HttpGet("test")]
-        public async Task<IActionResult> Test()
-        {
-            var response = await _client.GetAsync("/api/notification/test");
-            var content = await response.Content.ReadAsStringAsync();
-            return Content(content, "application/json");
-        }
+        public Task<IActionResult> Test() =>
+            ForwardGet($"{BASE}/test");
 
-        // Send Email Directly
+        // ------------------- SEND EMAIL -------------------
+
         [HttpPost("send")]
-        public async Task<IActionResult> Send([FromBody] object request)
-        {
-            var response = await _client.PostAsJsonAsync("/api/notification/send", request);
-            var content = await response.Content.ReadAsStringAsync();
-            return Content(content, "application/json");
-        }
+        public Task<IActionResult> Send([FromBody] EmailRequest request) =>
+            ForwardPost($"{BASE}/send", request);
 
-        // Send Email Using Template
+        // ------------------- SEND TEMPLATE EMAIL -------------------
+
         [HttpPost("template/send")]
-        public async Task<IActionResult> SendTemplate([FromBody] object request)
-        {
-            var response = await _client.PostAsJsonAsync("/api/notification/template/send", request);
-            var content = await response.Content.ReadAsStringAsync();
-            return Content(content, "application/json");
-        }
+        public Task<IActionResult> SendTemplate([FromBody] TemplateRequest request) =>
+            ForwardPost($"{BASE}/template/send", request);
 
-        // Trigger Notification (Enrollment, Module Done, Course Done)
+        // ------------------- TRIGGER NOTIFICATION -------------------
+
         [HttpPost("trigger")]
-        public async Task<IActionResult> Trigger([FromBody] object request)
-        {
-            var response = await _client.PostAsJsonAsync("/api/notification/trigger", request);
-            var content = await response.Content.ReadAsStringAsync();
-            return Content(content, "application/json");
-        }
+        public Task<IActionResult> Trigger([FromBody] TriggerNotification request) =>
+            ForwardPost($"{BASE}/trigger", request);
 
-        // Get User Notifications
-        [HttpGet("{userId}")]
-        public async Task<IActionResult> GetUserNotifications(Guid userId)
-        {
-            var response = await _client.GetAsync($"/api/notification/{userId}");
-            var content = await response.Content.ReadAsStringAsync();
-            return Content(content, "application/json");
-        }
+        // ------------------- GET USER NOTIFICATIONS -------------------
+
+        [HttpGet("{userId:guid}")]
+        public Task<IActionResult> GetUserNotifications(Guid userId) =>
+            ForwardGet($"{BASE}/{userId}");
     }
 }

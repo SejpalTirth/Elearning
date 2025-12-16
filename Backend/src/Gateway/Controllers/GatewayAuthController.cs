@@ -1,4 +1,3 @@
-using Gateway.DTOs;
 using GatewayService.BLL.Interface;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -115,6 +114,11 @@ public class GatewayAuthController : ControllerBase
             return Redirect($"{returnUrl}?token={result.Tokens.AccessToken}&refresh={result.Tokens.RefreshToken}");
 
         return Redirect(returnUrl);
+    }
+
+    public class RefreshRequest
+    {
+        public string RefreshToken { get; set; } = string.Empty;
     }
 
     [AllowAnonymous]

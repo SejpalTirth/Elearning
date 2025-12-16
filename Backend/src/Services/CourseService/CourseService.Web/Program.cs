@@ -4,6 +4,9 @@ using CourseService.DAL.Models;
 using CourseService.DAL.Repo;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using CourseService.BLL.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,7 +47,20 @@ builder.Services.AddHttpClient("ProgressService", client =>
 {
     client.BaseAddress = new Uri("https://localhost:7175");
 });
+builder.Services.AddHttpClient("NotificationService", client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7245");
+});
 
+// Fluent Validation
+builder.Services.AddControllers()
+    .AddFluentValidation(fv =>
+    {
+        fv.RegisterValidatorsFromAssemblyContaining<CourseDtoValidator>();
+    });
+
+// AutoMapper
+builder.Services.AddAutoMapper(typeof(CourseProfile));
 
 var app = builder.Build();
 

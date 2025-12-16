@@ -1,0 +1,20 @@
+﻿using FluentValidation;
+using ProgresService.BLL.DTOs;
+
+namespace ProgressService.BLL.Validators
+{
+    public class ModuleCompleteRequestValidator
+        : AbstractValidator<ModuleCompleteRequest>
+    {
+        public ModuleCompleteRequestValidator()
+        {
+            RuleFor(x => x.UserId)
+                .NotEmpty()
+                .WithMessage("UserId is required.");
+
+            RuleFor(x => x.ModuleId)
+                .GreaterThan(0)
+                .WithMessage("ModuleId must be greater than zero.");
+        }
+    }
+}

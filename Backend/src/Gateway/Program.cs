@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,35 +24,58 @@ services.AddDbContext<GatewayServiceContext>(opt =>
 // ----------------------
 services.AddControllers();
 services.AddEndpointsApiExplorer();
-services.AddSwaggerGen();
+
+services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "JWTToken_Auth_API",
+        Version = "v1"
+    });
+
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Name = "Authorization",
+        Description = "Enter a valid JWT access token. The Bearer scheme is applied automatically."
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 // ----------------------
 // Downstream HttpClients
 // ----------------------
 services.AddHttpClient("CourseService", c =>
-{
-    c.BaseAddress = new Uri("https://localhost:7190/");
-});
+    c.BaseAddress = new Uri("https://localhost:7190/"));
 
 services.AddHttpClient("AssessmentService", c =>
-{
-    c.BaseAddress = new Uri("https://localhost:7108/");
-});
+    c.BaseAddress = new Uri("https://localhost:7108/"));
 
 services.AddHttpClient("NotificationService", c =>
-{
-    c.BaseAddress = new Uri("https://localhost:7245/");
-});
+    c.BaseAddress = new Uri("https://localhost:7245/"));
 
 services.AddHttpClient("ProgressService", c =>
-{
-    c.BaseAddress = new Uri("https://localhost:7175/");
-});
-services.AddHttpClient("UserService", c =>
-{
-    c.BaseAddress = new Uri("https://localhost:7130/");
-});
+    c.BaseAddress = new Uri("https://localhost:7175/"));
 
+services.AddHttpClient("UserService", c =>
+    c.BaseAddress = new Uri("https://localhost:7130/"));
 
 // ----------------------
 // Repositories + Services
@@ -61,18 +85,41 @@ services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 services.AddScoped<IAuthService, AuthService>();
 
 // ----------------------
-// Authentication
+// Authentication (FIXED)
 // ----------------------
 services
     .AddAuthentication(options =>
     {
-        // JWT is default for API
-        options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
         options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
     })
 
-    // Main cookie scheme for internal GatewayAuthController operations
+    // JWT (ONLY ONE)
+    .AddJwtBearer(options =>
+    {
+        options.RequireHttpsMetadata = true;
+        options.SaveToken = true;
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = config["Jwt:Issuer"],
+
+            ValidateAudience = true,
+            ValidAudience = config["Jwt:Audience"],
+
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(config["Jwt:Key"])
+            ),
+
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    })
+
+    // Internal Gateway cookie
     .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
     {
         options.Cookie.Name = ".Gateway.Auth";
@@ -81,7 +128,7 @@ services
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     })
 
-    // External login cookie (Google/Microsoft)
+    // External login cookie
     .AddCookie("External", options =>
     {
         options.Cookie.Name = ".Gateway.External";
@@ -90,24 +137,7 @@ services
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     })
 
-    // JWT Bearer for API calls
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidIssuer = config["Jwt:Issuer"],
-            ValidateAudience = true,
-            ValidAudience = config["Jwt:Audience"],
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(config["Jwt:Key"])),
-            ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero
-        };
-    })
-
-    // Google Login
+    // Google
     .AddGoogle(options =>
     {
         options.SignInScheme = "External";
@@ -119,7 +149,7 @@ services
         options.SaveTokens = true;
     })
 
-    // Microsoft Login
+    // Microsoft
     .AddMicrosoftAccount(options =>
     {
         options.SignInScheme = "External";
@@ -129,8 +159,6 @@ services
         options.Scope.Add("User.Read");
         options.SaveTokens = true;
     });
-
-
 
 // ----------------------
 // Authorization
@@ -163,7 +191,6 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
-
 app.UseCors("AllowAngular");
 
 app.UseAuthentication();

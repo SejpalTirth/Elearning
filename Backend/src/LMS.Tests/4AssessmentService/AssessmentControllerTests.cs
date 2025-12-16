@@ -53,7 +53,7 @@ namespace LMS.Tests.AssessmentService
         {
             var dto = new CreateQuestionDto
             {
-                Text = "Q1?",
+                Question = "Q1?",
                 Marks = 1,
                 Options = new() { "A", "B" },
                 CorrectAnswerIndex = 0
@@ -113,9 +113,18 @@ namespace LMS.Tests.AssessmentService
 
             _controller.HttpContext.Request.Headers["Authorization"] = $"Bearer {tokenString}";
 
+            var quizDto = new QuizForModuleDto
+            {
+                QuizId = 1,
+                ModuleId = 20,
+                Title = "Test",
+                TotalMarks = 10,
+                AlreadyPassed = false
+            };
+
             _serviceMock
                 .Setup(s => s.GetQuizForModuleAsync(20, userId))
-                .ReturnsAsync(new { QuizId = 1 });
+                .ReturnsAsync(quizDto);
 
             var result = await _controller.GetQuizForModule(20);
 
@@ -130,9 +139,19 @@ namespace LMS.Tests.AssessmentService
         {
             var dto = new SubmitQuizDto { QuizId = 1, UserId = Guid.NewGuid(), Answers = new() };
 
+            var resultDto = new QuizResultDto
+            {
+                TotalMarks = 10,
+                ObtainedMarks = 5,
+                Percentage = 50,
+                Passed = false,
+                AlreadyPassed = false,
+                StatusMessage = "Try again."
+            };
+
             _serviceMock
                 .Setup(s => s.SubmitQuizAsync(dto))
-                .ReturnsAsync(new { score = 5 });
+                .ReturnsAsync(resultDto);
 
             var result = await _controller.SubmitQuiz(dto);
 
@@ -147,7 +166,7 @@ namespace LMS.Tests.AssessmentService
         {
             _serviceMock
                 .Setup(s => s.GetSubmissionResultAsync(It.IsAny<Guid>()))
-                .ReturnsAsync((object?)null);
+                .ReturnsAsync((QuizResultDto?)null);
 
             var result = await _controller.GetSubmissionResult(Guid.NewGuid());
 
@@ -157,9 +176,19 @@ namespace LMS.Tests.AssessmentService
         [Fact]
         public async Task GetSubmissionResult_ShouldReturnOk_WhenExists()
         {
+            var resultDto = new QuizResultDto
+            {
+                TotalMarks = 10,
+                ObtainedMarks = 8,
+                Percentage = 80,
+                Passed = true,
+                AlreadyPassed = false,
+                StatusMessage = "Passed!"
+            };
+
             _serviceMock
                 .Setup(s => s.GetSubmissionResultAsync(It.IsAny<Guid>()))
-                .ReturnsAsync(new { status = "OK" });
+                .ReturnsAsync(resultDto);
 
             var result = await _controller.GetSubmissionResult(Guid.NewGuid());
 

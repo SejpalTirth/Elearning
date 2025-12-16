@@ -201,6 +201,8 @@ public class AuthService : IAuthService
         if (string.IsNullOrWhiteSpace(plainToken))
             throw new ArgumentException("Token cannot be null or empty", nameof(plainToken));
 
+        Console.Write(plainToken);
+
         var keyBytes = SHA256.HashData(Encoding.UTF8.GetBytes(_tokenEncryptionKey));
 
         using var aes = Aes.Create();

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Gateway.Contracts.Users;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Gateway.Controllers
@@ -32,14 +33,14 @@ namespace Gateway.Controllers
         public Task<IActionResult> DeleteUser(Guid id) =>
             ForwardDelete($"{BASE_USERS}/{id}");
 
-        // NEW: Complete Profile
         [HttpPost("complete-profile")]
-        public Task<IActionResult> CompleteProfile([FromBody] object dto) =>
-            ForwardPost($"{BASE_USERS}/complete-profile", dto);
+        public Task<IActionResult> CompleteProfile(
+        [FromBody] CompleteProfileRequest dto) =>
+        ForwardPost($"{BASE_USERS}/complete-profile", dto);
 
-        // ------------------- ROLES -------------------
+    // ------------------- ROLES -------------------
 
-        [HttpGet("roles")]
+    [HttpGet("roles")]
         public Task<IActionResult> GetAllRoles() =>
             ForwardGet($"{BASE_ROLES}");
 
@@ -48,7 +49,8 @@ namespace Gateway.Controllers
             ForwardGet($"{BASE_ROLES}/{userId}");
 
         [HttpPut("roles/update")]
-        public Task<IActionResult> UpdateUserRole([FromBody] object dto) =>
-            ForwardPut($"{BASE_ROLES}/update", dto);
+        public Task<IActionResult> UpdateUserRole(
+        [FromBody] UpdateUserRoleRequest dto) =>
+        ForwardPut($"{BASE_ROLES}/update", dto);
     }
 }

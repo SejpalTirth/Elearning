@@ -1,4 +1,5 @@
-﻿using CourseService.BLL.DTOs;
+﻿using AutoMapper;
+using CourseService.BLL.DTOs;
 using CourseService.BLL.Interface;
 using CourseService.DAL.Models;
 using CourseService.DAL.Repo;
@@ -12,17 +13,20 @@ namespace CourseService.BLL.Service
         private readonly IEnrollmentRepository _enrollRepo;
         private readonly IModuleRepository _moduleRepo;
         private readonly IHttpClientFactory _httpFactory;
+        private readonly IMapper _mapper;
 
         public CourseServiceimpl(
             ICourseRepository repo,
             IEnrollmentRepository enrollRepo,
             IModuleRepository moduleRepo,
-            IHttpClientFactory httpFactory)
+            IHttpClientFactory httpFactory,
+            IMapper mapper)
         {
             _repo = repo;
             _enrollRepo = enrollRepo;
             _moduleRepo = moduleRepo;
             _httpFactory = httpFactory;
+            _mapper = mapper;
         }
 
         // --------------------------------------------------------------------
@@ -31,63 +35,36 @@ namespace CourseService.BLL.Service
         public async Task<IEnumerable<CourseResponseDto>> GetAllAsync()
         {
             var courses = await _repo.GetAllAsync();
-            var output = new List<CourseResponseDto>();
+            var result = new List<CourseResponseDto>();
 
-            foreach (var c in courses)
+            foreach (var course in courses)
             {
-                var instructor = await FetchInstructorAsync(c.InstructorUserId ?? Guid.Empty);
-                var modules = await _moduleRepo.GetByCourseIdAsync(c.Id);
+                var instructor = await FetchInstructorAsync(course.InstructorUserId ?? Guid.Empty);
 
-                output.Add(new CourseResponseDto
-                {
-                    Id = c.Id,
-                    Title = c.Title,
-                    Description = c.Description,
-                    CategoryId = c.CategoryId,
-                    InstructorId = c.InstructorUserId ?? Guid.Empty,
-                    InstructorName = instructor?.Name ?? "Unknown Instructor",
-                    IsDraft = c.IsDraft,
-                    IsDeleted = c.IsDeleted,
-                    Modules = modules.Select(m => new ModuleSummaryDto
-                    {
-                        Id = m.Id,
-                        Title = m.Title,
-                        Content = m.Content
-                    }).ToList()
-                });
+                var dto = _mapper.Map<CourseResponseDto>(course);
+                dto.InstructorName = instructor?.Name ?? "Unknown Instructor";
+
+                result.Add(dto);
             }
 
-            return output;
+            return result;
         }
+
 
         // --------------------------------------------------------------------
         // GET COURSE BY ID
         // --------------------------------------------------------------------
         public async Task<CourseResponseDto?> GetByIdAsync(int id)
         {
-            var c = await _repo.GetByIdAsync(id);
-            if (c == null) return null;
+            var course = await _repo.GetByIdWithModulesAsync(id);
+            if (course == null) return null;
 
-            var instructor = await FetchInstructorAsync(c.InstructorUserId ?? Guid.Empty);
-            var modules = await _moduleRepo.GetByCourseIdAsync(c.Id);
+            var instructor = await FetchInstructorAsync(course.InstructorUserId ?? Guid.Empty);
 
-            return new CourseResponseDto
-            {
-                Id = c.Id,
-                Title = c.Title,
-                Description = c.Description,
-                CategoryId = c.CategoryId,
-                InstructorId = c.InstructorUserId ?? Guid.Empty,
-                InstructorName = instructor?.Name ?? "Unknown Instructor",
-                IsDraft = c.IsDraft,
-                IsDeleted = c.IsDeleted,
-                Modules = modules.Select(m => new ModuleSummaryDto
-                {
-                    Id = m.Id,
-                    Title = m.Title,
-                    Content = m.Content
-                }).ToList()
-            };
+            var dto = _mapper.Map<CourseResponseDto>(course);
+            dto.InstructorName = instructor?.Name ?? "Unknown Instructor";
+
+            return dto;
         }
 
         // --------------------------------------------------------------------
@@ -95,37 +72,14 @@ namespace CourseService.BLL.Service
         // --------------------------------------------------------------------
         public async Task<Course> CreateAsync(CourseDto dto)
         {
-            var course = new Course
-            {
-                Title = dto.Title,
-                Description = dto.Description,
-                CategoryId = dto.CategoryId,
-                InstructorUserId = Guid.Parse(dto.InstructorUserId),
-                IsDeleted = false,
-                IsDraft = true
-            };
+            var course = _mapper.Map<Course>(dto);
 
             await _repo.AddAsync(course);
             await _repo.SaveChangesAsync();
 
-            // Create Modules
-            if (dto.Modules != null)
-            {
-                foreach (var m in dto.Modules)
-                {
-                    await _moduleRepo.AddAsync(new Module
-                    {
-                        Title = m.Title,
-                        Content = m.Content,
-                        CourseId = course.Id
-                    });
-                }
-
-                await _moduleRepo.SaveChangesAsync();
-            }
-
             return course;
         }
+
         // --------------------------------------------------------------------
         // UPDATE COURSE
         // --------------------------------------------------------------------
@@ -134,9 +88,7 @@ namespace CourseService.BLL.Service
             var course = await _repo.GetByIdWithModulesAsync(id);
             if (course == null) return null;
 
-            course.Title = dto.Title;
-            course.Description = dto.Description;
-            course.CategoryId = dto.CategoryId;
+            _mapper.Map(dto, course);
 
             var existingModules = course.Modules.ToList();
 
@@ -146,57 +98,47 @@ namespace CourseService.BLL.Service
                 {
                     var existing = existingModules.FirstOrDefault(x => x.Id == m.Id);
                     if (existing != null)
-                    {
-                        existing.Title = m.Title;
-                        existing.Content = m.Content;
-                    }
+                        _mapper.Map(m, existing);
                 }
                 else
                 {
-                    course.Modules.Add(new Module
-                    {
-                        Title = m.Title,
-                        Content = m.Content,
-                        CourseId = id
-                    });
+                    course.Modules.Add(_mapper.Map<Module>(m));
                 }
             }
 
             var dtoIds = dto.Modules.Where(x => x.Id > 0).Select(x => x.Id).ToList();
-            var removed = existingModules.Where(x => !dtoIds.Contains(x.Id)).ToList();
+            var removed = existingModules.Where(x => !dtoIds.Contains(x.Id));
 
             foreach (var rm in removed)
                 _repo.RemoveModule(rm);
 
             await _repo.SaveChangesAsync();
 
+            // quiz logic unchanged
+            await HandlePublishStateAsync(course);
+
+            return course;
+        }
+
+        private async Task HandlePublishStateAsync(Course course)
+        {
             var client = _httpFactory.CreateClient("AssessmentService");
-            var quizResp = await client.GetAsync($"api/assessment/course-status/{id}");
+            var quizResp = await client.GetAsync($"api/assessment/course-status/{course.Id}");
 
             bool allQuizzesCreated = false;
 
             if (quizResp.IsSuccessStatusCode)
             {
                 var data = await quizResp.Content.ReadFromJsonAsync<CourseQuizStatusDto>();
-                if (data != null)
-                    allQuizzesCreated = data.AllQuizzesCreated;
+                allQuizzesCreated = data?.AllQuizzesCreated ?? false;
             }
 
-            if (!allQuizzesCreated)
-            {
-                course.IsDraft = true;
-                course.IsDeleted = false;
-            }
-            else
-            {
-                course.IsDraft = false;
-                course.IsDeleted = false;
-            }
+            course.IsDraft = !allQuizzesCreated;
+            course.IsDeleted = false;
 
             await _repo.SaveChangesAsync();
-
-            return course;
         }
+
 
         // --------------------------------------------------------------------
         // ENROLL USER

@@ -1,8 +1,10 @@
+using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
-using NotificationService.DAL.Data;
-using NotificationService.DAL.Repo;
 using NotificationService.BLL.Interface;
 using NotificationService.BLL.Service;
+using NotificationService.BLL.Validators;
+using NotificationService.DAL.Data;
+using NotificationService.DAL.Repo;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,7 +27,14 @@ builder.Services.AddDbContext<NotificationDbContext>(options =>
 // Register Repository + Services
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<INotificationService, NotificationServiceImpl>();
-builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();   // SMTP email sender
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+
+//Fluent Validation
+builder.Services.AddControllers()
+    .AddFluentValidation(fv =>
+    {
+        fv.RegisterValidatorsFromAssemblyContaining<EmailRequestValidator>();
+    });
 
 var app = builder.Build();
 

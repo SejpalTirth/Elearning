@@ -11,46 +11,61 @@ namespace ProgressService.Web.Controllers
         private readonly IProgressService _service;
         private readonly IHttpClientFactory _httpClientFactory;
 
-        public ProgressController(IProgressService service, IHttpClientFactory httpClientFactory)
+        public ProgressController(
+            IProgressService service,
+            IHttpClientFactory httpClientFactory)
         {
             _service = service;
             _httpClientFactory = httpClientFactory;
         }
 
         // GET → user progress
-        [HttpGet("{userId}")]
+        [HttpGet("{userId:guid}")]
         public async Task<IActionResult> GetUserProgress(Guid userId)
         {
+            if (userId == Guid.Empty)
+                return BadRequest("userId cannot be empty.");
+
             var data = await _service.GetUserProgressAsync(userId);
             return Ok(data);
         }
 
-        // POST → Complete Module (Only userId + moduleId)
+        // POST → Complete Module
         [HttpPost("complete-module")]
-        public async Task<IActionResult> CompleteModule([FromBody] ModuleCompleteRequest request)
+        public async Task<IActionResult> CompleteModule(
+            [FromBody] ModuleCompleteRequest request)
         {
-            if (request == null)
-                return BadRequest("Invalid request body.");
+            if (request.ModuleId <= 0)
+                return BadRequest("moduleId must be greater than zero.");
 
-            // Call CourseService to get the correct courseId for this module
+            if (request.UserId == Guid.Empty)
+                return BadRequest("userId cannot be empty.");
+
             var client = _httpClientFactory.CreateClient("CourseService");
 
-            CourseIdResponse? courseInfo = null;
+            CourseIdResponseDTO? courseInfo;
 
             try
             {
-                courseInfo = await client.GetFromJsonAsync<CourseIdResponse>(
+                courseInfo = await client.GetFromJsonAsync<CourseIdResponseDTO>(
                     $"api/Modules/course-id/{request.ModuleId}");
             }
             catch
             {
-                return BadRequest(new { message = "Failed to fetch course info from CourseService." });
+                return BadRequest(new
+                {
+                    message = "Failed to fetch course info from CourseService."
+                });
             }
 
             if (courseInfo == null)
-                return NotFound(new { message = $"Module {request.ModuleId} not found in CourseService." });
+            {
+                return NotFound(new
+                {
+                    message = $"Module {request.ModuleId} not found in CourseService."
+                });
+            }
 
-            // Now call existing service with correct courseId
             await _service.MarkModuleCompletedAsync(
                 request.UserId,
                 courseInfo.CourseId,
@@ -64,12 +79,5 @@ namespace ProgressService.Web.Controllers
                 courseId = courseInfo.CourseId
             });
         }
-    }
-
-    // DTO returned by CourseService
-    public class CourseIdResponse
-    {
-        public int CourseId { get; set; }
-        public int ModuleId { get; set; }
     }
 }
