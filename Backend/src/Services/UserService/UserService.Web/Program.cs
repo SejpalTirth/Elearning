@@ -3,6 +3,9 @@ using UserService.BLL.Interface;
 using UserService.BLL.Mapping;
 using UserService.DAL.Models;
 using UserService.DAL.Repo;
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using UserService.BLL.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +21,13 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserServiceImpl>();
 
 builder.Services.AddAutoMapper(typeof(UserProfile));
+
+//Fluent Validation
+builder.Services.AddControllers()
+    .AddFluentValidation(fv =>
+    {
+        fv.RegisterValidatorsFromAssemblyContaining<CompleteProfileDtoValidator>();
+    });
 
 builder.Services.AddCors(options =>
 {

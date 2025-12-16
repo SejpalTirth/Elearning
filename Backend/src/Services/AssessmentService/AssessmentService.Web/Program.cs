@@ -3,6 +3,9 @@ using AssessmentService.DAL.Repo;
 using AssessmentService.BLL.Interfaces;
 using AssessmentService.BLL.Services;
 using Microsoft.EntityFrameworkCore;
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using AssessmentService.BLL.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,6 +36,17 @@ builder.Services.AddScoped<ISubmissionRepository, SubmissionRepository>();
 
 // Register BLL Services
 builder.Services.AddScoped<IAssessmentService, AssessmentServiceImpl>();
+
+//Fluent Validation
+builder.Services.AddControllers()
+    .AddFluentValidation(fv =>
+    {
+        fv.RegisterValidatorsFromAssemblyContaining<CreateQuizDtoValidator>();
+    });
+
+// AutoMapper
+builder.Services.AddAutoMapper(typeof(AssessmentProfile));
+
 
 var app = builder.Build();
 

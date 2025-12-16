@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Gateway.Contracts.Course;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Gateway.Controllers
@@ -46,14 +47,14 @@ namespace Gateway.Controllers
             Forward(new HttpRequestMessage(HttpMethod.Get, $"{BASE}/{id}"));
 
         [HttpPost]
-        public Task<IActionResult> Create([FromBody] object dto) =>
+        public Task<IActionResult> Create([FromBody] Course dto) =>
             Forward(new HttpRequestMessage(HttpMethod.Post, BASE)
             {
                 Content = JsonContent.Create(dto)
             });
 
         [HttpPut("{id:int}")]
-        public Task<IActionResult> Update(int id, [FromBody] object dto) =>
+        public Task<IActionResult> Update(int id, [FromBody] UpdateCourse dto) =>
             Forward(new HttpRequestMessage(HttpMethod.Put, $"{BASE}/{id}")
             {
                 Content = JsonContent.Create(dto)
@@ -82,7 +83,7 @@ namespace Gateway.Controllers
         // ------------------- ENROLLMENT -------------------
 
         [HttpPost("enroll")]
-        public Task<IActionResult> Enroll([FromBody] object dto) =>
+        public Task<IActionResult> Enroll([FromBody] EnrollRequest dto) =>
             Forward(new HttpRequestMessage(HttpMethod.Post, $"{BASE}/enroll")
             {
                 Content = JsonContent.Create(dto)

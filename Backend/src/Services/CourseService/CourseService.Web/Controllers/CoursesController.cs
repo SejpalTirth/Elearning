@@ -4,28 +4,38 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CourseService.Web.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/[controller]")]
     public class CoursesController : ControllerBase
     {
         private readonly ICourseService _courseService;
         private readonly IModuleService _moduleService;
+        private readonly IHttpClientFactory _httpClientFactory;
 
-        public CoursesController(ICourseService courseService, IModuleService moduleService)
+        public CoursesController(
+            ICourseService courseService,
+            IModuleService moduleService,
+            IHttpClientFactory httpClientFactory)
         {
             _courseService = courseService;
             _moduleService = moduleService;
+            _httpClientFactory = httpClientFactory;
         }
 
         // ---------------- GET COURSES BY INSTRUCTOR ----------------
+
         [HttpGet("instructor/{instructorId:guid}")]
         public async Task<IActionResult> GetByInstructor(Guid instructorId)
         {
+            if (instructorId == Guid.Empty)
+                return BadRequest("userId cannot be empty.");
+
             var courses = await _courseService.GetCoursesByInstructorAsync(instructorId);
             return Ok(courses);
         }
 
-        // ---------------- GET ALL ----------------
+        // ---------------- GET ALL COURSES ----------------
+
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -33,43 +43,56 @@ namespace CourseService.Web.Controllers
         }
 
         // ---------------- GET COURSE BY ID ----------------
+
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
+            if (id <= 0)
+                return BadRequest("courseId must be greater than zero.");
+
             var course = await _courseService.GetByIdAsync(id);
             return course == null ? NotFound() : Ok(course);
         }
 
         // ---------------- CREATE COURSE ----------------
+
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CourseDto dto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            if (string.IsNullOrWhiteSpace(dto.InstructorUserId))
-                return BadRequest(new { message = "InstructorUserId is required." });
-
             var created = await _courseService.CreateAsync(dto);
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
 
         // ---------------- UPDATE COURSE ----------------
+
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateCourseDto dto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            if (id <= 0)
+                return BadRequest("courseId must be greater than zero.");
 
             var updated = await _courseService.UpdateAsync(id, dto);
             return updated == null ? NotFound() : Ok(updated);
         }
 
+        // ---------------- DELETE COURSE ----------------
+
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            if (id <= 0)
+                return BadRequest("courseId must be greater than zero.");
+
+            var deleted = await _courseService.DeleteAsync(id);
+            return deleted ? Ok() : NotFound("The course cannot be found.");
+        }
+
         // ---------------- ENROLL USER ----------------
+
         [HttpPost("enroll")]
         public async Task<IActionResult> Enroll([FromBody] EnrollRequestDto dto)
         {
-            bool success = await _courseService.EnrollUserAsync(dto);
+            var success = await _courseService.EnrollUserAsync(dto);
             if (!success)
                 return BadRequest("User already enrolled.");
 
@@ -79,12 +102,12 @@ namespace CourseService.Web.Controllers
 
             try
             {
-                using var userClient = new HttpClient
-                {
-                    BaseAddress = new Uri("https://localhost:7130")
-                };
+                var userClient = _httpClientFactory.CreateClient("UserService");
+                var notificationClient = _httpClientFactory.CreateClient("NotificationService");
 
-                var user = await userClient.GetFromJsonAsync<UserInfo>($"/api/users/{dto.UserId}");
+                var user = await userClient
+                    .GetFromJsonAsync<UserInfoDto>($"/api/users/{dto.UserId}");
+
                 if (user == null || string.IsNullOrWhiteSpace(user.Email))
                     return Ok("Enrollment successful (user email not found).");
 
@@ -104,12 +127,8 @@ namespace CourseService.Web.Controllers
                     }
                 };
 
-                using var notificationClient = new HttpClient
-                {
-                    BaseAddress = new Uri("https://localhost:7245")
-                };
-
-                await notificationClient.PostAsJsonAsync("/api/notification/trigger", triggerPayload);
+                await notificationClient
+                    .PostAsJsonAsync("/api/notification/trigger", triggerPayload);
             }
             catch (Exception ex)
             {
@@ -120,67 +139,76 @@ namespace CourseService.Web.Controllers
         }
 
         // ---------------- GET ENROLLED COURSES ----------------
-        [HttpGet("enrolled/{userId}")]
-        public async Task<IActionResult> GetEnrolledCourses(string userId)
+
+        [HttpGet("enrolled/{userId:guid}")]
+        public async Task<IActionResult> GetEnrolledCourses(Guid userId)
         {
-            return Ok(await _courseService.GetUserEnrolledCoursesAsync(userId));
+            if (userId == Guid.Empty)
+                return BadRequest("userId cannot be empty.");
+
+            return Ok(await _courseService.GetUserEnrolledCoursesAsync(userId.ToString()));
         }
 
         // ---------------- MODULE ROUTES ----------------
+
         [HttpGet("{courseId:int}/modules")]
         public async Task<IActionResult> GetModulesForCourse(int courseId)
         {
+            if (courseId <= 0)
+                return BadRequest("courseId must be greater than zero.");
+
             return Ok(await _moduleService.GetModulesByCourseAsync(courseId));
         }
 
-        [HttpDelete("{id:int}")]
-        public async Task<IActionResult> Delete(int id)
-        {
-            var deleted = await _courseService.DeleteAsync(id);
-            return deleted ? Ok() : NotFound("The course cannot be found");
-        }
-
         // ---------------- COURSE PUBLISH ----------------
+
         [HttpPost("{courseId:int}/publish")]
         public async Task<IActionResult> PublishCourse(int courseId)
         {
-            bool success = await _courseService.PublishCourseIfReadyAsync(courseId);
+            if (courseId <= 0)
+                return BadRequest("courseId must be greater than zero.");
 
+            var success = await _courseService.PublishCourseIfReadyAsync(courseId);
             if (!success)
                 return BadRequest("All modules must have a quiz before publishing.");
 
             return Ok("Course published successfully.");
         }
 
-        // ================== GET UNFINISHED COURSE FOR INSTRUCTOR ==================
+        // ---------------- UNFINISHED COURSES ----------------
+
         [HttpGet("unfinished/{instructorId:guid}")]
         public async Task<IActionResult> GetUnfinishedCourses(Guid instructorId)
         {
-            var courses = await _courseService.GetAllUnfinishedCoursesAsync(instructorId);
-            return Ok(courses);
+            if (instructorId == Guid.Empty)
+                return BadRequest("userId cannot be empty.");
+
+            return Ok(await _courseService.GetAllUnfinishedCoursesAsync(instructorId));
         }
 
-        // ================== CONTINUE COURSE ==================
+        // ---------------- CONTINUE COURSE ----------------
+
         [HttpPost("continue/{courseId:int}")]
         public async Task<IActionResult> ContinueCourse(int courseId)
         {
-            var result = await _courseService.ContinueUnfinishedCourseAsync(courseId);
-            return Ok(result);
+            if (courseId <= 0)
+                return BadRequest("courseId must be greater than zero.");
+
+            return Ok(await _courseService.ContinueUnfinishedCourseAsync(courseId));
         }
+
+        // ---------------- RESTORE COURSE ----------------
 
         [HttpPut("{id:int}/restore")]
         public async Task<IActionResult> Restore(int id)
         {
+            if (id <= 0)
+                return BadRequest("courseId must be greater than zero.");
+
             var restored = await _courseService.RestoreAsync(id);
-            return restored ? Ok("Course restored successfully.") : NotFound("Course not found.");
-        }
-
-
-        private class UserInfo
-        {
-            public Guid Id { get; set; }
-            public string Email { get; set; } = string.Empty;
-            public string? Name { get; set; }
+            return restored
+                ? Ok("Course restored successfully.")
+                : NotFound("Course not found.");
         }
     }
 }

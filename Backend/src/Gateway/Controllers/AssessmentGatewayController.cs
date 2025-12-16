@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Gateway.Contracts.Assessment;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Gateway.Controllers
@@ -62,14 +63,14 @@ namespace Gateway.Controllers
         // ------------------- QUIZ CREATION -------------------
 
         [HttpPost("quiz")]
-        public Task<IActionResult> CreateQuiz([FromBody] object dto) =>
+        public Task<IActionResult> CreateQuiz([FromBody] CreateQuiz dto) =>
             Forward(new HttpRequestMessage(HttpMethod.Post, $"{BASE}/quiz")
             {
                 Content = JsonContent.Create(dto)
             });
 
         [HttpPost("quiz/{quizId:int}/questions")]
-        public Task<IActionResult> AddQuestion(int quizId, [FromBody] object dto) =>
+        public Task<IActionResult> AddQuestion(int quizId, [FromBody] CreateQuestion dto) =>
             Forward(new HttpRequestMessage(HttpMethod.Post, $"{BASE}/quiz/{quizId}/questions")
             {
                 Content = JsonContent.Create(dto)
@@ -78,7 +79,7 @@ namespace Gateway.Controllers
         // ------------------- QUIZ SUBMISSION -------------------
 
         [HttpPost("submit")]
-        public Task<IActionResult> Submit([FromBody] object dto) =>
+        public Task<IActionResult> Submit([FromBody] SubmitQuiz dto) =>
             Forward(new HttpRequestMessage(HttpMethod.Post, $"{BASE}/submit")
             {
                 Content = JsonContent.Create(dto)

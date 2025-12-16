@@ -6,6 +6,7 @@ using CourseService.DAL.Repo;
 using Moq;
 using System.Net;
 using System.Text.Json;
+using AutoMapper;
 
 namespace LMS.Tests.CourseService
 {
@@ -15,6 +16,7 @@ namespace LMS.Tests.CourseService
         private readonly Mock<IEnrollmentRepository> _enrollRepo;
         private readonly Mock<IModuleRepository> _moduleRepo;
         private readonly Mock<IHttpClientFactory> _httpFactory;
+        private readonly Mock<IMapper> _mapperMock;
 
         private readonly FakeHandler _userHandler;
         private readonly FakeHandler _assessmentHandler;
@@ -37,6 +39,7 @@ namespace LMS.Tests.CourseService
             _enrollRepo = new Mock<IEnrollmentRepository>();
             _moduleRepo = new Mock<IModuleRepository>();
             _httpFactory = new Mock<IHttpClientFactory>();
+            _mapperMock = new Mock<IMapper>();
 
             // Fake API handlers
             _userHandler = new FakeHandler();
@@ -228,41 +231,38 @@ namespace LMS.Tests.CourseService
 
 
         // -------------------------------------------------------
-        // GET UNFINISHED COURSE
+        // GET UNFINISHED COURSES
         // -------------------------------------------------------
         [Fact]
-        public async Task GetUnfinishedCourseAsync_ShouldReturnDto()
+        public async Task GetAllUnfinishedCoursesAsync_ShouldReturnUnfinishedCourses()
         {
-            var c = new Course
+            var instructorId = Guid.NewGuid();
+            var courses = new List<Course>
             {
-                Id = 3,
-                Title = "Draft Course",
-                Description = "D",
-                CategoryId = 1
+                new Course
+                {
+                    Id = 3,
+                    Title = "Draft Course",
+                    Description = "D",
+                    CategoryId = 1,
+                    InstructorUserId = instructorId,
+                    IsDraft = true,
+                    IsDeleted = false
+                }
             };
 
-            _courseRepo.Setup(r => r.GetLatestUnfinishedCourseAsync(It.IsAny<Guid>()))
-                .ReturnsAsync(c);
+            _courseRepo.Setup(r => r.GetAllAsync())
+                .ReturnsAsync(courses);
 
             var service = CreateService();
 
-            var res = await service.GetUnfinishedCourseAsync(Guid.NewGuid());
+            var res = (await service.GetAllUnfinishedCoursesAsync(instructorId)).ToList();
 
-            Assert.NotNull(res);
-
-            // --- FIX: Use reflection instead of dynamic ---
-            var type = res.GetType();
-
-            var idProp =
-                type.GetProperty("Id") ??
-                type.GetProperty("id");   // handles any casing in the anonymous type
-
-            Assert.NotNull(idProp);
-
-            var idValue = idProp!.GetValue(res);
-
-            Assert.Equal(3, (int)idValue!);
+            Assert.NotEmpty(res);
+            Assert.Single(res);
+            Assert.Equal(3, res[0].Id);
         }
+
         // -------------------------------------------------------
         // CONTINUE COURSE
         // -------------------------------------------------------
@@ -357,7 +357,8 @@ namespace LMS.Tests.CourseService
                 _courseRepo.Object,
                 _enrollRepo.Object,
                 _moduleRepo.Object,
-                _httpFactory.Object
+                _httpFactory.Object,
+                _mapperMock.Object
             );
         }
     }

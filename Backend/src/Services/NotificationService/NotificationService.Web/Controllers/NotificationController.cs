@@ -15,25 +15,59 @@ namespace NotificationService.Web.Controllers
             _service = service;
         }
 
+        // ---------------- Direct Email ----------------
+
         [HttpPost("send")]
         public async Task<IActionResult> Send([FromBody] EmailRequest req)
         {
+            if (req.UserId == Guid.Empty)
+                return BadRequest("UserId cannot be empty.");
+
             await _service.SendEmailAsync(req.UserId, req.Subject, req.Body);
-            return Ok("Sent");
+            return Ok("Email sent successfully.");
         }
+
+        // ---------------- Template Email ----------------
 
         [HttpPost("template/send")]
-        public async Task<IActionResult> SendTemplate([FromBody] TemplateRequest req)
+        public async Task<IActionResult> SendTemplate([FromBody] TemplateRequestDTO req)
         {
-            await _service.SendEmailByTemplateAsync(req.UserId, req.TemplateName, req.Model);
-            return Ok("Sent using template");
+            if (req.UserId == Guid.Empty)
+                return BadRequest("UserId cannot be empty.");
+
+            await _service.SendEmailByTemplateAsync(
+                req.UserId,
+                req.TemplateName,
+                req.Model
+            );
+
+            return Ok("Template email sent successfully.");
         }
 
-        [HttpGet("{userId}")]
+        // ---------------- User Notifications ----------------
+
+        [HttpGet("{userId:guid}")]
         public async Task<IActionResult> GetUserNotifications(Guid userId)
         {
+            if (userId == Guid.Empty)
+                return BadRequest("UserId cannot be empty.");
+
             return Ok(await _service.GetUserNotificationsAsync(userId));
         }
+
+        // ---------------- Triggered Notification ----------------
+
+        [HttpPost("trigger")]
+        [Consumes("application/json")]
+        public async Task<IActionResult> TriggerNotification(
+            [FromBody] TriggerNotificationDto request)
+        {
+            await _service.HandleTriggeredNotificationAsync(request);
+            return Ok("Notification processed successfully.");
+        }
+
+        // ---------------- Test Endpoint (Demo only) ----------------
+        // NOTE: Keep for development/demo purposes only
 
         [HttpGet("test")]
         public async Task<IActionResult> Test()
@@ -44,32 +78,7 @@ namespace NotificationService.Web.Controllers
                 "This is a successful test email from Notification Service!"
             );
 
-            return Ok("Test email sent!");
+            return Ok("Test email sent.");
         }
-
-        [HttpPost("trigger")]
-        [Consumes("application/json")]
-        public async Task<IActionResult> TriggerNotification([FromBody] TriggerNotificationDto request)
-        {
-            await _service.HandleTriggeredNotificationAsync(request);
-            return Ok("Notification processed");
-        }
-
-
-
-    }
-
-    public class EmailRequest
-    {
-        public Guid UserId { get; set; }
-        public string Subject { get; set; }
-        public string Body { get; set; }
-    }
-
-    public class TemplateRequest
-    {
-        public Guid UserId { get; set; }
-        public string TemplateName { get; set; }
-        public object Model { get; set; }
     }
 }

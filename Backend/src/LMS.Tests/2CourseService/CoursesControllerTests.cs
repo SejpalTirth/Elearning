@@ -12,6 +12,7 @@ namespace LMS.Tests.CourseService
     {
         private readonly Mock<ICourseService> _courseMock;
         private readonly Mock<IModuleService> _moduleMock;
+        private readonly Mock<IHttpClientFactory> _httpClientFactoryMock;
         private readonly CoursesController _controller;
         private readonly Fixture _fixture;
 
@@ -26,8 +27,9 @@ namespace LMS.Tests.CourseService
 
             _courseMock = new Mock<ICourseService>();
             _moduleMock = new Mock<IModuleService>();
+            _httpClientFactoryMock = new Mock<IHttpClientFactory>();
 
-            _controller = new CoursesController(_courseMock.Object, _moduleMock.Object);
+            _controller = new CoursesController(_courseMock.Object, _moduleMock.Object, _httpClientFactoryMock.Object);
         }
 
         // -----------------------------------------------------
@@ -184,12 +186,13 @@ namespace LMS.Tests.CourseService
         [Fact]
         public async Task GetEnrolledCourses_ShouldReturnList()
         {
+            var userId = Guid.NewGuid();
             var list = _fixture.CreateMany<Course>(2).ToList();
 
-            _courseMock.Setup(s => s.GetUserEnrolledCoursesAsync("123"))
+            _courseMock.Setup(s => s.GetUserEnrolledCoursesAsync(userId.ToString()))
                        .Returns(Task.FromResult((IEnumerable<Course>)list));
 
-            var result = await _controller.GetEnrolledCourses("123") as OkObjectResult;
+            var result = await _controller.GetEnrolledCourses(userId) as OkObjectResult;
 
             Assert.NotNull(result);
             Assert.Equal(list, result!.Value);
@@ -237,24 +240,6 @@ namespace LMS.Tests.CourseService
 
             Assert.NotNull(result);
             Assert.Contains("modules must have a quiz", result!.Value!.ToString());
-        }
-
-        // -----------------------------------------------------
-        // UNFINISHED COURSE
-        // -----------------------------------------------------
-        [Fact]
-        public async Task GetUnfinishedCourse_ShouldReturnCourse()
-        {
-            var instructorId = Guid.NewGuid();
-            var dto = new { id = 1, title = "Test Course", description = "Test", categoryId = 1 };
-
-            _courseMock.Setup(s => s.GetUnfinishedCourseAsync(instructorId))
-                       .Returns(Task.FromResult((object?)dto));
-
-            var result = await _controller.GetUnfinishedCourse(instructorId) as OkObjectResult;
-
-            Assert.NotNull(result);
-            Assert.Equal(dto, result!.Value);
         }
 
         // -----------------------------------------------------

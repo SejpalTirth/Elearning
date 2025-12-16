@@ -2,6 +2,7 @@
 using AssessmentService.BLL.Interfaces;
 using AssessmentService.DAL.Models;
 using AssessmentService.DAL.Repo;
+using AutoMapper;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -13,6 +14,7 @@ namespace AssessmentService.BLL.Services
         private readonly ISubmissionRepository _submissionRepo;
         private readonly IQuestionRepository _questionRepo;
         private readonly IHttpClientFactory _httpFactory;
+        private readonly IMapper _mapper;
 
         private const decimal PASS_PERCENTAGE = 67m;
 
@@ -20,12 +22,14 @@ namespace AssessmentService.BLL.Services
             IQuizRepository quizRepo,
             ISubmissionRepository submissionRepo,
             IQuestionRepository questionRepo,
-            IHttpClientFactory httpFactory)
+            IHttpClientFactory httpFactory,
+            IMapper mapper)
         {
             _quizRepo = quizRepo;
             _submissionRepo = submissionRepo;
             _questionRepo = questionRepo;
             _httpFactory = httpFactory;
+            _mapper = mapper;
         }
 
         // CREATE QUIZ
@@ -72,32 +76,19 @@ namespace AssessmentService.BLL.Services
         }
 
         // implemented interface helper methods
-        public async Task<IEnumerable<object>> GetAllQuizzesAsync()
+        public async Task<IEnumerable<QuizSummaryDto>> GetAllQuizzesAsync()
         {
-            var data = await _quizRepo.GetAllAsync();
-            return data.Select(q => new { q.Id, q.Title });
+            var quizzes = await _quizRepo.GetAllAsync();
+            return _mapper.Map<IEnumerable<QuizSummaryDto>>(quizzes);
         }
 
-        public async Task<object?> GetQuizByIdAsync(int id)
+        public async Task<QuizDetailDto?> GetQuizByIdAsync(int id)
         {
             var quiz = await _quizRepo.GetByIdWithDetailsAsync(id);
-            if (quiz == null) return null;
-
-            return new
-            {
-                quiz.Id,
-                quiz.Title,
-                quiz.TotalMarks,
-                Questions = quiz.Questions.Select(q => new
-                {
-                    q.Id,
-                    q.QuestionText,
-                    q.Marks
-                })
-            };
+            return quiz == null ? null : _mapper.Map<QuizDetailDto>(quiz);
         }
 
-        public async Task<object?> GetSubmissionResultAsync(Guid submissionId)
+        public async Task<QuizResultDto?> GetSubmissionResultAsync(Guid submissionId)
         {
             var submission = await _submissionRepo.GetByIdAsync(submissionId);
             if (submission == null) return null;
@@ -106,7 +97,9 @@ namespace AssessmentService.BLL.Services
             if (quiz == null) return null;
 
             int totalMarks = quiz.TotalMarks ?? quiz.Questions.Sum(q => q.Marks);
-            var percentage = Math.Round((decimal)(submission.Score ?? 0) / totalMarks * 100m, 2);
+            var percentage = Math.Round(
+                (decimal)(submission.Score ?? 0) / totalMarks * 100m, 2
+            );
 
             return new QuizResultDto
             {
@@ -120,38 +113,28 @@ namespace AssessmentService.BLL.Services
                     : "Try again to improve your score."
             };
         }
+
         // ADD QUESTION
         public async Task<object> AddQuestionAsync(int quizId, CreateQuestionDto dto)
         {
             var quiz = await _quizRepo.GetByIdAsync(quizId);
-            if (quiz == null)
-                return new { message = "Quiz not found." };
+            if (quiz == null) return new { message = "Quiz not found." };
 
-            if (dto.Options == null || dto.Options.Count < 2)
-                return new { message = "A question must have minimum 2 options." };
+            ValidateQuestion(dto);
 
-            if (dto.CorrectAnswerIndex < 0 || dto.CorrectAnswerIndex >= dto.Options.Count)
-                return new { message = "CorrectAnswerIndex is out of range." };
+            var question = _mapper.Map<Question>(dto);
+            question.QuizId = quizId;
 
-            var question = new Question
-            {
-                QuizId = quizId,
-                QuestionText = dto.Text,
-                QuestionType = "MCQ",
-                Marks = dto.Marks
-            };
-
-            foreach (var (option, index) in dto.Options.Select((o, i) => (o, i)))
+            for (int i = 0; i < dto.Options.Count; i++)
             {
                 question.Answers.Add(new Answer
                 {
-                    AnswerText = option,
-                    IsCorrect = index == dto.CorrectAnswerIndex
+                    AnswerText = dto.Options[i],
+                    IsCorrect = i == dto.CorrectAnswerIndex
                 });
             }
 
             await _questionRepo.AddAsync(question);
-            await _questionRepo.SaveChangesAsync();
 
             quiz.TotalMarks = (quiz.TotalMarks ?? 0) + dto.Marks;
             await _quizRepo.SaveChangesAsync();
@@ -160,114 +143,52 @@ namespace AssessmentService.BLL.Services
         }
 
         // GET QUIZ FOR MODULE
-        public async Task<object?> GetQuizForModuleAsync(int moduleId, Guid userId)
+        public async Task<QuizForModuleDto?> GetQuizForModuleAsync(int moduleId, Guid userId)
         {
             var quiz = await _quizRepo.GetByModuleIdAsync(moduleId);
             if (quiz == null) return null;
 
-            var totalMarks = quiz.Questions.Sum(q => q.Marks);
-            var best = await _submissionRepo.GetBestSubmissionAsync(quiz.Id, userId);
+            var dto = _mapper.Map<QuizForModuleDto>(quiz);
+            dto.ModuleId = moduleId;
 
-            bool alreadyPassed = false;
-            if (best != null && best.Score.HasValue)
+            var best = await _submissionRepo.GetBestSubmissionAsync(quiz.Id, userId);
+            if (best?.Score != null)
             {
-                var percent = Math.Round((decimal)best.Score.Value / totalMarks * 100m, 2);
-                alreadyPassed = percent >= PASS_PERCENTAGE;
+                dto.AlreadyPassed =
+                    CalculatePercentage(best.Score.Value, dto.TotalMarks) >= PASS_PERCENTAGE;
             }
 
-            return new
-            {
-                QuizId = quiz.Id,
-                ModuleId = moduleId,
-                Title = quiz.Title,
-                TimeLimitMinutes = quiz.TimeLimitMinutes,
-                TotalMarks = totalMarks,
-                AlreadyPassed = alreadyPassed,
-                Questions = quiz.Questions.Select(q => new
-                {
-                    QuestionId = q.Id,
-                    Text = q.QuestionText,
-                    Marks = q.Marks,
-                    Answers = q.Answers.Select(a => new { a.Id, a.AnswerText })
-                }).ToList()
-            };
+            return dto;
         }
 
         // SUBMIT QUIZ
-        public async Task<object> SubmitQuizAsync(SubmitQuizDto dto)
+        public async Task<QuizResultDto> SubmitQuizAsync(SubmitQuizDto dto)
         {
-            var quiz = await _quizRepo.GetByIdWithDetailsAsync(dto.QuizId);
-            if (quiz == null)
-                return new { message = "Quiz not found." };
+            var quiz = await _quizRepo.GetByIdWithDetailsAsync(dto.QuizId)
+                ?? throw new Exception("Quiz not found.");
 
             int totalMarks = quiz.Questions.Sum(q => q.Marks);
             int totalQuestions = quiz.Questions.Count;
 
             var previous = await _submissionRepo.GetBestSubmissionAsync(dto.QuizId, dto.UserId);
+            if (HasAlreadyPassed(previous, totalMarks))
+                return BuildAlreadyPassedResult(previous!, quiz, totalMarks, totalQuestions);
 
-            if (previous != null && previous.Score.HasValue)
-            {
-                var prevPercentage = Math.Round((decimal)previous.Score.Value / totalMarks * 100m, 2);
-                if (prevPercentage >= PASS_PERCENTAGE)
-                {
-                    return new QuizResultDto
-                    {
-                        SubmissionId = previous.Id,
-                        TotalQuestions = totalQuestions,
-                        TotalMarks = totalMarks,
-                        ObtainedMarks = previous.Score ?? 0,
-                        Percentage = prevPercentage,
-                        Passed = true,
-                        AlreadyPassed = true,
-                        StatusMessage = "You already passed. No further attempts allowed."
-                    };
-                }
-            }
-
-            int obtainedMarks = 0;
-            int correctAnswers = 0;
-
-            foreach (var q in quiz.Questions)
-            {
-                var submitted = dto.Answers.FirstOrDefault(x => x.QuestionId == q.Id);
-                if (submitted == null) continue;
-
-                var correctAns = q.Answers.FirstOrDefault(x => x.IsCorrect);
-                if (correctAns != null && submitted.SelectedAnswerId == correctAns.Id)
-                {
-                    correctAnswers++;
-                    obtainedMarks += q.Marks;
-                }
-            }
-
-            decimal percentage = Math.Round((decimal)obtainedMarks / totalMarks * 100m, 2);
-            bool passed = percentage >= PASS_PERCENTAGE;
+            var (obtained, correct) = EvaluateQuiz(quiz, dto);
+            var percentage = CalculatePercentage(obtained, totalMarks);
 
             var submission = new QuizSubmission
             {
                 QuizId = quiz.Id,
                 UserId = dto.UserId,
-                Score = obtainedMarks,
+                Score = obtained,
                 SubmittedData = JsonSerializer.Serialize(dto.Answers)
             };
 
             await _submissionRepo.AddAsync(submission);
             await _submissionRepo.SaveChangesAsync();
 
-            return new QuizResultDto
-            {
-                SubmissionId = submission.Id,
-                TotalQuestions = totalQuestions,
-                TotalMarks = totalMarks,
-                ObtainedMarks = obtainedMarks,
-                CorrectAnswers = correctAnswers,
-                Percentage = percentage,
-                Passed = passed,
-                AlreadyPassed = false,
-                StatusMessage = passed
-                    ? $"🎉 Passed! You scored {obtainedMarks}/{totalMarks}."
-                    : $"❌ You scored {obtainedMarks}/{totalMarks}. Minimum passing: {PASS_PERCENTAGE}%"
-            };
+            return BuildResult(submission, obtained, correct, totalMarks, totalQuestions, percentage);
         }
 
         // PUBLIC: Get module IDs without quiz
@@ -373,6 +294,93 @@ namespace AssessmentService.BLL.Services
 
             return missing;
         }
+
+        private static decimal CalculatePercentage(int obtained, int total)
+        {
+            return total == 0 ? 0 : Math.Round((decimal)obtained / total * 100m, 2);
+        }
+
+        private static bool HasAlreadyPassed(QuizSubmission? submission, int totalMarks)
+        {
+            if (submission?.Score == null) return false;
+            return CalculatePercentage(submission.Score.Value, totalMarks) >= PASS_PERCENTAGE;
+        }
+
+        private static (int obtained, int correct) EvaluateQuiz(Quiz quiz, SubmitQuizDto dto)
+        {
+            int obtained = 0;
+            int correct = 0;
+
+            foreach (var q in quiz.Questions)
+            {
+                var submitted = dto.Answers.FirstOrDefault(a => a.QuestionId == q.Id);
+                if (submitted == null) continue;
+
+                var correctAns = q.Answers.FirstOrDefault(a => a.IsCorrect);
+                if (correctAns != null && submitted.SelectedAnswerId == correctAns.Id)
+                {
+                    correct++;
+                    obtained += q.Marks;
+                }
+            }
+
+            return (obtained, correct);
+        }
+
+        private static QuizResultDto BuildAlreadyPassedResult(
+            QuizSubmission submission,
+            Quiz quiz,
+            int totalMarks,
+            int totalQuestions)
+        {
+            var percentage = CalculatePercentage(submission.Score ?? 0, totalMarks);
+
+            return new QuizResultDto
+            {
+                SubmissionId = submission.Id,
+                TotalQuestions = totalQuestions,
+                TotalMarks = totalMarks,
+                ObtainedMarks = submission.Score ?? 0,
+                Percentage = percentage,
+                Passed = true,
+                AlreadyPassed = true,
+                StatusMessage = "You already passed. No further attempts allowed."
+            };
+        }
+
+        private static QuizResultDto BuildResult(
+            QuizSubmission submission,
+            int obtained,
+            int correct,
+            int totalMarks,
+            int totalQuestions,
+            decimal percentage)
+        {
+            return new QuizResultDto
+            {
+                SubmissionId = submission.Id,
+                TotalQuestions = totalQuestions,
+                TotalMarks = totalMarks,
+                ObtainedMarks = obtained,
+                CorrectAnswers = correct,
+                Percentage = percentage,
+                Passed = percentage >= PASS_PERCENTAGE,
+                AlreadyPassed = false,
+                StatusMessage = percentage >= PASS_PERCENTAGE
+                    ? "🎉 Passed!"
+                    : "❌ Try again."
+            };
+        }
+
+        private static void ValidateQuestion(CreateQuestionDto dto)
+        {
+            if (dto.Options.Count < 2)
+                throw new ArgumentException("At least 2 options required.");
+
+            if (dto.CorrectAnswerIndex < 0 || dto.CorrectAnswerIndex >= dto.Options.Count)
+                throw new ArgumentException("CorrectAnswerIndex out of range.");
+        }
+
 
         // DTO: matches course-service module list
         private class ModuleInfo
