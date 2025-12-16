@@ -15,7 +15,7 @@ namespace CourseService.Web.Controllers
         }
 
         // GET /api/modules/course/5
-        [HttpGet("course/{courseId : int}")]
+        [HttpGet("course/{courseId:int}")]
         public async Task<IActionResult> GetByCourse(int courseId)
         {
             if (courseId <= 0)
@@ -26,7 +26,7 @@ namespace CourseService.Web.Controllers
         }
 
         // GET /api/modules/10
-        [HttpGet("{moduleId : int}")]
+        [HttpGet("{moduleId:int}")]
         public async Task<IActionResult> GetContent(int moduleId)
         {
             if (moduleId <= 0)
@@ -40,7 +40,7 @@ namespace CourseService.Web.Controllers
             return Ok(module);
         }
 
-        [HttpGet("course-id/{moduleId : int}")]
+        [HttpGet("course-id/{moduleId:int}")]
         public async Task<IActionResult> GetCourseId(int moduleId)
         {
             if (moduleId <= 0)
