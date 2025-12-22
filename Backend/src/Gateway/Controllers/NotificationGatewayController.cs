@@ -16,34 +16,32 @@ namespace Gateway.Controllers
         {
         }
 
-        // ------------------- TEST -------------------
-
-        [HttpGet("test")]
-        public Task<IActionResult> Test() =>
-            ForwardGet($"{BASE}/test");
-
         // ------------------- SEND EMAIL -------------------
 
         [HttpPost("send")]
-        public Task<IActionResult> Send([FromBody] EmailRequest request) =>
+        public Task<IActionResult> Send(
+            [FromBody] EmailRequest request) =>
             ForwardPost($"{BASE}/send", request);
 
         // ------------------- SEND TEMPLATE EMAIL -------------------
 
         [HttpPost("template/send")]
-        public Task<IActionResult> SendTemplate([FromBody] TemplateRequest request) =>
+        public Task<IActionResult> SendTemplate(
+            [FromBody] TemplateRequest request) =>
             ForwardPost($"{BASE}/template/send", request);
 
         // ------------------- TRIGGER NOTIFICATION -------------------
 
         [HttpPost("trigger")]
-        public Task<IActionResult> Trigger([FromBody] TriggerNotification request) =>
+        public Task<IActionResult> Trigger(
+            [FromBody] TriggerNotification request) =>
             ForwardPost($"{BASE}/trigger", request);
 
-        // ------------------- GET USER NOTIFICATIONS -------------------
+        // ------------------- USER NOTIFICATIONS -------------------
 
-        [HttpGet("{userId:guid}")]
-        public Task<IActionResult> GetUserNotifications(Guid userId) =>
-            ForwardGet($"{BASE}/{userId}");
+        [HttpPost("user")]
+        public Task<IActionResult> GetUserNotifications(
+            [FromBody] UserIdRequest request) =>
+            ForwardPost($"{BASE}/user", request);
     }
 }

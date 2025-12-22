@@ -1,9 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { environment } from 'Environment/environment';
-import { Observable } from 'rxjs';
+import { BehaviorSubject, Observable, tap } from 'rxjs';
 
-// Optional: strong typing for progress results
 export interface ProgressRecord {
   courseId: number;
   moduleId: number | null;
@@ -16,19 +15,54 @@ export interface ProgressRecord {
 })
 export class ProgressService {
 
-  private baseUrl = `${environment.baseapiurl}/progress`;
-
+  private readonly baseUrl = `${environment.baseapiurl}/progress`;
   private readonly http = inject(HttpClient);
 
-  /** Mark a module as completed */
-  markModuleCompleted(data: { userId: string; moduleId: number }): Observable<string> {
-    return this.http.post(`${this.baseUrl}/complete-module`, data, {
-      responseType: 'text'  // Backend returns plain message string
-    });
+  // Internal state
+  private readonly progressSubject =
+    new BehaviorSubject<ProgressRecord[]>([]);
+
+  // Public readonly stream
+  readonly progress$ = this.progressSubject.asObservable();
+
+  // =====================================================
+  //  LOAD PROGRESS
+  // =====================================================
+  loadUserProgress(): Observable<ProgressRecord[]> {
+    return this.http
+      .post<ProgressRecord[]>(`${this.baseUrl}/user`, {})
+      .pipe(
+        tap(progress => this.progressSubject.next(progress))
+      );
   }
 
-  /** Fetch user's progress for all modules/courses */
-  getUserProgress(userId: string): Observable<ProgressRecord[]> {
-    return this.http.get<ProgressRecord[]>(`${this.baseUrl}/${userId}`);
+  // =====================================================
+  //  MANUAL REFRESH (useful after updates)
+  // =====================================================
+  refreshProgress(): void {
+    this.loadUserProgress().subscribe();
+  }
+
+  // =====================================================
+  //  MARK MODULE COMPLETED
+  // =====================================================
+  markModuleCompleted(moduleId: number): Observable<string> {
+    return this.http
+      .post(
+        `${this.baseUrl}/complete-module`,
+        { moduleId },
+        { responseType: 'text' }
+      )
+      .pipe(
+        // Auto-refresh progress after completion
+        tap(() => this.refreshProgress())
+      );
+  }
+
+  // =====================================================
+  //  OPTIONAL: CLEAR STATE (on logout)
+  // =====================================================
+  clearProgress(): void {
+    this.progressSubject.next([]);
   }
 }

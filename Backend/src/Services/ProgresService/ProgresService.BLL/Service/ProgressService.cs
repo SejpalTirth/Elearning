@@ -1,114 +1,188 @@
-﻿using NotificationService.BLL.DTOs;
+﻿using Microsoft.AspNetCore.Http;
+using NotificationService.BLL.DTOs;
 using NotificationService.BLL.Models;
+using ProgresService.BLL.Interface;
+using ProgresService.BLL.Models;
 using ProgresService.DAL.Repo;
-using ProgressService.BLL.Interface;
-using ProgressService.BLL.Models;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 
-namespace ProgressService.BLL.Service
+namespace ProgresService.BLL.Service
 {
     public class ProgressServiceImpl : IProgressService
     {
         private readonly IProgressRepository _repo;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public ProgressServiceImpl(IProgressRepository repo, IHttpClientFactory httpClientFactory)
+        public ProgressServiceImpl(
+            IProgressRepository repo,
+            IHttpClientFactory httpClientFactory,
+            IHttpContextAccessor httpContextAccessor)
         {
             _repo = repo;
             _httpClientFactory = httpClientFactory;
+            _httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task<List<ProgressDto>> GetUserProgressAsync(Guid userId)
+        public async Task<List<ProgresDto>> GetUserProgressAsync(Guid userId)
         {
             var progress = await _repo.GetUserProgressAsync(userId);
 
-            return progress.Select(p => new ProgressDto
+            return progress.Select(p => new ProgresDto
             {
                 CourseId = p.CourseId,
                 ModuleId = p.ModuleId,
-                ProgressPercent = p.ProgressPercent,
+                ProgresPercent = p.ProgressPercent,
                 IsCompleted = p.IsCompleted
             }).ToList();
         }
 
-        public async Task MarkModuleCompletedAsync(Guid userId, int courseId, int moduleId)
+        public async Task MarkModuleCompletedAsync(
+            Guid userId,
+            int courseId,
+            int moduleId)
         {
-            // Update progress in DB
+            if (userId == Guid.Empty)
+                throw new ArgumentException("Invalid userId");
+
+            if (courseId <= 0 || moduleId <= 0)
+                throw new ArgumentException("Invalid courseId or moduleId");
+
+            // 1️⃣ Persist progress (primary responsibility)
             await _repo.MarkModuleCompleteAsync(userId, courseId, moduleId);
 
-            // Fetch User Info from User Service
-            var userClient = _httpClientFactory.CreateClient("UserService");
-            var user = await userClient.GetFromJsonAsync<UserDto>($"api/users/{userId}");
+            // 2️⃣ Notifications (secondary – never break progress)
+            try
+            {
+                var httpContext = _httpContextAccessor.HttpContext;
+                var authHeader = httpContext?.Request.Headers["Authorization"].ToString();
 
-            if (user == null)
-                throw new Exception("Unable to send notification — User not found.");
+                var userName = GetUserName();
+                var userEmail = GetUserEmail();
 
-            // Fetch module and course details
+                var (courseName, moduleName, totalModules) =
+                    await GetCourseAndModuleInfoAsync(courseId, moduleId, authHeader);
+
+                var notificationClient =
+                    _httpClientFactory.CreateClient("NotificationService");
+
+                if (!string.IsNullOrWhiteSpace(authHeader))
+                {
+                    notificationClient.DefaultRequestHeaders.Authorization =
+                        AuthenticationHeaderValue.Parse(authHeader);
+                }
+
+                // ---------------- MODULE COMPLETED ----------------
+                await notificationClient.PostAsJsonAsync(
+                    "/api/notification/trigger",
+                    new TriggerNotificationDto
+                    {
+                        UserId = userId,
+                        Email = userEmail,
+                        Type = NotificationType.ModuleCompleted,
+                        Data = new Dictionary<string, string>
+                        {
+                            { "UserName", userName },
+                            { "CourseName", courseName },
+                            { "ModuleName", moduleName }
+                        }
+                    });
+
+                // ---------------- COURSE COMPLETED ----------------
+                bool courseCompleted =
+                    await _repo.IsCourseFullyCompletedAsync(
+                        userId,
+                        courseId,
+                        totalModules
+                    );
+
+                if (courseCompleted)
+                {
+                    await notificationClient.PostAsJsonAsync(
+                        "/api/notification/trigger",
+                        new TriggerNotificationDto
+                        {
+                            UserId = userId,
+                            Email = userEmail,
+                            Type = NotificationType.CourseCompleted,
+                            Data = new Dictionary<string, string>
+                            {
+                                { "UserName", userName },
+                                { "CourseName", courseName }
+                            }
+                        });
+                }
+            }
+            catch
+            {
+                // ❗ Notifications must never break progress tracking
+            }
+        }
+
+        // ---------------- Helpers ----------------
+
+        private string GetUserName()
+        {
+            return _httpContextAccessor.HttpContext?.User?
+                .Claims
+                .FirstOrDefault(c => c.Type == "name")
+                ?.Value
+                ?? "Learner";
+        }
+
+        private string GetUserEmail()
+        {
+            return _httpContextAccessor.HttpContext?.User?
+                .Claims
+                .FirstOrDefault(c =>
+                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")
+                ?.Value
+                ?? string.Empty;
+        }
+
+        private async Task<(string courseName, string moduleName, int totalModules)>
+    GetCourseAndModuleInfoAsync(int courseId, int moduleId, string authHeader)
+        {
             var courseClient = _httpClientFactory.CreateClient("CourseService");
 
-            // Fetch all modules for this course
-            var moduleList = await courseClient.GetFromJsonAsync<List<ModuleDto>>($"api/courses/{courseId}/modules")
-                            ?? new List<ModuleDto>();
-
-            // Resolve the specific module name
-            var module = moduleList.FirstOrDefault(m => m.Id == moduleId);
-            string moduleName = !string.IsNullOrWhiteSpace(module?.Title) ? module.Title : $"Module {moduleId}";
-
-            // Fetch course title
-            var course = await courseClient.GetFromJsonAsync<CourseDto>($"api/courses/{courseId}");
-            string courseName = course?.Title ?? "Course";
-
-            // Determine if ALL modules are completed
-            int totalModules = moduleList.Count;
-            int completedModules = await _repo.GetCompletedModuleCountAsync(userId, courseId);
-
-            bool courseCompleted = totalModules > 0 && completedModules == totalModules;
-
-            // Send notification via NotificationService
-            // Send MODULE COMPLETED notification ALWAYS
-            var notifyClient = _httpClientFactory.CreateClient("NotificationService");
-
-            var moduleCompletedNotification = new TriggerNotificationDto
+            if (!string.IsNullOrWhiteSpace(authHeader))
             {
-                UserId = userId,
-                Email = user.Email,
-                Type = NotificationType.ModuleCompleted,
-                Data = new Dictionary<string, string>
-    {
-        { "UserName", user.Name ?? "User" },
-        { "CourseName", courseName },
-        { "ModuleName", moduleName }
-    }
-            };
-
-            await notifyClient.PostAsJsonAsync("/api/notification/trigger", moduleCompletedNotification);
-
-            // If last module, ALSO send COURSE COMPLETED notification
-            if (courseCompleted)
-            {
-                var courseCompletedNotification = new TriggerNotificationDto
-                {
-                    UserId = userId,
-                    Email = user.Email,
-                    Type = NotificationType.CourseCompleted,
-                    Data = new Dictionary<string, string>
-        {
-            { "UserName", user.Name ?? "User" },
-            { "CourseName", courseName }
-        }
-                };
-
-                await notifyClient.PostAsJsonAsync("/api/notification/trigger", courseCompletedNotification);
+                courseClient.DefaultRequestHeaders.Authorization =
+                    System.Net.Http.Headers.AuthenticationHeaderValue.Parse(authHeader);
             }
 
+            // 🔹 Course
+            var courseResponse = await courseClient.PostAsJsonAsync(
+                "/api/courses/by-id",
+                new { courseId }
+            );
+
+            var course = await courseResponse.Content
+                .ReadFromJsonAsync<CourseDto>();
+
+            // 🔹 Modules
+            var modulesResponse = await courseClient.PostAsJsonAsync(
+                "/api/modules/by-course",
+                new { courseId }
+            );
+
+            var modules = await modulesResponse.Content
+                .ReadFromJsonAsync<List<ModuleDto>>() ?? new();
+
+            var moduleName = modules
+                .FirstOrDefault(m => m.Id == moduleId)
+                ?.Title ?? "your module";
+
+            return (
+                course?.Title ?? "your course",
+                moduleName,
+                modules.Count
+            );
         }
 
 
-        private class UserDto
-        {
-            public string Email { get; set; }
-            public string Name { get; set; }
-        }
+        // ---------------- Local DTOs ----------------
 
         private class ModuleDto
         {

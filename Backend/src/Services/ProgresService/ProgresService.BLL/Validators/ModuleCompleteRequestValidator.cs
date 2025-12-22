@@ -8,10 +8,6 @@ namespace ProgressService.BLL.Validators
     {
         public ModuleCompleteRequestValidator()
         {
-            RuleFor(x => x.UserId)
-                .NotEmpty()
-                .WithMessage("UserId is required.");
-
             RuleFor(x => x.ModuleId)
                 .GreaterThan(0)
                 .WithMessage("ModuleId must be greater than zero.");

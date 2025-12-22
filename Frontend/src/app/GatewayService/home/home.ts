@@ -1,10 +1,11 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ToastService } from 'app/shared/toast.service';
 import { CourseApiService } from '../../CourseService/services/course-api';
 import { AssessmentApiService } from '../../AssessmentService/services/assessment-api';
-import { SecureTokenService } from '../Security/secure-token.service';
+import { AuthStateService } from '../Auth/auth-state.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-home',
@@ -13,64 +14,68 @@ import { SecureTokenService } from '../Security/secure-token.service';
   templateUrl: './home.html',
   styleUrls: ['./home.css']
 })
-export class Home implements OnInit {
+export class Home implements OnInit, OnDestroy {
 
   userName: string | null = null;
   role: string | null = null;
+  userId: string | null = null;
 
-  private readonly tokenService = inject(SecureTokenService);
+  private readonly authState = inject(AuthStateService);
   private readonly toastService = inject(ToastService);
   private readonly assessmentApi = inject(AssessmentApiService);
   private readonly courseApi = inject(CourseApiService);
   private readonly router = inject(Router);
 
-  ngOnInit(): void {
-    this.loadUserInfo();
+  private authSub?: Subscription;
 
-    if (this.role === 'Instructor') {
-      this.checkForPendingTasks();
-    }
+  ngOnInit(): void {
+    this.authSub = this.authState.user$.subscribe(user => {
+
+      if (!user) {
+        this.userId = null;
+        this.userName = null;
+        this.role = null;
+        this.router.navigate(['/']);
+        return;
+      }
+
+      this.userId = user.userId;
+      this.userName = user.name;
+      this.role = user.role;
+
+      if (this.role === 'Instructor') {
+        this.checkForPendingTasks();
+      }
+    });
   }
 
-  // ------------------ Load User Info From Decrypted JWT ------------------
-  loadUserInfo(): void {
-    const payload = this.tokenService.getPayload();
-
-    if (!payload) {
-      this.router.navigate(['/']);
-      return;
-    }
-
-    this.userName = payload['name'] || 'User';
-    this.role = payload['role'] || null;
+  ngOnDestroy(): void {
+    this.authSub?.unsubscribe();
   }
 
   // ------------------ Check If Instructor Has Unfinished Course ------------------
   checkForPendingTasks(): void {
-    const userId = this.tokenService.getUserId();
-    if (!userId) { return; }
+    if (!this.userId)
+    {
+      return;
+    }
 
-    this.courseApi.getInstructorUnfinishedCourses(userId).subscribe({
+    this.courseApi.getInstructorUnfinishedCourses().subscribe({
       next: (course: any): void => {
-        if (!course || !course.id) { return; }
+        if (!course?.id)
+        {
+          return;
+        }
 
-        const courseId = course.id;
-
-        this.assessmentApi.getUnquizzedModules(courseId).subscribe({
+        this.assessmentApi.getUnquizzedModules(course.id).subscribe({
           next: (modules: number[]): void => {
-            if (modules && modules.length > 0) {
+            if (modules?.length > 0) {
               this.toastService.showError(
                 'You have pending course tasks — quizzes need to be completed.'
               );
             }
-          },
-          error: (err: any): void => {
-            console.error('Failed to fetch unquizzed modules', err);
           }
         });
-      },
-      error: (err: any): void => {
-        console.error('Failed to fetch unfinished courses', err);
       }
     });
   }

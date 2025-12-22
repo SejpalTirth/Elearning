@@ -115,8 +115,6 @@ describe('MyLearningComponent', () => {
   // ---------------------------------------------------------------------
   it('should navigate when continueLearning() is called', () => {
     component.continueLearning(5);
-
-    expect(localStorage.setItem).toHaveBeenCalledWith('currentCourseId', '5');
     expect(router.navigate).toHaveBeenCalledWith(['/courses/5/modules']);
   });
 

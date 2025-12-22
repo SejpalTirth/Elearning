@@ -26,11 +26,11 @@
 
         <!-- Missing quizzes -->
         @if (!c.isDeleted && c.pendingModules?.length > 0) {
-          <p class="subtext">These modules still need quizzes:</p>
+          <p class="subtext">Quizzes pending for the following modules:</p>
 
           <ul class="module-list">
-            @for (m of c.pendingModules; track m) {
-              <li>Module ID: {{ m }}</li>
+            @for (m of c.pendingModules; track m.moduleId) {
+              <li>{{ m.title }}</li>
             }
           </ul>
 

@@ -16,28 +16,35 @@ public class AuthService : IAuthService
     private readonly IConfiguration _config;
     private readonly TimeSpan _accessTokenLifetime;
     private readonly TimeSpan _refreshTokenLifetime;
-    private readonly string _tokenEncryptionKey;
 
-    public AuthService(IUserRepository users, IRefreshTokenRepository refreshTokens, IConfiguration config)
+    public AuthService(
+        IUserRepository users,
+        IRefreshTokenRepository refreshTokens,
+        IConfiguration config)
     {
         _users = users;
         _refreshTokens = refreshTokens;
         _config = config;
 
-        // Read expiry times from appsettings.json
         _accessTokenLifetime = TimeSpan.FromMinutes(
             int.Parse(_config["Jwt:AccessTokenExpiryMinutes"] ?? "1")
         );
 
         _refreshTokenLifetime = TimeSpan.FromMinutes(
-            int.Parse(_config["Jwt:RefreshTokenExpiryMinutes"] ?? "7")
+            int.Parse(_config["Jwt:RefreshTokenExpiryMinutes"] ?? "5")
         );
-        _tokenEncryptionKey = _config["Jwt:EncryptionKey"]
-        ?? throw new InvalidOperationException("Jwt:EncryptionKey is missing in configuration.");
-}
-    public async Task<ExternalSignInResultDto> SignInExternalAsync(string provider, string providerUserId, string email, string name)
+    }
+
+    // ==============================
+    // EXTERNAL SIGN-IN
+    // ==============================
+    public async Task<ExternalSignInResultDto> SignInExternalAsync(
+        string provider,
+        string providerUserId,
+        string email,
+        string name)
     {
-        var adminEmail = _config["SpecialAccounts:AdminEmail"] ?? "tirths331@gmail.com";
+        var adminEmail = _config["SpecialAccounts:AdminEmail"];
 
         var user = await _users.GetByEmailAsync(email);
         bool isNew = false;
@@ -50,47 +57,20 @@ public class AuthService : IAuthService
             {
                 Id = Guid.NewGuid(),
                 Email = email,
-                Name = null,                       // Name will be completed later
+                Name = null,
                 Ssoprovider = provider,
                 SsoproviderId = providerUserId,
                 IsActive = true,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                Role = email.Equals(adminEmail, StringComparison.OrdinalIgnoreCase)
+                    ? "Admin"
+                    : "Pending"
             };
-
-            // Admin assignment
-            if (email.Equals(adminEmail, StringComparison.OrdinalIgnoreCase))
-            {
-                user.Role = "Admin";
-            }
 
             user = await _users.AddUserAsync(user);
         }
-        else
-        {
-            // Update missing SSO fields
-            var changed = false;
 
-            if (string.IsNullOrEmpty(user.Ssoprovider))
-            {
-                user.Ssoprovider = provider;
-                changed = true;
-            }
-
-            if (string.IsNullOrEmpty(user.SsoproviderId))
-            {
-                user.SsoproviderId = providerUserId;
-                changed = true;
-            }
-
-            if (changed)
-            {
-                user.UpdatedAt = DateTime.UtcNow;
-                await _users.SaveChangesAsync();
-            }
-        }
-
-        // NEW USER — ask for name + role (unless admin)
-        if (isNew && !email.Equals(adminEmail, StringComparison.OrdinalIgnoreCase))
+        if (isNew && user.Role != "Admin")
         {
             return new ExternalSignInResultDto
             {
@@ -101,7 +81,6 @@ public class AuthService : IAuthService
             };
         }
 
-        // EXISTING USER or ADMIN — issue tokens immediately
         var tokens = await GenerateAndStoreTokensAsync(user);
 
         return new ExternalSignInResultDto
@@ -112,20 +91,13 @@ public class AuthService : IAuthService
             Tokens = tokens
         };
     }
-    public async Task RevokeRefreshTokenAsync(string refreshToken)
-    {
-        var tokenEntity = await _refreshTokens.GetByTokenAsync(refreshToken);
-        if (tokenEntity == null) return;
 
-        await _refreshTokens.RevokeTokenAsync(tokenEntity);
-    }
+    // ==============================
+    // TOKEN GENERATION
+    // ==============================
     private async Task<TokenResponseDto> GenerateAndStoreTokensAsync(User user)
     {
-        if (user == null) throw new ArgumentNullException(nameof(user));
-
-        var accessToken = CreateJwtToken(user);
-        var encryptedAccessToken = EncryptToken(accessToken);
-
+        var accessToken = CreateEncryptedJwt(user);
         var refreshToken = GenerateSecureToken();
 
         var refreshEntity = new RefreshToken
@@ -140,88 +112,110 @@ public class AuthService : IAuthService
 
         return new TokenResponseDto
         {
-            AccessToken = encryptedAccessToken,
+            AccessToken = accessToken,
             RefreshToken = refreshToken,
             ExpiresAt = DateTime.UtcNow.Add(_accessTokenLifetime)
         };
     }
+
+    // ==============================
+    // REFRESH TOKEN
+    // ==============================
     public async Task<TokenResponseDto?> RefreshTokenAsync(string refreshToken)
     {
-        if (string.IsNullOrWhiteSpace(refreshToken)) return null;
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            return null;
 
         var tokenEntity = await _refreshTokens.GetByTokenAsync(refreshToken);
-        if (tokenEntity == null) return null;
-        if (tokenEntity.RevokedAt != null) return null;
-        if (tokenEntity.ExpiresAt < DateTime.UtcNow) return null;
+
+        if (tokenEntity == null ||
+            tokenEntity.RevokedAt != null ||
+            tokenEntity.ExpiresAt < DateTime.UtcNow)
+            return null;
 
         var user = tokenEntity.User ?? await _users.GetByIdAsync(tokenEntity.UserId);
-        if (user == null) return null;
+        if (user == null)
+            return null;
 
-        var newAccessToken = CreateJwtToken(user);
-        var encryptedAccessToken = EncryptToken(newAccessToken);
+        var newAccessToken = CreateEncryptedJwt(user);
 
         return new TokenResponseDto
         {
-            AccessToken = encryptedAccessToken,
+            AccessToken = newAccessToken,
             RefreshToken = tokenEntity.Token,
             ExpiresAt = tokenEntity.ExpiresAt
         };
     }
 
-    private string CreateJwtToken(User user)
+    public async Task RevokeRefreshTokenAsync(string refreshToken)
     {
-        var key = _config["Jwt:Key"];
+        var tokenEntity = await _refreshTokens.GetByTokenAsync(refreshToken);
+        if (tokenEntity == null) return;
+
+        await _refreshTokens.RevokeTokenAsync(tokenEntity);
+    }
+
+    // ==============================
+    // JWE CREATION (CORE PART)
+    // ==============================
+    private string CreateEncryptedJwt(User user)
+    {
         var issuer = _config["Jwt:Issuer"];
         var audience = _config["Jwt:Audience"];
 
-        var claims = new List<Claim>
+        var signingKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(_config["Jwt:Key"]!)
+        );
+
+        var rawEncryptionKey = Encoding.UTF8.GetBytes(
+            _config["Jwt:EncryptionKey"]!
+        );
+
+        var derivedEncryptionKey = SHA256.HashData(rawEncryptionKey);
+
+        var encryptionKey = new SymmetricSecurityKey(derivedEncryptionKey);
+
+
+        var claims = new ClaimsIdentity(new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
             new Claim("name", user.Name ?? string.Empty),
             new Claim("role", user.Role ?? "Pending"),
             new Claim("provider", user.Ssoprovider ?? "Unknown")
-        };
+        });
 
-        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
-        var creds = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
-        var token = new JwtSecurityToken(
-            issuer,
-            audience,
-            claims,
-            expires: DateTime.UtcNow.Add(_accessTokenLifetime),
-            signingCredentials: creds
+        var signingCredentials = new SigningCredentials(
+            signingKey,
+            SecurityAlgorithms.HmacSha256
         );
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        var encryptingCredentials = new EncryptingCredentials(
+            encryptionKey,
+            SecurityAlgorithms.Aes256KW,
+            SecurityAlgorithms.Aes256CbcHmacSha512
+        );
+
+        var handler = new JwtSecurityTokenHandler();
+
+        var token = handler.CreateJwtSecurityToken(
+            issuer: issuer,
+            audience: audience,
+            subject: claims,
+            notBefore: DateTime.UtcNow,
+            expires: DateTime.UtcNow.Add(_accessTokenLifetime),
+            issuedAt: DateTime.UtcNow,
+            signingCredentials: signingCredentials,
+            encryptingCredentials: encryptingCredentials,
+            claimCollection: null
+        );
+
+        return handler.WriteToken(token);
     }
-    private string EncryptToken(string plainToken)
-    {
-        if (string.IsNullOrWhiteSpace(plainToken))
-            throw new ArgumentException("Token cannot be null or empty", nameof(plainToken));
 
-        Console.Write(plainToken);
-
-        var keyBytes = SHA256.HashData(Encoding.UTF8.GetBytes(_tokenEncryptionKey));
-
-        using var aes = Aes.Create();
-        aes.Key = keyBytes;
-        aes.Mode = CipherMode.CBC;
-        aes.Padding = PaddingMode.PKCS7;
-
-        aes.GenerateIV();
-
-        using var encryptor = aes.CreateEncryptor(aes.Key, aes.IV);
-        var plainBytes = Encoding.UTF8.GetBytes(plainToken);
-        var cipherBytes = encryptor.TransformFinalBlock(plainBytes, 0, plainBytes.Length);
-
-        var result = new byte[aes.IV.Length + cipherBytes.Length];
-        Buffer.BlockCopy(aes.IV, 0, result, 0, aes.IV.Length);
-        Buffer.BlockCopy(cipherBytes, 0, result, aes.IV.Length, cipherBytes.Length);
-
-        return Convert.ToBase64String(result);
-    }
+    // ==============================
+    // UTIL
+    // ==============================
     private static string GenerateSecureToken(int size = 64)
     {
         var bytes = new byte[size];

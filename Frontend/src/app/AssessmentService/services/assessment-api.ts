@@ -8,7 +8,7 @@ import { Observable } from 'rxjs';
 })
 export class AssessmentApiService {
 
-  private baseUrl = `${environment.baseapiurl}/AssessmentGateway`;
+  private baseUrl = `${environment.baseapiurl}/assessment`;
   private readonly http = inject(HttpClient);
 
   // =====================================================
@@ -16,15 +16,24 @@ export class AssessmentApiService {
   // =====================================================
 
   getQuizForModule(moduleId: number): Observable<any> {
-    return this.http.get<any>(`${this.baseUrl}/quiz/module/${moduleId}`);
+    return this.http.post<any>(
+      `${this.baseUrl}/quiz/module`,
+      { moduleId }
+    );
   }
 
   submitQuiz(payload: any): Observable<any> {
-    return this.http.post<any>(`${this.baseUrl}/submit`, payload);
+    return this.http.post<any>(
+      `${this.baseUrl}/quiz/submit`,
+      payload
+    );
   }
 
   getResult(submissionId: string): Observable<any> {
-    return this.http.get<any>(`${this.baseUrl}/result/${submissionId}`);
+    return this.http.post<any>(
+      `${this.baseUrl}/quiz/result`,
+      { submissionId }
+    );
   }
 
   // =====================================================
@@ -32,22 +41,34 @@ export class AssessmentApiService {
   // =====================================================
 
   createQuiz(payload: any): Observable<any> {
-    return this.http.post<any>(`${this.baseUrl}/quiz`, payload);
+    return this.http.post<any>(
+      `${this.baseUrl}/quiz`,
+      payload
+    );
   }
 
-  addQuestion(quizId: number, payload: any): Observable<any> {
-    return this.http.post<any>(`${this.baseUrl}/quiz/${quizId}/questions`, payload);
+  addQuestion(payload: any): Observable<any> {
+    return this.http.post<any>(
+      `${this.baseUrl}/quiz/questions`,
+      payload
+    );
   }
 
   // =====================================================
-  // NEW — QUIZ STATUS CHECKS (For Course Locking Flow)
+  //  QUIZ STATUS (COURSE LOCKING)
   // =====================================================
 
   getQuizStatus(courseId: number): Observable<any> {
-    return this.http.get<any>(`${this.baseUrl}/course/${courseId}/quiz-status`);
+    return this.http.post<any>(
+      `${this.baseUrl}/course/quiz-status`,
+      { courseId }
+    );
   }
 
   getUnquizzedModules(courseId: number): Observable<number[]> {
-    return this.http.get<number[]>(`${this.baseUrl}/unquizzed-modules/${courseId}`);
+    return this.http.post<number[]>(
+      `${this.baseUrl}/course/unquizzed-modules`,
+      { courseId }
+    );
   }
 }

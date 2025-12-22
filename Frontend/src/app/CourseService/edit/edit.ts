@@ -1,11 +1,12 @@
-import { Component, inject, OnInit, ViewChild } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { FormBuilder, FormArray, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { CourseApiService } from '../services/course-api';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
-import { LoadingOverlay } from '../../shared/loading/loading-overlay';
+import { CourseApiService } from '../services/course-api';
 import { AssessmentApiService } from 'app/AssessmentService/services/assessment-api';
+import { LoadingService } from '../../shared/loading/LoadingService';
+import { ToastService } from 'app/shared/toast.service';
 
 @Component({
   selector: 'app-edit-course',
@@ -13,15 +14,12 @@ import { AssessmentApiService } from 'app/AssessmentService/services/assessment-
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    DragDropModule,
-    LoadingOverlay
+    DragDropModule
   ],
   templateUrl: './edit.html',
   styleUrls: ['./edit.css']
 })
 export class EditCourseComponent implements OnInit {
-
-  @ViewChild(LoadingOverlay) loader!: LoadingOverlay;
 
   form!: FormGroup;
   categories: any[] = [];
@@ -34,6 +32,8 @@ export class EditCourseComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly assessmentApi = inject(AssessmentApiService);
+  private readonly loading = inject(LoadingService);
+  private readonly toast = inject(ToastService);
 
   ngOnInit(): void {
     this.courseId = Number(this.route.snapshot.paramMap.get('id'));
@@ -45,41 +45,38 @@ export class EditCourseComponent implements OnInit {
       modules: this.fb.array([])
     });
 
-    setTimeout(() => this.loader?.show(), 0);
-
-    this.loadCategories(() => this.loadCourse());
+    this.loading.show();
+    this.loadCategories();
   }
 
   get modules(): FormArray {
     return this.form.get('modules') as FormArray;
   }
 
-  loadCategories(onComplete: () => void): void {
+  loadCategories(): void {
     this.api.getCategories().subscribe({
-      next: (res) => {
+      next: res => {
         this.categories = res || [];
-        onComplete();
+        this.loadCourse();
       },
-      error: (err) => {
-        console.error('Failed to load categories', err);
+      error: () => {
         this.categories = [];
-        onComplete();
+        this.loadCourse();
       }
     });
   }
 
   loadCourse(): void {
     this.api.getById(this.courseId).subscribe({
-      next: (course) => {
-        this.courseData = course;
-
+      next: course => {
         if (course.isDeleted) {
-          this.loader.hide();
-          // eslint-disable-next-line no-alert
-          window.alert('This course was deleted by the admin and cannot be edited.');
+          this.loading.hide();
+          this.toast.showError('This course was deleted by the admin and cannot be edited.');
           this.router.navigate(['/courses']);
           return;
         }
+
+        this.courseData = course;
 
         this.form.patchValue({
           title: course.title,
@@ -96,12 +93,9 @@ export class EditCourseComponent implements OnInit {
           }));
         });
 
-        this.loader.hide();
+        this.loading.hide();
       },
-      error: (err) => {
-        console.error('Failed to load course', err);
-        this.loader.hide();
-      }
+      error: () => this.loading.hide()
     });
   }
 
@@ -122,14 +116,7 @@ export class EditCourseComponent implements OnInit {
   }
 
   fieldInvalid(name: string): boolean {
-    const control = this.form.get(name);
-    return this.submitted && !!control?.invalid;
-  }
-
-  autoResize(event: Event): void {
-    const textarea = event.target as HTMLTextAreaElement;
-    textarea.style.height = 'auto';
-    textarea.style.height = `${textarea.scrollHeight}px`;
+    return this.submitted && !!this.form.get(name)?.invalid;
   }
 
   save(): void {
@@ -140,47 +127,56 @@ export class EditCourseComponent implements OnInit {
       return;
     }
 
-    const payload = {
-      ...this.form.value,
-      modules: this.form.value.modules.filter((m: any) =>
-        m.title?.trim() !== '' && m.content?.trim() !== ''
-      )
+    const requestBody = {
+      courseId: this.courseId,
+      course: {
+        title: this.form.value.title,
+        description: this.form.value.description,
+        categoryId: this.form.value.categoryId,
+        modules: this.form.value.modules.map((m: any) => ({
+          id: m.id,
+          title: m.title,
+          content: m.content
+        }))
+      }
     };
 
-    this.loader.show();
+    this.loading.show();
 
-    this.api.updateCourse(this.courseId, payload).subscribe({
+    this.api.updateCourse(requestBody).subscribe({
       next: () => {
         this.assessmentApi.getQuizStatus(this.courseId).subscribe({
-          next: (status: any) => {
-            this.loader.hide();
+          next: status => {
+            this.loading.hide();
             if (!status.allQuizzesCreated) {
-              // eslint-disable-next-line no-alert
-              window.alert('Course updated! Some quizzes are still missing. You can complete them from Pending Tasks.');
+              this.toast.showError('Course updated! Some quizzes are still missing.');
               this.router.navigate(['/assessment/pending']);
               return;
             }
-            // eslint-disable-next-line no-alert
-            window.alert('Course updated successfully!');
+            this.toast.showSuccess('Course updated successfully!');
             this.router.navigate(['/courses']);
           },
           error: () => {
-            this.loader.hide();
-            // eslint-disable-next-line no-alert
-            window.alert('Updated, but failed to check quiz status.');
+            this.loading.hide();
+            this.toast.showError('Updated, but failed to check quiz status.');
             this.router.navigate(['/courses']);
           }
         });
       },
       error: () => {
-        this.loader.hide();
-        // eslint-disable-next-line no-alert
-        window.alert('Update failed');
+        this.loading.hide();
+        this.toast.showError('Update failed');
       }
     });
   }
 
   cancel(): void {
     this.router.navigate(['/courses']);
+  }
+
+  autoResize(event: Event): void {
+    const textarea = event.target as HTMLTextAreaElement;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight}px`;
   }
 }

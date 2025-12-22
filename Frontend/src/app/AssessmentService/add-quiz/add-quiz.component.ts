@@ -1,10 +1,11 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormArray, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AssessmentApiService } from '../services/assessment-api';
 import { CourseApiService } from '../../CourseService/services/course-api';
 import { ModuleTitlePipe } from './module-title.pipe';
+import { ToastService } from 'app/shared/toast.service';
 
 @Component({
   selector: 'app-add-quiz',
@@ -40,6 +41,8 @@ export class AddQuizComponent implements OnInit {
   private readonly courseApi = inject(CourseApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
+  private readonly cdr = inject(ChangeDetectorRef); // 🔑 KEY FIX
 
   ngOnInit(): void {
 
@@ -73,7 +76,7 @@ export class AddQuizComponent implements OnInit {
     return this.questionForm.get('options') as FormArray;
   }
 
-  loadNextPendingModule():void {
+  loadNextPendingModule(): void {
     this.assessmentApi.getUnquizzedModules(this.courseId).subscribe(missing => {
       this.unquizzedModules = missing;
 
@@ -91,7 +94,6 @@ export class AddQuizComponent implements OnInit {
         title: found ? `${found.title} Quiz` : ''
       });
 
-      // Reset quiz state for next module
       this.quizCreated = false;
       this.createdQuizId = 0;
       this.questionCount = 0;
@@ -100,71 +102,93 @@ export class AddQuizComponent implements OnInit {
     });
   }
 
-  /** Create quiz for the current module */
+  /** Create quiz – FIRST CLICK WORKS */
   createQuiz(): void {
-    this.submittedQuiz = true;
+  this.submittedQuiz = true;
 
-    if (this.quizForm.invalid) {return;}
-
-    this.assessmentApi.createQuiz(this.quizForm.value).subscribe({
-      next: (res: any) => {
-        if (res.quizId) {
-          this.quizCreated = true;
-          this.createdQuizId = res.quizId;
-
-          this.quizForm.disable();
-        }
-      }
-    });
+  if (this.quizForm.invalid) {
+    return;
   }
 
-  /** Add question to quiz */
+  this.assessmentApi.createQuiz(this.quizForm.value).subscribe({
+    next: (res: any) => {
+
+      // 🔑 SUPPORT BOTH RESPONSE SHAPES
+      const quizId = res?.quizId ?? res?.id;
+
+      if (!quizId) {
+        this.toast.showError('Failed to create quiz.');
+        return;
+      }
+
+      this.toast.showInfo(
+        'Quiz details are now locked. You cannot change quiz information after creation.'
+      );
+
+      // ✅ FIRST CLICK NOW WORKS
+      this.quizCreated = true;
+      this.createdQuizId = quizId;
+
+      this.quizForm.disable();
+    },
+    error: () => {
+      this.toast.showError('Failed to create quiz.');
+    }
+  });
+}
+
+
+  /** Add question */
   addQuestion(): void {
     this.submittedQuestion = true;
 
-    if (this.questionForm.invalid) {return;}
+    if (this.questionForm.invalid) {
+      return;
+    }
 
-    this.assessmentApi.addQuestion(this.createdQuizId, this.questionForm.value)
-      .subscribe(() => {
+    const payload = {
+      quizId: this.createdQuizId,
+      question: {
+        question: this.questionForm.value.text,
+        marks: this.questionForm.value.marks,
+        options: this.questionForm.value.options,
+        correctAnswerIndex: this.questionForm.value.correctAnswerIndex
+      }
+    };
 
-        this.questionCount++;
-        this.questionForm.reset({
-          text: '',
-          marks: 1,
-          correctAnswerIndex: 0,
-          options: ['', '', '', '']
-        });
+    this.assessmentApi.addQuestion(payload).subscribe(() => {
+      this.questionCount++;
 
-        this.submittedQuestion = false;
+      this.questionForm.reset({
+        text: '',
+        marks: 1,
+        correctAnswerIndex: 0,
+        options: ['', '', '', '']
       });
+
+      this.submittedQuestion = false;
+    });
   }
 
-  /** Complete only the CURRENT module, not all */
+  /** Complete module */
   completeModule(): void {
 
     if (!this.quizCreated) {
-      // eslint-disable-next-line no-alert
-      alert('Please create a quiz first.');
+      this.toast.showError('Please create a quiz first.');
       return;
     }
 
     if (this.questionCount < 1) {
-      // eslint-disable-next-line no-alert
-      alert('Please add at least one question to the quiz.');
+      this.toast.showError('Please add at least one question to the quiz.');
       return;
     }
 
-    // Reload missing modules AFTER quiz creation
     this.assessmentApi.getUnquizzedModules(this.courseId).subscribe(missing => {
-
-      // If this module is still missing → stay on page
       if (missing.includes(this.currentModuleId!)) {
-        // eslint-disable-next-line no-alert
-        alert('Please finish quiz creation for this module.');
+        this.toast.showError('Please finish quiz creation for this module.');
         return;
       }
 
-      // Otherwise go to next module
       this.loadNextPendingModule();
     });
   }

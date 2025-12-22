@@ -1,4 +1,4 @@
-﻿namespace ProgressService.BLL.DTOs
+﻿namespace ProgresService.BLL.DTOs
 {
     public class UserDto
     {

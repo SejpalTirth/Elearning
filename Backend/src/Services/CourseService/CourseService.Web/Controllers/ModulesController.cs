@@ -1,10 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using CourseService.BLL.Interface;
+﻿using CourseService.BLL.Interface;
+using CourseService.BLL.DTOs;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CourseService.Web.Controllers
 {
+    [Authorize]
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/modules")]
     public class ModulesController : ControllerBase
     {
         private readonly IModuleService _moduleService;
@@ -14,45 +17,42 @@ namespace CourseService.Web.Controllers
             _moduleService = moduleService;
         }
 
-        // GET /api/modules/course/5
-        [HttpGet("course/{courseId:int}")]
-        public async Task<IActionResult> GetByCourse(int courseId)
-        {
-            if (courseId <= 0)
-                return BadRequest("courseId must be greater than zero.");
+        // ---------------- MODULES BY COURSE ----------------
 
-            var modules = await _moduleService.GetModulesByCourseAsync(courseId);
+        [HttpPost("by-course")]
+        public async Task<IActionResult> GetByCourse(
+            [FromBody] CourseIdRequestDto dto)
+        {
+            var modules = await _moduleService
+                .GetModulesByCourseAsync(dto.CourseId);
+
             return Ok(modules);
         }
 
-        // GET /api/modules/10
-        [HttpGet("{moduleId:int}")]
-        public async Task<IActionResult> GetContent(int moduleId)
+        // ---------------- MODULE CONTENT ----------------
+
+        [HttpPost("content")]
+        public async Task<IActionResult> GetContent(
+            [FromBody] ModuleIdRequestDto dto)
         {
-            if (moduleId <= 0)
-                return BadRequest("courseId must be greater than zero.");
+            var module = await _moduleService
+                .GetModuleContentAsync(dto.ModuleId);
 
-            var module = await _moduleService.GetModuleContentAsync(moduleId);
-
-            if (module == null)
-                return NotFound();
-
-            return Ok(module);
+            return module == null ? NotFound() : Ok(module);
         }
 
-        [HttpGet("course-id/{moduleId:int}")]
-        public async Task<IActionResult> GetCourseId(int moduleId)
+        // ---------------- MODULE + COURSE ID ----------------
+
+        [HttpPost("course-id")]
+        public async Task<IActionResult> GetCourseId(
+            [FromBody] ModuleIdRequestDto dto)
         {
-            if (moduleId <= 0)
-                return BadRequest("courseId must be greater than zero.");
+            var data = await _moduleService
+                .GetModuleAndCourseIdAsync(dto.ModuleId);
 
-            var data = await _moduleService.GetModuleAndCourseIdAsync(moduleId);
-
-            if (data == null)
-                return NotFound(new { message = $"Module {moduleId} not found." });
-
-            return Ok(data);
+            return data == null
+                ? NotFound(new { message = $"Module {dto.ModuleId} not found." })
+                : Ok(data);
         }
-
     }
 }

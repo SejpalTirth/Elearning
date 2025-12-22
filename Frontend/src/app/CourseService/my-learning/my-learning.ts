@@ -1,9 +1,11 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CourseApiService } from '../services/course-api';
 import { ProgressService } from '../services/progress.service';
 import { Router } from '@angular/router';
-import { SecureTokenService } from 'app/GatewayService/Security/secure-token.service';
+import { AuthStateService } from 'app/GatewayService/Auth/auth-state.service';
+import { combineLatest, Subscription } from 'rxjs';
+import { LoadingService } from 'app/shared/loading/LoadingService';
 
 @Component({
   selector: 'app-my-learning',
@@ -12,75 +14,87 @@ import { SecureTokenService } from 'app/GatewayService/Security/secure-token.ser
   templateUrl: './my-learning.html',
   styleUrls: ['./my-learning.css']
 })
-export class MyLearningComponent implements OnInit {
+export class MyLearningComponent implements OnInit, OnDestroy {
 
   courses: any[] = [];
-  progress: any[] = [];
   loading = true;
-  userId: string | null = null;
 
   private readonly api = inject(CourseApiService);
   private readonly progressService = inject(ProgressService);
   private readonly router = inject(Router);
-  private readonly tokenService = inject(SecureTokenService);
+  private readonly authState = inject(AuthStateService);
+  private readonly loadingservice = inject(LoadingService);
+
+  private sub?: Subscription;
 
   ngOnInit(): void {
-    this.extractUserId();
-    this.loadMyCourses();
-  }
 
-  extractUserId(): void {
-    this.userId = this.tokenService.getUserId();
-  }
+    this.sub = this.authState.user$.subscribe(user => {
 
-  loadMyCourses(): void {
-    if (!this.userId) {
-      this.loading = false;
-      return;
-    }
-
-    this.progressService.getUserProgress(this.userId).subscribe((p: any) => {
-      this.progress = p;
-
-      this.api.getEnrolledCourses(this.userId!).subscribe({
-        next: (res) => {
-          this.courses = res.map((course: any) => {
-            const courseProgressItems = this.progress.filter(pr => pr.courseId === course.id);
-
-            const completedModules = courseProgressItems.length;
-            const totalModules = course.modules?.length || 0;
-
-            const percent = totalModules > 0
-            ? Math.min(100, Math.round((completedModules / totalModules) * 100))
-            : 0;
-
-            return {
-              ...course,
-              progressPercent: percent,
-              completedModules,
-              totalModules
-            };
-          });
-
+      if (!user) {
+        this.courses = [];
         this.loading = false;
-      },
-        error: () => (this.loading = false)
-      });
+        return;
+      }
+      this.loadingservice.show();
+      this.progressService.loadUserProgress().subscribe();
 
+      this.bindCoursesWithProgress();
+      this.loadingservice.hide();
     });
   }
 
-
-
-  getProgress(courseId: number): number {
-    const entries = this.progress.filter(p => p.courseId === courseId);
-    if (!entries.length) {return 0;}
-
-    return Math.round(entries.reduce((sum, p) => sum + p.progressPercent, 0) / entries.length);
+  ngOnDestroy(): void {
+    this.sub?.unsubscribe();
   }
 
+  // =====================================================
+  //  BIND COURSES + PROGRESS (REACTIVE)
+  // =====================================================
+  private bindCoursesWithProgress(): void {
+
+    this.loading = true;
+    this.loadingservice.show();
+
+    this.sub = combineLatest([
+      this.api.getEnrolledCourses(),
+      this.progressService.progress$
+    ]).subscribe({
+      next: ([courses, progress]) => {
+
+        this.courses = courses.map((course: any) => {
+
+          const courseProgress = progress.filter(
+            p => p.courseId === course.id && p.isCompleted
+          );
+
+          const completedModules = courseProgress.length;
+          const totalModules = course.modules?.length ?? 0;
+
+          const percent =
+            totalModules > 0
+              ? Math.min(100, Math.round((completedModules / totalModules) * 100))
+              : 0;
+
+          return {
+            ...course,
+            progressPercent: percent,
+            completedModules,
+            totalModules
+          };
+        });
+
+        this.loading = false;
+        this.loadingservice.hide();
+      },
+      error: () => (this.loading = false, this.loadingservice.hide())
+    });
+  }
+
+  // =====================================================
+  //  NAVIGATION
+  // =====================================================
   continueLearning(courseId: number): void {
-    localStorage.setItem('currentCourseId', courseId.toString());
     this.router.navigate([`/courses/${courseId}/modules`]);
   }
 }

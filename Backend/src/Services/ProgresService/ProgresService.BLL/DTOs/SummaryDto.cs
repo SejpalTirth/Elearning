@@ -1,4 +1,4 @@
-﻿namespace ProgressService.BLL.Models
+﻿namespace ProgresService.BLL.Models
 {
     public class SummaryDto
     {

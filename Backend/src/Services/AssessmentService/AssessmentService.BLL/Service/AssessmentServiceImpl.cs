@@ -3,6 +3,7 @@ using AssessmentService.BLL.Interfaces;
 using AssessmentService.DAL.Models;
 using AssessmentService.DAL.Repo;
 using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -15,6 +16,7 @@ namespace AssessmentService.BLL.Services
         private readonly IQuestionRepository _questionRepo;
         private readonly IHttpClientFactory _httpFactory;
         private readonly IMapper _mapper;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         private const decimal PASS_PERCENTAGE = 67m;
 
@@ -23,21 +25,24 @@ namespace AssessmentService.BLL.Services
             ISubmissionRepository submissionRepo,
             IQuestionRepository questionRepo,
             IHttpClientFactory httpFactory,
-            IMapper mapper)
+            IMapper mapper,
+            IHttpContextAccessor httpContextAccessor)
         {
             _quizRepo = quizRepo;
             _submissionRepo = submissionRepo;
             _questionRepo = questionRepo;
             _httpFactory = httpFactory;
             _mapper = mapper;
+            _httpContextAccessor = httpContextAccessor;
         }
 
-        // CREATE QUIZ
+        // ======================= CREATE QUIZ =======================
+
         public async Task<object> CreateQuizAsync(CreateQuizDto dto)
         {
             var existing = await _quizRepo.GetByModuleIdAsync(dto.ModuleId);
             if (existing != null)
-                return new { message = "Quiz already exists for this module.", quizId = existing.Id };
+                return new { message = "Quiz already exists.", quizId = existing.Id };
 
             var quiz = new Quiz
             {
@@ -50,32 +55,74 @@ namespace AssessmentService.BLL.Services
             await _quizRepo.AddAsync(quiz);
             await _quizRepo.SaveChangesAsync();
 
-            // AUTO-PUBLISH COURSE OF THIS MODULE
+            // Auto-publish course if ready
             try
             {
                 var client = CreateCourseServiceClient();
                 if (client != null)
                 {
-                    var moduleResponse = await client.GetAsync($"/api/modules/{dto.ModuleId}");
-                    if (moduleResponse.IsSuccessStatusCode)
+                    var moduleResp = await client.PostAsJsonAsync(
+                        "/api/course/module",
+                        new { moduleId = dto.ModuleId }
+                    );
+
+                    if (moduleResp.IsSuccessStatusCode)
                     {
-                        var moduleDetails = await moduleResponse.Content.ReadFromJsonAsync<ModuleDetail>();
-                        if (moduleDetails != null)
+                        var module = await moduleResp.Content
+                            .ReadFromJsonAsync<ModuleDetail>();
+
+                        if (module != null)
                         {
-                            await client.PostAsync($"/api/courses/{moduleDetails.CourseId}/publish", null);
+                            await client.PostAsJsonAsync(
+                                "/api/course/publish",
+                                new { courseId = module.CourseId }
+                            );
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine("[Auto Publish Error] " + ex.Message);
+                Console.WriteLine("[AutoPublish] " + ex.Message);
             }
 
             return new { quiz.Id, quiz.Title, quiz.ModuleId };
         }
+        public async Task<object> AddQuestionAsync(AddQuestionDto dto)
+        {
+            var quiz = await _quizRepo.GetByIdAsync(dto.QuizId);
+            if (quiz == null)
+                return new { message = "Quiz not found." };
 
-        // implemented interface helper methods
+            ValidateQuestion(dto.Question);
+
+            var question = _mapper.Map<Question>(dto.Question);
+            question.QuizId = dto.QuizId;
+
+            for (int i = 0; i < dto.Question.Options.Count; i++)
+            {
+                question.Answers.Add(new Answer
+                {
+                    AnswerText = dto.Question.Options[i],
+                    IsCorrect = i == dto.Question.CorrectAnswerIndex
+                });
+            }
+
+            await _questionRepo.AddAsync(question);
+
+            quiz.TotalMarks = (quiz.TotalMarks ?? 0) + dto.Question.Marks;
+            await _quizRepo.SaveChangesAsync();
+
+            return new
+            {
+                message = "Question added successfully.",
+                questionId = question.Id
+            };
+        }
+
+
+        // ======================= QUIZ FETCH =======================
+
         public async Task<IEnumerable<QuizSummaryDto>> GetAllQuizzesAsync()
         {
             var quizzes = await _quizRepo.GetAllAsync();
@@ -97,12 +144,12 @@ namespace AssessmentService.BLL.Services
             if (quiz == null) return null;
 
             int totalMarks = quiz.TotalMarks ?? quiz.Questions.Sum(q => q.Marks);
-            var percentage = Math.Round(
-                (decimal)(submission.Score ?? 0) / totalMarks * 100m, 2
-            );
+
+            var percentage = CalculatePercentage(submission.Score ?? 0, totalMarks);
 
             return new QuizResultDto
             {
+                SubmissionId = submission.Id,
                 TotalMarks = totalMarks,
                 ObtainedMarks = submission.Score ?? 0,
                 Percentage = percentage,
@@ -114,35 +161,6 @@ namespace AssessmentService.BLL.Services
             };
         }
 
-        // ADD QUESTION
-        public async Task<object> AddQuestionAsync(int quizId, CreateQuestionDto dto)
-        {
-            var quiz = await _quizRepo.GetByIdAsync(quizId);
-            if (quiz == null) return new { message = "Quiz not found." };
-
-            ValidateQuestion(dto);
-
-            var question = _mapper.Map<Question>(dto);
-            question.QuizId = quizId;
-
-            for (int i = 0; i < dto.Options.Count; i++)
-            {
-                question.Answers.Add(new Answer
-                {
-                    AnswerText = dto.Options[i],
-                    IsCorrect = i == dto.CorrectAnswerIndex
-                });
-            }
-
-            await _questionRepo.AddAsync(question);
-
-            quiz.TotalMarks = (quiz.TotalMarks ?? 0) + dto.Marks;
-            await _quizRepo.SaveChangesAsync();
-
-            return new { message = "Question added successfully.", questionId = question.Id };
-        }
-
-        // GET QUIZ FOR MODULE
         public async Task<QuizForModuleDto?> GetQuizForModuleAsync(int moduleId, Guid userId)
         {
             var quiz = await _quizRepo.GetByModuleIdAsync(moduleId);
@@ -161,7 +179,8 @@ namespace AssessmentService.BLL.Services
             return dto;
         }
 
-        // SUBMIT QUIZ
+        // ======================= SUBMIT QUIZ =======================
+
         public async Task<QuizResultDto> SubmitQuizAsync(SubmitQuizDto dto)
         {
             var quiz = await _quizRepo.GetByIdWithDetailsAsync(dto.QuizId)
@@ -191,25 +210,48 @@ namespace AssessmentService.BLL.Services
             return BuildResult(submission, obtained, correct, totalMarks, totalQuestions, percentage);
         }
 
-        // PUBLIC: Get module IDs without quiz
+        // ======================= UNQUIZZED MODULES =======================
+
         public async Task<List<int>> GetModulesWithoutQuizByCourseAsync(int courseId)
         {
             var modules = await FetchModulesForCourseAsync(courseId);
-            if (modules == null) return new List<int>();
+            if (modules == null || !modules.Any())
+                return new List<int>();
 
             var moduleIds = modules.Select(m => m.Id).ToList();
             return await GetModulesWithoutQuizAsync(moduleIds);
         }
 
-        // COURSE QUIZ STATUS
+        // ======================= QUIZ STATUS =======================
+
         public async Task<object> GetQuizStatusForCourseAsync(int courseId)
         {
-            var modules = await FetchModulesForCourseAsync(courseId) ?? new List<ModuleInfo>();
-            if (!modules.Any())
-                return new { courseId, modules = new List<object>(), allQuizzesCreated = false };
+            var modules = await FetchModulesForCourseAsync(courseId);
 
-            var moduleIds = modules.Select(m => m.Id).ToList();
-            var missing = await GetModulesWithoutQuizAsync(moduleIds);
+            if (modules == null)
+            {
+                return new
+                {
+                    courseId,
+                    allQuizzesCreated = false,
+                    modules = new List<object>(),
+                    nextPendingModuleId = (int?)null,
+                    error = "CourseService unavailable"
+                };
+            }
+
+            if (!modules.Any())
+            {
+                return new
+                {
+                    courseId,
+                    allQuizzesCreated = false,
+                    modules = new List<object>(),
+                    nextPendingModuleId = (int?)null
+                };
+            }
+
+            var missing = await GetModulesWithoutQuizAsync(modules.Select(m => m.Id).ToList());
 
             var moduleStatus = modules.Select(m => new
             {
@@ -223,11 +265,13 @@ namespace AssessmentService.BLL.Services
                 courseId,
                 allQuizzesCreated = missing.Count == 0,
                 modules = moduleStatus,
-                nextPendingModuleId = moduleStatus.FirstOrDefault(m => !m.quizExists)?.moduleId
+                nextPendingModuleId =
+                    moduleStatus.FirstOrDefault(m => !m.quizExists)?.moduleId
             };
         }
 
-        // INTERNAL FUNCTION: Fetch modules for a course
+        // ======================= HELPERS =======================
+
         private async Task<List<ModuleInfo>?> FetchModulesForCourseAsync(int courseId)
         {
             try
@@ -235,26 +279,20 @@ namespace AssessmentService.BLL.Services
                 var client = CreateCourseServiceClient();
                 if (client == null) return null;
 
-                var resp = await client.GetAsync($"/api/Modules/course/{courseId}");
-                if (!resp.IsSuccessStatusCode)
-                {
-                    Console.WriteLine($"[FetchModules] CourseService returned {(int)resp.StatusCode}");
+                var response = await client.PostAsJsonAsync(
+                    "/api/courses/modules",
+                    new { courseId }
+                );
+
+                if (!response.IsSuccessStatusCode)
                     return null;
-                }
 
-                var json = await resp.Content.ReadAsStringAsync();
-
-                var modules = JsonSerializer.Deserialize<List<ModuleInfo>>(json,
-                    new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    });
-
-                return modules ?? new List<ModuleInfo>();
+                return await response.Content.ReadFromJsonAsync<List<ModuleInfo>>(
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                );
             }
-            catch (Exception ex)
+            catch
             {
-                Console.WriteLine("[FetchModules] error: " + ex.Message);
                 return null;
             }
         }
@@ -263,17 +301,24 @@ namespace AssessmentService.BLL.Services
         {
             try
             {
-                return _httpFactory.CreateClient("CourseService");
-            }
-            catch { }
+                var client = _httpFactory.CreateClient("CourseService");
 
-            try
-            {
-                return new HttpClient
+                var token = _httpContextAccessor
+                    .HttpContext?
+                    .Request
+                    .Headers["Authorization"]
+                    .FirstOrDefault();
+
+                if (!string.IsNullOrEmpty(token))
                 {
-                    BaseAddress = new Uri("https://localhost:7190"),
-                    Timeout = TimeSpan.FromSeconds(10)
-                };
+                    client.DefaultRequestHeaders.Authorization =
+                        new System.Net.Http.Headers.AuthenticationHeaderValue(
+                            "Bearer",
+                            token.Replace("Bearer ", "")
+                        );
+                }
+
+                return client;
             }
             catch
             {
@@ -281,35 +326,27 @@ namespace AssessmentService.BLL.Services
             }
         }
 
-        // INTERNAL: return only missing quiz module IDs
         public async Task<List<int>> GetModulesWithoutQuizAsync(List<int> moduleIds)
         {
             var missing = new List<int>();
-
-            foreach (var moduleId in moduleIds)
+            foreach (var id in moduleIds)
             {
-                if (await _quizRepo.GetByModuleIdAsync(moduleId) == null)
-                    missing.Add(moduleId);
+                if (await _quizRepo.GetByModuleIdAsync(id) == null)
+                    missing.Add(id);
             }
-
             return missing;
         }
 
         private static decimal CalculatePercentage(int obtained, int total)
-        {
-            return total == 0 ? 0 : Math.Round((decimal)obtained / total * 100m, 2);
-        }
+            => total == 0 ? 0 : Math.Round((decimal)obtained / total * 100m, 2);
 
-        private static bool HasAlreadyPassed(QuizSubmission? submission, int totalMarks)
-        {
-            if (submission?.Score == null) return false;
-            return CalculatePercentage(submission.Score.Value, totalMarks) >= PASS_PERCENTAGE;
-        }
+        private static bool HasAlreadyPassed(QuizSubmission? submission, int total)
+            => submission?.Score != null &&
+               CalculatePercentage(submission.Score.Value, total) >= PASS_PERCENTAGE;
 
         private static (int obtained, int correct) EvaluateQuiz(Quiz quiz, SubmitQuizDto dto)
         {
-            int obtained = 0;
-            int correct = 0;
+            int obtained = 0, correct = 0;
 
             foreach (var q in quiz.Questions)
             {
@@ -319,8 +356,8 @@ namespace AssessmentService.BLL.Services
                 var correctAns = q.Answers.FirstOrDefault(a => a.IsCorrect);
                 if (correctAns != null && submitted.SelectedAnswerId == correctAns.Id)
                 {
-                    correct++;
                     obtained += q.Marks;
+                    correct++;
                 }
             }
 
@@ -328,13 +365,9 @@ namespace AssessmentService.BLL.Services
         }
 
         private static QuizResultDto BuildAlreadyPassedResult(
-            QuizSubmission submission,
-            Quiz quiz,
-            int totalMarks,
-            int totalQuestions)
+            QuizSubmission submission, Quiz quiz, int totalMarks, int totalQuestions)
         {
             var percentage = CalculatePercentage(submission.Score ?? 0, totalMarks);
-
             return new QuizResultDto
             {
                 SubmissionId = submission.Id,
@@ -344,17 +377,13 @@ namespace AssessmentService.BLL.Services
                 Percentage = percentage,
                 Passed = true,
                 AlreadyPassed = true,
-                StatusMessage = "You already passed. No further attempts allowed."
+                StatusMessage = "Already passed."
             };
         }
 
         private static QuizResultDto BuildResult(
-            QuizSubmission submission,
-            int obtained,
-            int correct,
-            int totalMarks,
-            int totalQuestions,
-            decimal percentage)
+            QuizSubmission submission, int obtained, int correct,
+            int totalMarks, int totalQuestions, decimal percentage)
         {
             return new QuizResultDto
             {
@@ -366,9 +395,7 @@ namespace AssessmentService.BLL.Services
                 Percentage = percentage,
                 Passed = percentage >= PASS_PERCENTAGE,
                 AlreadyPassed = false,
-                StatusMessage = percentage >= PASS_PERCENTAGE
-                    ? "🎉 Passed!"
-                    : "❌ Try again."
+                StatusMessage = percentage >= PASS_PERCENTAGE ? "🎉 Passed!" : "❌ Try again."
             };
         }
 
@@ -376,21 +403,16 @@ namespace AssessmentService.BLL.Services
         {
             if (dto.Options.Count < 2)
                 throw new ArgumentException("At least 2 options required.");
-
             if (dto.CorrectAnswerIndex < 0 || dto.CorrectAnswerIndex >= dto.Options.Count)
                 throw new ArgumentException("CorrectAnswerIndex out of range.");
         }
 
-
-        // DTO: matches course-service module list
         private class ModuleInfo
         {
             public int Id { get; set; }
             public string Title { get; set; } = string.Empty;
-            public string? Content { get; set; }
         }
 
-        // DTO: matches course-service single-module response
         private class ModuleDetail
         {
             public int Id { get; set; }

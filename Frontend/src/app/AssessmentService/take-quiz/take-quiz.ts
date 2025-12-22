@@ -1,10 +1,12 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AssessmentApiService } from '../services/assessment-api';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
+import { AssessmentApiService } from '../services/assessment-api';
 import { ProgressService } from '../../CourseService/services/progress.service';
-import { SecureTokenService } from 'app/GatewayService/Security/secure-token.service';
+import { AuthStateService } from 'app/GatewayService/Auth/auth-state.service';
+import { ToastService } from 'app/shared/toast.service';
 
 @Component({
   selector: 'app-take-quiz',
@@ -13,12 +15,15 @@ import { SecureTokenService } from 'app/GatewayService/Security/secure-token.ser
   templateUrl: './take-quiz.html',
   styleUrls: ['./take-quiz.css']
 })
-export class TakeQuizComponent implements OnInit {
+export class TakeQuizComponent implements OnInit, OnDestroy {
 
   moduleId!: number;
-  courseId!: number;
   quiz: any = null;
-  answers: any[] = [];
+  answers: {
+    questionId: number;
+    selectedAnswerId: number | null;
+  }[] = [];
+
   loading = true;
   submitting = false;
   userId: string | null = null;
@@ -27,46 +32,60 @@ export class TakeQuizComponent implements OnInit {
   private readonly api = inject(AssessmentApiService);
   private readonly progressService = inject(ProgressService);
   private readonly router = inject(Router);
-  private readonly tokenService = inject(SecureTokenService);
+  private readonly authState = inject(AuthStateService);
+  private readonly toast = inject(ToastService);
+
+  private authSub?: Subscription;
 
   ngOnInit(): void {
-    this.extractUserId();
-    history.replaceState(null, '');
-    this.moduleId = Number(this.route.snapshot.paramMap.get('moduleId'));
 
-    if (!this.courseId) {
-      console.error('No course Id found for the quiz.');
+    this.authSub = this.authState.user$.subscribe(user => {
+      this.userId = user?.userId ?? null;
+    });
+
+    this.moduleId = Number(this.route.snapshot.paramMap.get('moduleId'));
+    if (!this.moduleId) {
+      console.error('No moduleId found');
+      return;
     }
 
     this.loadQuiz();
   }
 
-  extractUserId(): void {
-    this.userId = this.tokenService.getUserId();
+  ngOnDestroy(): void {
+    this.authSub?.unsubscribe();
   }
+
+  // ---------------- LOAD QUIZ ----------------
 
   loadQuiz(): void {
     this.api.getQuizForModule(this.moduleId).subscribe({
       next: (res: any) => {
         this.quiz = res;
+
         this.answers = res.questions.map((q: any) => ({
-          questionId: q.questionId,
+          questionId: q.id,
           selectedAnswerId: null
         }));
+
         this.loading = false;
       },
-      // eslint-disable-next-line no-alert
-      error: () => window.alert('Failed to load quiz.')
+      error: () => {
+        this.toast.showError('Failed to load quiz');
+        this.loading = false;
+      }
     });
   }
+
+  // ---------------- SUBMIT ----------------
 
   submit(): void {
     if (!this.quiz?.quizId || !this.userId) {
       return;
     }
 
-    const unanswered = this.answers.filter(a => a.selectedAnswerId === null);
-    if (unanswered.length > 0) {
+    if (!this.allQuestionsAnswered()) {
+      this.toast.showError('Please answer all questions.')
       return;
     }
 
@@ -80,15 +99,11 @@ export class TakeQuizComponent implements OnInit {
 
     this.api.submitQuiz(payload).subscribe({
       next: (result: any) => {
+
         if (result.passed) {
-          this.progressService.markModuleCompleted({
-            userId: this.userId!,
-            moduleId: this.moduleId
-          }).subscribe({
-            // eslint-disable-next-line no-console
-            next: () => console.log('Module marked completed'),
-            error: (err) => console.error('Failed to mark module completed', err)
-          });
+          this.progressService
+            .markModuleCompleted(this.moduleId)
+            .subscribe();
         }
 
         this.router.navigate(
@@ -100,14 +115,17 @@ export class TakeQuizComponent implements OnInit {
         );
       },
       error: () => {
-        // eslint-disable-next-line no-alert
-        window.alert('Submission failed.');
+        this.toast.showError('Submission failed.');
         this.submitting = false;
       }
     });
   }
 
+  // ---------------- HELPERS ----------------
+
   allQuestionsAnswered(): boolean {
-    return this.answers.every(a => a.selectedAnswerId !== null && a.selectedAnswerId !== undefined);
+    return this.answers.every(
+      a => a.selectedAnswerId !== null
+    );
   }
 }

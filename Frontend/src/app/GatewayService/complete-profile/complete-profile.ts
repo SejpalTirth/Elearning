@@ -2,7 +2,8 @@ import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { UserApiService } from '../../UserService/services/user-api';  // Adjust path if needed
+import { UserApiService } from '../../UserService/services/user-api';
+import { ToastService } from 'app/shared/toast.service';
 
 @Component({
   selector: 'app-complete-profile',
@@ -21,13 +22,13 @@ export class CompleteProfileComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly userApi = inject(UserApiService);
   private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
 
   ngOnInit(): void {
     this.userId = this.route.snapshot.queryParamMap.get('userId');
 
     if (!this.userId) {
-      // eslint-disable-next-line no-alert
-      alert('User ID missing. Please login again.');
+      this.toast.showError('User ID missing. Please login again.');
       this.router.navigate(['/login']);
       return;
     }
@@ -35,8 +36,7 @@ export class CompleteProfileComponent implements OnInit {
 
   saveProfile(): void {
     if (!this.name.trim()) {
-      // eslint-disable-next-line no-alert
-      alert('Please enter your name.');
+      this.toast.showError('Please enter your name');
       return;
     }
 

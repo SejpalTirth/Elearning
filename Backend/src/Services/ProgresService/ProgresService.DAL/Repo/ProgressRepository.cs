@@ -2,8 +2,6 @@
 using ProgresService.DAL.Data;
 using ProgresService.DAL.Models;
 using ProgresService.DAL.Repo;
-using System.Net.Http;
-using System.Net.Http.Json;
 
 namespace ProgressService.DAL.Repo
 {
@@ -23,13 +21,6 @@ namespace ProgressService.DAL.Repo
                 .ToListAsync();
         }
 
-        public async Task<int> GetCompletedCourseCountAsync(Guid userId)
-        {
-            return await _context.CourseCompletions
-                .Where(c => c.UserId == userId && c.CompletedAt != null)
-                .CountAsync();
-        }
-
         public async Task DeleteByModuleIdsAsync(List<int> moduleIds)
         {
             if (moduleIds == null || moduleIds.Count == 0)
@@ -40,6 +31,7 @@ namespace ProgressService.DAL.Repo
                 .ToListAsync();
 
             _context.ProgressTrackings.RemoveRange(progressToDelete);
+            await _context.SaveChangesAsync();
         }
 
         public async Task MarkModuleCompleteAsync(Guid userId, int courseId, int moduleId)
@@ -71,27 +63,33 @@ namespace ProgressService.DAL.Repo
             await _context.SaveChangesAsync();
         }
 
+        public async Task<int> GetCompletedModuleCountAsync(Guid userId, int courseId)
+        {
+            return await _context.ProgressTrackings
+                .Where(p =>
+                    p.UserId == userId &&
+                    p.CourseId == courseId &&
+                    p.IsCompleted)
+                .CountAsync();
+        }
+
+        // 🔑 CORRECT COURSE COMPLETION LOGIC
+        public async Task<bool> IsCourseFullyCompletedAsync(
+            Guid userId,
+            int courseId,
+            int totalModuleCount)
+        {
+            if (totalModuleCount <= 0)
+                return false;
+
+            int completedModules = await GetCompletedModuleCountAsync(userId, courseId);
+
+            return completedModules >= totalModuleCount;
+        }
+
         public async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();
         }
-
-        // FIXED VERSION — checks if all modules of this course are completed
-        public async Task<bool> IsCourseFullyCompletedAsync(Guid userId, int courseId)
-        {
-            // Count completed modules by this user
-            int completedModules = await _context.ProgressTrackings
-                .Where(p => p.UserId == userId && p.CourseId == courseId && p.IsCompleted == true)
-                .CountAsync();
-
-            return completedModules > 0; // Placeholder, real logic will be in service
-        }
-        public async Task<int> GetCompletedModuleCountAsync(Guid userId, int courseId)
-        {
-            return await _context.ProgressTrackings
-                .Where(p => p.UserId == userId && p.CourseId == courseId && p.IsCompleted)
-                .CountAsync();
-        }
-
     }
 }

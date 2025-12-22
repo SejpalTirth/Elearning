@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
   HttpInterceptor,
   HttpRequest,
@@ -7,84 +7,109 @@ import {
   HttpErrorResponse
 } from '@angular/common/http';
 
-import { Observable, BehaviorSubject, EMPTY } from 'rxjs';
+import { Observable, BehaviorSubject, EMPTY, throwError } from 'rxjs';
 import { catchError, switchMap, filter, take } from 'rxjs/operators';
+
 import { AuthService } from './auth.service';
-import { SecureTokenService } from '../Security/secure-token.service';
+import { AuthStateService } from 'app/GatewayService/Auth/auth-state.service';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
 
   private isRefreshing = false;
-  private refreshTokenSubject = new BehaviorSubject<string | null>(null);
+  private refreshSubject = new BehaviorSubject<boolean>(false);
 
   private readonly auth = inject(AuthService);
-  private readonly tokenService = inject(SecureTokenService);
+  private readonly authState = inject(AuthStateService);
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
 
-    const decryptedJwt = this.tokenService.getDecryptedToken();
+    const token = this.auth.getAccessToken();
 
-    const authReq = decryptedJwt
-      ? req.clone({ setHeaders: { Authorization: `Bearer ${decryptedJwt}` } })
+    const authReq = token
+      ? req.clone({
+          setHeaders: { Authorization: `Bearer ${token}` }
+        })
       : req;
 
     return next.handle(authReq).pipe(
-      catchError((err: any) => {
+      catchError(error => {
         if (
-          err instanceof HttpErrorResponse &&
-          err.status === 401 &&
-          !this.isRefreshUrl(req.url)
+          error instanceof HttpErrorResponse &&
+          error.status === 401 &&
+          !this.isAuthEndpoint(req.url)
         ) {
-          return this.handle401Error(authReq, next);
+          return this.handle401(authReq, next);
         }
 
-        throw err;
+        return throwError(() => error);
       })
     );
   }
 
-  private isRefreshUrl(url: string): boolean {
-    return url.includes('/refresh') || url.includes('/GatewayAuth/refresh');
-  }
-
-  private handle401Error(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+  private handle401(
+    req: HttpRequest<any>,
+    next: HttpHandler
+  ): Observable<HttpEvent<any>> {
 
     if (!this.isRefreshing) {
       this.isRefreshing = true;
-      this.refreshTokenSubject.next(null);
+      this.refreshSubject.next(false);
 
       return this.auth.refreshTokens().pipe(
         switchMap(tokens => {
           this.isRefreshing = false;
 
           if (!tokens) {
-            this.auth.logout();
+            this.forceLogout();
             return EMPTY;
           }
 
-          // Decrypted JWT after refresh
-          const decrypted = this.tokenService.getDecryptedToken();
-          this.refreshTokenSubject.next(decrypted);
+          // Refresh succeeded
+          this.refreshSubject.next(true);
 
           const retryReq = req.clone({
-            setHeaders: { Authorization: `Bearer ${decrypted}` }
+            setHeaders: {
+              Authorization: `Bearer ${this.auth.getAccessToken()}`
+            }
           });
 
           return next.handle(retryReq);
+        }),
+        catchError(() => {
+          this.isRefreshing = false;
+          this.forceLogout();
+          return EMPTY;
         })
       );
     }
 
-    return this.refreshTokenSubject.pipe(
-      filter(token => token !== null),
+    // Wait for refresh to finish
+    return this.refreshSubject.pipe(
+      filter(done => done === true),
       take(1),
-      switchMap(token => {
+      switchMap(() => {
         const retryReq = req.clone({
-          setHeaders: { Authorization: `Bearer ${token}` }
+          setHeaders: {
+            Authorization: `Bearer ${this.auth.getAccessToken()}`
+          }
         });
         return next.handle(retryReq);
       })
     );
+  }
+
+  private isAuthEndpoint(url: string): boolean {
+    return (
+      url.includes('/GatewayAuth/login') ||
+      url.includes('/GatewayAuth/refresh') ||
+      url.includes('/GatewayAuth/logout') ||
+      url.includes('/GatewayAuth/me')
+    );
+  }
+
+  private forceLogout(): void {
+    this.auth.logout();        // Clears tokens
+    this.authState.clear();   // Invalidates /me + state
   }
 }

@@ -1,8 +1,9 @@
-/* eslint-disable no-alert */
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CourseApiService } from '../services/course-api';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { ToastService } from 'app/shared/toast.service';
+import { LoadingService } from 'app/shared/loading/LoadingService';
 
 @Component({
   selector: 'app-manage-courses',
@@ -18,6 +19,8 @@ export class ManageCoursesComponent implements OnInit {
 
   private readonly api = inject(CourseApiService);
   private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
+  private readonly loader = inject(LoadingService);
 
   ngOnInit():void {
     this.loadCourses();
@@ -39,12 +42,15 @@ export class ManageCoursesComponent implements OnInit {
   }
 
   deleteCourse(id: number):void {
+    // eslint-disable-next-line no-alert
     if (!confirm('Are you sure you want to archive this course?')) { return; }
 
     this.api.deleteCourse(id).subscribe({
       next: () => {
-        alert('Course archived (soft deleted) successfully!');
+        this.toast.showSuccess('Course archived (soft deleted) successfully!');
+        this.loader.show();
         this.loadCourses();
+        this.loader.hide();
       },
       error: err => console.error(err)
     });
@@ -53,9 +59,10 @@ export class ManageCoursesComponent implements OnInit {
   restoreCourse(id: number): void {
     this.api.restoreCourse(id).subscribe({
       next: () => {
-         
-        alert('Course restored successfully!');
+        this.toast.showSuccess('Course restored successfully!');
+        this.loader.show();
         this.loadCourses();
+        this.loader.hide();
       },
       error: err => console.error(err)
     });

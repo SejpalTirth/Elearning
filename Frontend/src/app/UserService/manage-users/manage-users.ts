@@ -3,6 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UserApiService } from '../services/user-api';
 import { ToastService } from '../../shared/toast.service';
+import { AuthStateService } from 'app/GatewayService/Auth/auth-state.service';
+import { Subscription } from 'rxjs';
+import { AuthService } from 'app/GatewayService/Auth/auth.service';
 
 @Component({
   selector: 'app-manage-users',
@@ -15,6 +18,7 @@ export class ManageUsersComponent implements OnInit {
 
   users: any[] = [];
   roles: any[] = [];
+  userId: string | null = null;
 
   loading = false;
   updating = false;
@@ -24,8 +28,20 @@ export class ManageUsersComponent implements OnInit {
 
   private readonly userApi = inject(UserApiService);
   private readonly toast = inject(ToastService);
+  private readonly authstate = inject(AuthStateService);
+  private readonly auth = inject(AuthService);
+
+  private authSub?: Subscription;
 
   ngOnInit(): void {
+    this.authSub = this.authstate.user$.subscribe(user => {
+      if(!user)
+      {
+        return;
+      }
+      this.userId = user.userId;
+
+    })
     this.loadUsers();
     this.loadRoles();
   }
@@ -58,7 +74,30 @@ export class ManageUsersComponent implements OnInit {
   }
 
   updateRole(): void {
-    if (!this.selectedRoleId || !this.selectedUser) {return;}
+    if (!this.selectedUser || !this.selectedRoleId) {
+      return;
+    }
+
+    const currentRole = this.roles.find(
+      r =>
+        r.name?.toLowerCase() ===
+        this.selectedUser.role?.toLowerCase()
+    );
+
+    const selectedRole = this.roles.find(
+      r => r.id === this.selectedRoleId
+    );
+
+    if (
+      currentRole &&
+      selectedRole &&
+      currentRole.id === selectedRole.id
+    ) {
+      this.toast.showError(
+        `User is already a ${selectedRole.name}`
+      );
+      return;
+    }
 
     this.updating = true;
 
@@ -66,16 +105,35 @@ export class ManageUsersComponent implements OnInit {
       userId: this.selectedUser.id,
       roleId: this.selectedRoleId
     }).subscribe({
-      next: () => {
-        this.toast.showSuccess('Role updated successfully');
+      next: (res: any) => {
+        this.toast.showSuccess(
+          res?.message ?? 'Role updated successfully'
+        );
+        if (this.selectedUser.id === this.userId) {
+          this.toast.showInfo(
+            'Your role has been updated. Please log in again to continue using the Learning Management System.'
+          );
+
+          setTimeout(() => {
+            this.auth.logout();
+          }, 3500);
+
+          return;
+        }
+
         this.selectedUser = null;
         this.updating = false;
         this.loadUsers();
       },
-      error: () => {
-        this.toast.showError('Failed to update role');
+      error: (err) => {
+        const msg =
+          err?.error?.message ?? 'Failed to update role';
+        this.toast.showError(msg);
         this.updating = false;
       }
     });
   }
+
+
+
 }

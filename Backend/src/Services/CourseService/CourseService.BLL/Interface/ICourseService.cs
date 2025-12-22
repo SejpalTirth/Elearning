@@ -13,14 +13,19 @@ namespace CourseService.BLL.Interface
         Task<bool> DeleteAsync(int id);
 
         // Enrollment
-        Task<bool> EnrollUserAsync(EnrollRequestDto dto);
+        Task<bool> EnrollUserAsync(
+            Guid userId,
+            int courseId,
+            string userEmail,
+            string authorizationHeader
+        );
         Task<IEnumerable<Course>> GetUserEnrolledCoursesAsync(string userId);
 
         // Instructor-specific
         Task<IEnumerable<Course>> GetCoursesByInstructorAsync(Guid instructorId);
 
         // Publish logic
-        Task<bool> PublishCourseIfReadyAsync(int courseId);
+        Task<bool> PublishCourseIfReadyAsync(int courseId, string authorizationHeader);
 
         // Pending task system (final)
         Task<IEnumerable<Course>> GetAllUnfinishedCoursesAsync(Guid instructorId);

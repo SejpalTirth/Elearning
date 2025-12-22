@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Cryptography;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,23 +17,29 @@ var config = builder.Configuration;
 // ----------------------
 // Database
 // ----------------------
-services.AddDbContext<GatewayServiceContext>(opt =>
-    opt.UseSqlServer(config.GetConnectionString("DefaultConnection"))
+services.AddDbContext<GatewayServiceContext>(options =>
+    options.UseSqlServer(config.GetConnectionString("DefaultConnection"))
 );
 
 // ----------------------
-// Controllers + Swagger
+// Controllers
 // ----------------------
 services.AddControllers();
 services.AddEndpointsApiExplorer();
 
+// ----------------------
+// Swagger (FIXED)
+// ----------------------
 services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "JWTToken_Auth_API",
+        Title = "Gateway API",
         Version = "v1"
     });
+
+    // IMPORTANT FIX: Prevent DTO name collisions
+    c.CustomSchemaIds(type => type.FullName);
 
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
@@ -40,7 +48,7 @@ services.AddSwaggerGen(c =>
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
         Name = "Authorization",
-        Description = "Enter a valid JWT access token. The Bearer scheme is applied automatically."
+        Description = "Enter: Bearer {encrypted access token}"
     });
 
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -60,7 +68,7 @@ services.AddSwaggerGen(c =>
 });
 
 // ----------------------
-// Downstream HttpClients
+// HttpClients
 // ----------------------
 services.AddHttpClient("CourseService", c =>
     c.BaseAddress = new Uri("https://localhost:7190/"));
@@ -85,41 +93,52 @@ services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 services.AddScoped<IAuthService, AuthService>();
 
 // ----------------------
-// Authentication (FIXED)
+// Authentication (Encrypted JWT / JWE)
 // ----------------------
 services
     .AddAuthentication(options =>
     {
         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
         options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
     })
-
-    // JWT (ONLY ONE)
     .AddJwtBearer(options =>
     {
         options.RequireHttpsMetadata = true;
         options.SaveToken = true;
 
+        // Required for JWE support
+        options.SecurityTokenValidators.Clear();
+        options.SecurityTokenValidators.Add(new JwtSecurityTokenHandler());
+
+        var rawEncKey = Encoding.UTF8.GetBytes(config["Jwt:EncryptionKey"]!);
+        var derivedEncKey = SHA256.HashData(rawEncKey);
+
         options.TokenValidationParameters = new TokenValidationParameters
         {
+            // Signing
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(config["Jwt:Key"]!)
+            ),
+
+            // Encryption (JWE)
+            TokenDecryptionKey = new SymmetricSecurityKey(derivedEncKey),
+
+            // Issuer / Audience
             ValidateIssuer = true,
             ValidIssuer = config["Jwt:Issuer"],
 
-            ValidateAudience = true,
+            ValidateAudience = false,
             ValidAudience = config["Jwt:Audience"],
 
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(config["Jwt:Key"])
-            ),
-
+            // Lifetime
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
         };
     })
-
-    // Internal Gateway cookie
+    // ----------------------
+    // Cookies (internal + external)
+    // ----------------------
     .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
     {
         options.Cookie.Name = ".Gateway.Auth";
@@ -127,8 +146,6 @@ services
         options.Cookie.SameSite = SameSiteMode.None;
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     })
-
-    // External login cookie
     .AddCookie("External", options =>
     {
         options.Cookie.Name = ".Gateway.External";
@@ -136,8 +153,9 @@ services
         options.Cookie.SameSite = SameSiteMode.None;
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     })
-
-    // Google
+    // ----------------------
+    // External Providers
+    // ----------------------
     .AddGoogle(options =>
     {
         options.SignInScheme = "External";
@@ -148,8 +166,6 @@ services
         options.Scope.Add("profile");
         options.SaveTokens = true;
     })
-
-    // Microsoft
     .AddMicrosoftAccount(options =>
     {
         options.SignInScheme = "External";
@@ -197,5 +213,4 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
 app.Run();

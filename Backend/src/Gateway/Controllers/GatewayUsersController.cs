@@ -5,52 +5,53 @@ using Microsoft.AspNetCore.Mvc;
 namespace Gateway.Controllers
 {
     [Authorize]
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/users")]
     public class GatewayUsersController : BaseGatewayController
     {
-        private readonly HttpClient _http;
         private const string BASE_USERS = "api/users";
         private const string BASE_ROLES = "api/roles";
 
         public GatewayUsersController(IHttpClientFactory factory)
             : base(factory.CreateClient("UserService"))
         {
-            _http = factory.CreateClient("UserService");
         }
 
         // ------------------- USERS -------------------
 
-        [HttpGet]
+        [HttpPost("all")]
         public Task<IActionResult> GetAllUsers() =>
-            ForwardGet($"{BASE_USERS}");
+            ForwardPost($"{BASE_USERS}/all", new { });
 
-        [HttpGet("{id:guid}")]
-        public Task<IActionResult> GetUser(Guid id) =>
-            ForwardGet($"{BASE_USERS}/{id}");
+        [HttpPost("by-id")]
+        public Task<IActionResult> GetUser(
+            [FromBody] UserIdRequest request) =>
+            ForwardPost($"{BASE_USERS}/by-id", request);
 
-        [HttpDelete("{id:guid}")]
-        public Task<IActionResult> DeleteUser(Guid id) =>
-            ForwardDelete($"{BASE_USERS}/{id}");
+        [HttpPost("delete")]
+        public Task<IActionResult> DeleteUser(
+            [FromBody] UserIdRequest request) =>
+            ForwardPost($"{BASE_USERS}/delete", request);
 
         [HttpPost("complete-profile")]
         public Task<IActionResult> CompleteProfile(
-        [FromBody] CompleteProfileRequest dto) =>
-        ForwardPost($"{BASE_USERS}/complete-profile", dto);
+            [FromBody] CompleteProfileRequest dto) =>
+            ForwardPost($"{BASE_USERS}/complete-profile", dto);
 
-    // ------------------- ROLES -------------------
+        // ------------------- ROLES -------------------
 
-    [HttpGet("roles")]
+        [HttpPost("roles/all")]
         public Task<IActionResult> GetAllRoles() =>
-            ForwardGet($"{BASE_ROLES}");
+            ForwardPost($"{BASE_ROLES}/all", new { });
 
-        [HttpGet("roles/{userId:guid}")]
-        public Task<IActionResult> GetUserRole(Guid userId) =>
-            ForwardGet($"{BASE_ROLES}/{userId}");
+        [HttpPost("roles/user")]
+        public Task<IActionResult> GetUserRole(
+            [FromBody] UserIdRequest request) =>
+            ForwardPost($"{BASE_ROLES}/user", request);
 
-        [HttpPut("roles/update")]
+        [HttpPost("roles/update")]
         public Task<IActionResult> UpdateUserRole(
-        [FromBody] UpdateUserRoleRequest dto) =>
-        ForwardPut($"{BASE_ROLES}/update", dto);
+            [FromBody] UpdateUserRoleRequest dto) =>
+            ForwardPost($"{BASE_ROLES}/update", dto);
     }
 }

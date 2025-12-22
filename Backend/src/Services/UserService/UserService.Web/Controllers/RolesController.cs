@@ -1,52 +1,90 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using UserService.BLL.DTOs;
 using UserService.BLL.Interface;
+using UserService.BLL.UserContext;
 using UserService.DAL.Models;
+using static UserServiceImpl;
 
-[ApiController]
-[Route("api/roles")]
-public class RolesController : ControllerBase
+namespace UserService.Web.Controllers
 {
-    private readonly IUserService _users;
-    private readonly UserContext _context;
-
-    public RolesController(IUserService users, UserContext context)
+    [Authorize]
+    [ApiController]
+    [Route("api/roles")]
+    public class RolesController : ControllerBase
     {
-        _users = users;
-        _context = context;
-    }
+        private readonly IUserService _users;
+        private readonly UserContext _context;
+        private readonly IUserContextAccessor _userContext;
 
-    [HttpGet]
-    public async Task<IActionResult> GetAllRoles()
-    {
-        var roles = await _context.Roles
-            .Select(r => new { r.Id, r.Name })
-            .ToListAsync();
+        public RolesController(
+            IUserService users,
+            UserContext context,
+            IUserContextAccessor userContext)
+        {
+            _users = users;
+            _context = context;
+            _userContext = userContext;
+        }
 
-        return Ok(roles);
-    }
+        // ---------------- ALL ROLES ----------------
 
-    [HttpPut("update")]
-    public async Task<IActionResult> UpdateUserRole([FromBody] UpdateUserRoleRequest request)
-    {
-        var result = await _users.UpdateUserRoleAsync(request);
-        if (!result)
-            return BadRequest("Could not update role");
+        [HttpPost("all")]
+        public async Task<IActionResult> GetAllRoles()
+        {
+            var roles = await _context.Roles
+                .Select(r => new { r.Id, r.Name })
+                .ToListAsync();
 
-        return Ok("User role updated successfully");
-    }
+            return Ok(roles);
+        }
 
-    [HttpGet("{userId:guid}")]
-    public async Task<IActionResult> GetUserRole(Guid userId)
-    {
-        if (userId == Guid.Empty)
-            return BadRequest("userId cannot be empty.");
+        // ---------------- UPDATE ROLE ----------------
 
-        var user = await _users.GetById(userId);
-        if (user == null)
-            return NotFound();
+        [HttpPost("update")]
+        public async Task<IActionResult> UpdateUserRole(
+            [FromBody] UpdateUserRoleRequest request)
+        {
+            var result = await _users.UpdateUserRoleAsync(request);
 
-        return Ok(new List<string> { user.Role });
+            return result switch
+            {
+                UpdateUserRoleResult.Success =>
+                    Ok(new { message = "Role updated successfully" }),
+
+                UpdateUserRoleResult.SameRole =>
+                    BadRequest(new { message = "User already has this role" }),
+
+                UpdateUserRoleResult.RoleNotFound =>
+                    BadRequest(new { message = "Invalid role selected" }),
+
+                UpdateUserRoleResult.UserNotFound =>
+                    NotFound(new { message = "User not found" }),
+
+                UpdateUserRoleResult.LastAdminCannotBeRemoved =>
+                    BadRequest(new { message = "There should be atleast one Admin on the panel." }),
+
+                _ =>
+                    StatusCode(500, new { message = "Failed to update role" })
+            };
+        }
+
+        // ---------------- USER ROLE ----------------
+
+        [HttpPost("user")]
+        public async Task<IActionResult> GetUserRole()
+        {
+            var userId = _userContext.Current?.UserId;
+
+            if (userId == null || userId == Guid.Empty)
+                return Unauthorized("Invalid user context.");
+
+            var user = await _users.GetById(userId.Value);
+            if (user == null)
+                return NotFound();
+
+            return Ok(new List<string> { user.Role });
+        }
     }
 }

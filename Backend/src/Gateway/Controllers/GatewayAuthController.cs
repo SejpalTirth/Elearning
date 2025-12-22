@@ -1,9 +1,12 @@
+using Gateway.Contracts.Auth;
 using GatewayService.BLL.Interface;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 [ApiController]
@@ -116,12 +119,8 @@ public class GatewayAuthController : ControllerBase
         return Redirect(returnUrl);
     }
 
-    public class RefreshRequest
-    {
-        public string RefreshToken { get; set; } = string.Empty;
-    }
+    
 
-    [AllowAnonymous]
     [HttpPost("refresh")]
     public async Task<IActionResult> Refresh([FromBody] RefreshRequest request)
     {
@@ -135,12 +134,7 @@ public class GatewayAuthController : ControllerBase
         return Ok(tokens);
     }
 
-    public class LogoutRequest
-    {
-        public string RefreshToken { get; set; } = string.Empty;
-    }
-
-    [AllowAnonymous]
+    [Authorize]
     [HttpPost("logout")]
     public async Task<IActionResult> Logout([FromBody] LogoutRequest req)
     {
@@ -153,4 +147,28 @@ public class GatewayAuthController : ControllerBase
 
         return Ok(new { message = "Logged out" });
     }
+
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [HttpGet("me")]
+    public IActionResult Me()
+    {
+        var userId =
+            User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        return Ok(new
+        {
+            userId,
+            email = User.FindFirst(ClaimTypes.Email)?.Value
+                    ?? User.FindFirst(JwtRegisteredClaimNames.Email)?.Value,
+            name = User.FindFirst("name")?.Value
+                   ?? User.FindFirst(ClaimTypes.Name)?.Value,
+            role = User.FindFirst(ClaimTypes.Role)?.Value,
+            provider = User.FindFirst("provider")?.Value
+        });
+    }
+
 }
