@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System;
-
-namespace ProgressService.BLL.DTOs
+﻿namespace ProgresService.BLL.DTOs
 {
     public enum NotificationType
     {

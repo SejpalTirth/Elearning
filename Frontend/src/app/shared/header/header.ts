@@ -1,9 +1,11 @@
-import { Component, inject, OnInit } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { environment } from 'Environment/environment';
+import { RouterLink } from '@angular/router';
+import { Observable } from 'rxjs';
+
 import { AuthService } from 'app/GatewayService/Auth/auth.service';
-import { SecureTokenService } from 'app/GatewayService/Security/secure-token.service';
+import { AuthStateService } from 'app/GatewayService/Auth/auth-state.service';
+import { AuthUser } from '../../GatewayService/Auth/auth-user.model';
 
 @Component({
   selector: 'app-shared-header',
@@ -12,31 +14,32 @@ import { SecureTokenService } from 'app/GatewayService/Security/secure-token.ser
   templateUrl: './header.html',
   styleUrls: ['./header.css']
 })
-export class SharedHeaderComponent implements OnInit {
-
-  userName: string | null = null;
-  role: string | null = null;
-  loggedIn = false;
-
-  dropdownOpen = false;
-
-  private readonly url = `${environment.baseapiurl}/Gatewayauth`;
+export class SharedHeaderComponent {
 
   private readonly auth = inject(AuthService);
-  private readonly tokenService = inject(SecureTokenService);
+  private readonly authState = inject(AuthStateService);
 
+  /** Reactive user stream */
+  user$: Observable<AuthUser | null> = this.authState.user$;
 
-  ngOnInit(): void {
-    const payload = this.tokenService.getPayload();
+  /** UI state */
+  dropdownOpen = false;
 
-    if (payload) {
-      this.userName = payload.name || payload.email || 'User';
-      this.role = payload.role || null;
-      this.loggedIn = true;
-    } else {
-      this.loggedIn = false;
-    }
+  /** Derived helpers (safe & simple) */
+  get loggedIn(): boolean {
+    return this.authState.isLoggedIn;
+  }
 
+  get userName(): string {
+    return (
+      this.authState.user?.name ||
+      this.authState.user?.email ||
+      'User'
+    );
+  }
+
+  get role(): string | null {
+    return this.authState.role;
   }
 
   toggleDropdown(): void {
@@ -44,6 +47,8 @@ export class SharedHeaderComponent implements OnInit {
   }
 
   logout(): void {
+    this.dropdownOpen = false;
     this.auth.logout();
+    this.authState.clear();
   }
 }

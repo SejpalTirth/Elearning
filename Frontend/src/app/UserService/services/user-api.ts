@@ -8,41 +8,38 @@ import { environment } from 'Environment/environment';
 })
 export class UserApiService {
 
-  // Gateway URL (NOT UserService)
-  private baseUrl = `${environment.baseapiurl}/GatewayUsers`;
-
+  private baseUrl = `${environment.baseapiurl}/users`;
   private readonly http = inject(HttpClient);
 
-  // --- USERS ---
+  // ---------------- USERS ----------------
 
   getAllUsers(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.baseUrl}`);
+    return this.http.post<any[]>(`${this.baseUrl}/all`, {});
   }
 
   getUser(userId: string): Observable<any> {
-    return this.http.get<any>(`${this.baseUrl}/${userId}`);
+    return this.http.post<any>(`${this.baseUrl}/by-id`, { userId });
   }
 
   deleteUser(userId: string): Observable<any> {
-    return this.http.delete(`${this.baseUrl}/${userId}`);
+    return this.http.post(`${this.baseUrl}/delete`, { userId });
   }
 
-  // NEW — COMPLETE PROFILE
-  completeProfile(payload: { userId: string; name: string; roleId: number }): Observable<any> {
+  completeProfile(payload: { name: string; roleId: number }): Observable<any> {
     return this.http.post(`${this.baseUrl}/complete-profile`, payload);
   }
 
-  // --- ROLES ---
-
-  getUserRoles(userId: string): Observable<string[]> {
-    return this.http.get<string[]>(`${this.baseUrl}/roles/${userId}`);
-  }
-
-  updateUserRole(body: { userId: string; roleId: number }): Observable<any> {
-    return this.http.put(`${this.baseUrl}/roles/update`, body, { responseType: 'text' });
-  }
+  // ---------------- ROLES ----------------
 
   getAllRoles(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.baseUrl}/roles`);
+    return this.http.post<any[]>(`${this.baseUrl}/roles/all`, {});
+  }
+
+  getUserRoles(userId: string): Observable<string[]> {
+    return this.http.post<string[]>(`${this.baseUrl}/roles/user`, { userId });
+  }
+
+  updateUserRole(payload: { userId: string; roleId: number }): Observable<any> {
+    return this.http.post(`${this.baseUrl}/roles/update`, payload);
   }
 }

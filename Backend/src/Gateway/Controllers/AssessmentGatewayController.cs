@@ -5,100 +5,60 @@ using Microsoft.AspNetCore.Mvc;
 namespace Gateway.Controllers
 {
     [Authorize]
-    [Route("api/[controller]")]
     [ApiController]
-    public class AssessmentGatewayController : ControllerBase
+    [Route("api/assessment")]
+    public class AssessmentGatewayController : BaseGatewayController
     {
-        private readonly IHttpClientFactory _factory;
         private const string BASE = "api/assessment";
 
         public AssessmentGatewayController(IHttpClientFactory factory)
+            : base(factory.CreateClient("AssessmentService"))
         {
-            _factory = factory;
         }
 
-        private void ForwardAuth(HttpRequestMessage req)
-        {
-            if (Request.Headers.TryGetValue("Authorization", out var token))
-                req.Headers.TryAddWithoutValidation("Authorization", token.ToString());
-        }
+        // ------------------- QUIZ FOR MODULE -------------------
 
-        private async Task<IActionResult> Forward(HttpRequestMessage req)
-        {
-            var client = _factory.CreateClient("AssessmentService");
-            ForwardAuth(req);
-
-            var res = await client.SendAsync(req);
-            var raw = await res.Content.ReadAsStringAsync();
-
-            if (!raw.Trim().StartsWith("{") && !raw.Trim().StartsWith("["))
-                return StatusCode((int)res.StatusCode, new { message = raw });
-
-            return Content(raw, "application/json");
-        }
-
-        // ------------------- QUIZ FOR MODULE (Student) -------------------
-
-        [HttpGet("quiz/module/{moduleId:int}")]
-        public async Task<IActionResult> GetQuizForModule(int moduleId)
-        {
-            var client = _factory.CreateClient("AssessmentService");
-
-            // Authorization required for student quiz
-            if (!Request.Headers.TryGetValue("Authorization", out var token))
-                return Unauthorized("Missing access token.");
-
-            client.DefaultRequestHeaders.Authorization =
-                new System.Net.Http.Headers.AuthenticationHeaderValue(
-                    "Bearer",
-                    token.ToString().Replace("Bearer ", "")
-                );
-
-            var response = await client.GetAsync($"{BASE}/module/{moduleId}");
-            var raw = await response.Content.ReadAsStringAsync();
-
-            return Content(raw, "application/json");
-        }
+        [HttpPost("quiz/module")]
+        public Task<IActionResult> GetQuizForModule(
+            [FromBody] GetQuizForModuleRequest request) =>
+            ForwardPost($"{BASE}/quiz/module", request);
 
         // ------------------- QUIZ CREATION -------------------
 
         [HttpPost("quiz")]
-        public Task<IActionResult> CreateQuiz([FromBody] CreateQuiz dto) =>
-            Forward(new HttpRequestMessage(HttpMethod.Post, $"{BASE}/quiz")
-            {
-                Content = JsonContent.Create(dto)
-            });
+        public Task<IActionResult> CreateQuiz(
+            [FromBody] CreateQuiz dto) =>
+            ForwardPost($"{BASE}/quiz", dto);
 
-        [HttpPost("quiz/{quizId:int}/questions")]
-        public Task<IActionResult> AddQuestion(int quizId, [FromBody] CreateQuestion dto) =>
-            Forward(new HttpRequestMessage(HttpMethod.Post, $"{BASE}/quiz/{quizId}/questions")
-            {
-                Content = JsonContent.Create(dto)
-            });
+        [HttpPost("quiz/questions")]
+        public Task<IActionResult> AddQuestion(
+            [FromBody] AddQuestionRequest request) =>
+            ForwardPost($"{BASE}/quiz/questions", request);
 
         // ------------------- QUIZ SUBMISSION -------------------
 
-        [HttpPost("submit")]
-        public Task<IActionResult> Submit([FromBody] SubmitQuiz dto) =>
-            Forward(new HttpRequestMessage(HttpMethod.Post, $"{BASE}/submit")
-            {
-                Content = JsonContent.Create(dto)
-            });
+        [HttpPost("quiz/submit")]
+        public Task<IActionResult> Submit(
+            [FromBody] SubmitQuiz dto) =>
+            ForwardPost($"{BASE}/quiz/submit", dto);
 
-        [HttpGet("result/{submissionId:guid}")]
-        public Task<IActionResult> Result(Guid submissionId) =>
-            Forward(new HttpRequestMessage(HttpMethod.Get, $"{BASE}/result/{submissionId}"));
+        [HttpPost("quiz/result")]
+        public Task<IActionResult> Result(
+            [FromBody] ResultRequest request) =>
+            ForwardPost($"{BASE}/quiz/result", request);
 
         // ------------------- COURSE QUIZ STATUS -------------------
 
-        [HttpGet("course/{courseId}/quiz-status")]
-        public Task<IActionResult> QuizStatus(int courseId) =>
-            Forward(new HttpRequestMessage(HttpMethod.Get, $"{BASE}/course/{courseId}/quiz-status"));
+        [HttpPost("course/quiz-status")]
+        public Task<IActionResult> QuizStatus(
+            [FromBody] CourseQuizStatusRequest request) =>
+            ForwardPost($"{BASE}/course/quiz-status", request);
 
-        // ------------------- UNFINISHED MODULES -------------------
+        // ------------------- UNQUIZZED MODULES -------------------
 
-        [HttpGet("unquizzed-modules/{courseId:int}")]
-        public Task<IActionResult> GetUnquizzed(int courseId) =>
-            Forward(new HttpRequestMessage(HttpMethod.Get, $"{BASE}/unquizzed-modules/{courseId}"));
+        [HttpPost("course/unquizzed-modules")]
+        public Task<IActionResult> GetUnquizzed(
+            [FromBody] GetUnquizzedRequest request) =>
+            ForwardPost($"{BASE}/course/unquizzed-modules", request);
     }
 }

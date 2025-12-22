@@ -5,7 +5,7 @@ import { Injectable } from '@angular/core';
 })
 export class ToastService {
 
-  toasts: { type: 'success' | 'error', message: string }[] = [];
+  toasts: { type: 'success' | 'error' | 'info', message: string }[] = [];
 
   showSuccess(message: string): void {
     this.toasts.push({ type: 'success', message });
@@ -14,6 +14,11 @@ export class ToastService {
 
   showError(message: string): void {
     this.toasts.push({ type: 'error', message });
+    this.autoRemove();
+  }
+
+  showInfo(message: string): void {
+    this.toasts.push({ type: 'info', message });
     this.autoRemove();
   }
 

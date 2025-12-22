@@ -1,11 +1,11 @@
-<app-loading-overlay></app-loading-overlay>
-
 <div class="form-container" [formGroup]="form">
 
   <h2>Edit Course</h2>
 
   <!-- TITLE -->
-  <label for="course-title">Course Title <span class="required">*</span></label>
+  <label for="course-title">
+    Course Title <span class="required">*</span>
+  </label>
   <input id="course-title"
          formControlName="title"
          placeholder="Enter course title"
@@ -20,7 +20,8 @@
   <textarea id="course-description"
             formControlName="description"
             (input)="autoResize($event)"
-            placeholder="Enter course description"></textarea>
+            placeholder="Enter course description">
+  </textarea>
 
   <!-- CATEGORY -->
   <label for="course-category">
@@ -38,23 +39,31 @@
   </select>
 
   @if (fieldInvalid('categoryId')) {
-    <div class="error">You must select a category for your course.</div>
+    <div class="error">
+      You must select a category for your course.
+    </div>
   }
 
   <!-- MODULES -->
-  <label for="modules">Modules <span class="required">*</span></label>
+  <div class="section-label">
+    Modules <span class="required">*</span>
+  </div>
 
-  <div formArrayName="modules" cdkDropList (cdkDropListDropped)="drop($event)">
+
+  <div formArrayName="modules"
+       cdkDropList
+       (cdkDropListDropped)="drop($event)">
 
     @for (m of modules.controls; track $index) {
 
-      <div class="module-wrapper" [formGroupName]="$index" cdkDrag>
+      <div class="module-wrapper"
+           [formGroupName]="$index"
+           cdkDrag>
 
-        <div class="drag-handle" cdkDragHandle aria-hidden="true">☰</div>
+        <div class="drag-handle" cdkDragHandle>☰</div>
 
         <div class="module-fields">
 
-          <!-- Module Title -->
           <label [for]="'module-title-' + $index">Module title</label>
           <input
             [id]="'module-title-' + $index"
@@ -66,7 +75,6 @@
             <div class="error">Module title is required.</div>
           }
 
-          <!-- Module Content -->
           <label [for]="'module-content-' + $index">Module content</label>
           <textarea
             [id]="'module-content-' + $index"
@@ -82,7 +90,6 @@
 
         </div>
 
-        <!-- Remove Button (except for first module) -->
         @if ($index > 0) {
           <button type="button"
                   class="remove-btn"
@@ -90,14 +97,13 @@
             ✕
           </button>
         }
-
       </div>
-
     }
-
   </div>
 
-  <button class="add-module-btn" type="button" (click)="addModule()">+ Add Module</button>
+  <button class="add-module-btn" type="button" (click)="addModule()">
+    + Add Module
+  </button>
 
   <div class="actions">
     <button class="cancel-btn" type="button" (click)="cancel()">Cancel</button>

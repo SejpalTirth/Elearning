@@ -1,10 +1,10 @@
-﻿using ProgressService.BLL.Models;
+﻿using ProgresService.BLL.Models;
 
-namespace ProgressService.BLL.Interface
+namespace ProgresService.BLL.Interface
 {
     public interface IProgressService
     {
-        Task<List<ProgressDto>> GetUserProgressAsync(Guid userId);
+        Task<List<ProgresDto>> GetUserProgressAsync(Guid userId);
         Task MarkModuleCompletedAsync(Guid userId, int courseId, int moduleId);
     }
 }

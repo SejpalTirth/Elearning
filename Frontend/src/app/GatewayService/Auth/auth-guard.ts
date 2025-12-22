@@ -1,23 +1,27 @@
 import { inject, Injectable } from '@angular/core';
-import { Router } from '@angular/router';
-import { AuthService } from './auth.service';
+import { CanActivate, Router } from '@angular/router';
+import { Observable } from 'rxjs';
+import { filter, map, take } from 'rxjs/operators';
+import { AuthStateService } from './auth-state.service';
 
 @Injectable({ providedIn: 'root' })
-export class AuthGuard {
+export class AuthGuard implements CanActivate {
 
-  private readonly auth = inject(AuthService);
+  private readonly authState = inject(AuthStateService);
   private readonly router = inject(Router);
 
-  canActivate(): boolean {
-    const access = this.auth.getAccessToken();
-    const refresh = this.auth.getRefreshToken();
+  canActivate(): Observable<boolean> {
+    return this.authState.status$.pipe(
+      filter(status => status !== 'loading'),
+      take(1),
+      map(status => {
+        if (status === 'authenticated') {
+          return true;
+        }
 
-    // Only block if BOTH tokens missing → user truly logged out
-    if (!access && !refresh) {
-      this.router.navigate(['/login']);
-      return false;
-    }
-
-    return true;
+        this.router.navigate(['/login']);
+        return false;
+      })
+    );
   }
 }

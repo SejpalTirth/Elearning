@@ -1,11 +1,10 @@
 ﻿using AssessmentService.BLL.DTOs;
 
 namespace AssessmentService.BLL.Interfaces;
-
 public interface IAssessmentService
 {
     Task<object> CreateQuizAsync(CreateQuizDto dto);
-    Task<object> AddQuestionAsync(int quizId, CreateQuestionDto dto);
+    Task<object> AddQuestionAsync(AddQuestionDto dto);
 
     Task<QuizForModuleDto?> GetQuizForModuleAsync(int moduleId, Guid userId);
 
@@ -19,6 +18,5 @@ public interface IAssessmentService
 
     Task<object> GetQuizStatusForCourseAsync(int courseId);
 
-    Task<List<int>> GetModulesWithoutQuizAsync(List<int> moduleIds);
     Task<List<int>> GetModulesWithoutQuizByCourseAsync(int courseId);
 }

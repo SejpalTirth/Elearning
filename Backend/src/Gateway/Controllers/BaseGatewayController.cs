@@ -1,49 +1,96 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Gateway.UserContext;
+using Microsoft.AspNetCore.Mvc;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 
 namespace Gateway.Controllers
 {
     [ApiController]
     public abstract class BaseGatewayController : ControllerBase
     {
-        private readonly HttpClient _httpClient;
+        protected readonly HttpClient _http;
 
-        protected BaseGatewayController(HttpClient httpClient)
+        protected BaseGatewayController(HttpClient http)
         {
-            _httpClient = httpClient;
+            _http = http;
         }
 
-        protected async Task<IActionResult> ForwardGet(string url)
+        // -------------------- CORE FORWARD --------------------
+
+        protected async Task<IActionResult> ForwardPost(HttpRequestMessage request)
         {
-            var response = await _httpClient.GetAsync(url);
-            return await FormatResponse(response);
+            ForwardAuth(request);
+            ForwardUserContext(request);
+
+            var response = await _http.SendAsync(request);
+            var raw = await response.Content.ReadAsStringAsync();
+
+            // Preserve status codes
+            return StatusCode(
+                (int)response.StatusCode,
+                string.IsNullOrWhiteSpace(raw) ? null : raw
+            );
         }
 
-        protected async Task<IActionResult> ForwardPost(string url, object body)
+        // -------------------- SHORTCUT HELPERS --------------------
+
+        protected Task<IActionResult> ForwardPost(string url, object body)
         {
-            var response = await _httpClient.PostAsJsonAsync(url, body);
-            return await FormatResponse(response);
+            var req = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = JsonContent.Create(body)
+            };
+
+            return ForwardPost(req);
         }
 
-        protected async Task<IActionResult> ForwardPut(string url, object body)
+        protected Task<IActionResult> ForwardGet(string url)
         {
-            var response = await _httpClient.PutAsJsonAsync(url, body);
-            return await FormatResponse(response);
+            var req = new HttpRequestMessage(HttpMethod.Get, url);
+            return ForwardPost(req);
         }
 
-        protected async Task<IActionResult> ForwardDelete(string url)
+        protected Task<IActionResult> ForwardPut(string url, object body)
         {
-            var response = await _httpClient.DeleteAsync(url);
-            return await FormatResponse(response);
+            var req = new HttpRequestMessage(HttpMethod.Put, url)
+            {
+                Content = JsonContent.Create(body)
+            };
+
+            return ForwardPost(req);
         }
 
-        private async Task<IActionResult> FormatResponse(HttpResponseMessage response)
+        protected Task<IActionResult> ForwardDelete(string url)
         {
-            var content = await response.Content.ReadAsStringAsync();
+            var req = new HttpRequestMessage(HttpMethod.Delete, url);
+            return ForwardPost(req);
+        }
 
-            if (!response.IsSuccessStatusCode)
-                return StatusCode((int)response.StatusCode, content);
+        // -------------------- HEADER FORWARDING --------------------
 
-            return Content(content, "application/json");
+        private void ForwardAuth(HttpRequestMessage req)
+        {
+            if (Request.Headers.TryGetValue("Authorization", out var token))
+            {
+                req.Headers.Authorization =
+                    AuthenticationHeaderValue.Parse(token!);
+            }
+        }
+
+        private void ForwardUserContext(HttpRequestMessage req)
+        {
+            if (!User.Identity?.IsAuthenticated ?? true)
+                return;
+
+            var userContext = GatewayUserContextBuilder.Build(User);
+
+            var json = JsonSerializer.Serialize(userContext);
+            var base64 = Convert.ToBase64String(
+                Encoding.UTF8.GetBytes(json)
+            );
+
+            req.Headers.TryAddWithoutValidation("X-User-Context", base64);
         }
     }
 }

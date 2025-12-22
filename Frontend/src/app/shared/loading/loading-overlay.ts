@@ -1,5 +1,6 @@
-import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { LoadingService } from './LoadingService';
 
 @Component({
   selector: 'app-loading-overlay',
@@ -9,8 +10,6 @@ import { Component } from '@angular/core';
   styleUrls: ['./loading-overlay.css']
 })
 export class LoadingOverlay {
-  visible = false;
 
-  show(): void { this.visible = true; }
-  hide(): void { this.visible = false; }
+  constructor(public loading: LoadingService) {}
 }

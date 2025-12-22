@@ -13,9 +13,7 @@ namespace Gateway.Contracts.Assessment
     }
     public class SubmitAnswer
     {
-        [Range(1, int.MaxValue, ErrorMessage = "QuestionId must be greater than 0.")]
         public int QuestionId { get; set; }
-        [Range(0,3, ErrorMessage = "SelectedAnswerId must be a valid index of the options list.")]
         public int SelectedAnswerId { get; set; }
     }
 }

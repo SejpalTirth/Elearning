@@ -1,73 +1,90 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using ProgressService.BLL.Interface;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using ProgresService.BLL.DTOs;
+using ProgresService.BLL.Interface;
+using ProgresService.BLL.UserContext;
 
 namespace ProgressService.Web.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/progress")]
     public class ProgressController : ControllerBase
     {
-        private readonly IProgressService _service;
-        private readonly IHttpClientFactory _httpClientFactory;
+            private readonly IProgressService _service;
+            private readonly IHttpClientFactory _httpClientFactory;
+            private readonly IUserContextAccessor _userContext;
 
-        public ProgressController(
-            IProgressService service,
-            IHttpClientFactory httpClientFactory)
+            public ProgressController(
+                IProgressService service,
+                IHttpClientFactory httpClientFactory,
+                IUserContextAccessor userContext)
+            {
+                _service = service;
+                _httpClientFactory = httpClientFactory;
+                _userContext = userContext;
+            }
+
+
+
+        // ---------------- USER PROGRESS ----------------
+
+        [HttpPost("user")]
+        public async Task<IActionResult> GetUserProgress()
         {
-            _service = service;
-            _httpClientFactory = httpClientFactory;
-        }
+            var userId = _userContext.Current?.UserId;
 
-        // GET → user progress
-        [HttpGet("{userId:guid}")]
-        public async Task<IActionResult> GetUserProgress(Guid userId)
-        {
-            if (userId == Guid.Empty)
-                return BadRequest("userId cannot be empty.");
+            if (userId == null || userId == Guid.Empty)
+                return Unauthorized("Invalid user context.");
 
-            var data = await _service.GetUserProgressAsync(userId);
+            var data = await _service.GetUserProgressAsync(userId.Value);
             return Ok(data);
         }
 
-        // POST → Complete Module
+        // ---------------- COMPLETE MODULE ----------------
+
         [HttpPost("complete-module")]
         public async Task<IActionResult> CompleteModule(
             [FromBody] ModuleCompleteRequest request)
         {
-            if (request.ModuleId <= 0)
-                return BadRequest("moduleId must be greater than zero.");
+            var userId = _userContext.Current?.UserId;
 
-            if (request.UserId == Guid.Empty)
-                return BadRequest("userId cannot be empty.");
+            if (userId == null || userId == Guid.Empty)
+                return Unauthorized("Invalid user context.");
 
             var client = _httpClientFactory.CreateClient("CourseService");
 
-            CourseIdResponseDTO? courseInfo;
-
-            try
+            // FORWARD AUTHORIZATION HEADER
+            if (Request.Headers.TryGetValue("Authorization", out var token))
             {
-                courseInfo = await client.GetFromJsonAsync<CourseIdResponseDTO>(
-                    $"api/Modules/course-id/{request.ModuleId}");
+                client.DefaultRequestHeaders
+                      .TryAddWithoutValidation("Authorization", token.ToString());
             }
-            catch
+
+            var response = await client.PostAsJsonAsync(
+                "api/modules/course-id",
+                new { moduleId = request.ModuleId }
+            );
+
+            if (!response.IsSuccessStatusCode)
             {
+                var error = await response.Content.ReadAsStringAsync();
                 return BadRequest(new
                 {
-                    message = "Failed to fetch course info from CourseService."
+                    message = "Failed to fetch course info from CourseService.",
+                    status = response.StatusCode,
+                    details = error
                 });
             }
+
+            var courseInfo = await response.Content
+                .ReadFromJsonAsync<CourseIdResponseDTO>();
 
             if (courseInfo == null)
-            {
-                return NotFound(new
-                {
-                    message = $"Module {request.ModuleId} not found in CourseService."
-                });
-            }
+                return NotFound($"Module {request.ModuleId} not found.");
 
             await _service.MarkModuleCompletedAsync(
-                request.UserId,
+                userId.Value,
                 courseInfo.CourseId,
                 request.ModuleId
             );

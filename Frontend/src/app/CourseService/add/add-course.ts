@@ -4,7 +4,9 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { CourseApiService } from '../services/course-api';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
-import { SecureTokenService } from '../../GatewayService/Security/secure-token.service';
+import { AuthStateService } from 'app/GatewayService/Auth/auth-state.service';
+import { Subscription } from 'rxjs';
+import { ToastService } from 'app/shared/toast.service';
 
 @Component({
   selector: 'app-add-course',
@@ -27,10 +29,12 @@ export class AddCourseComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly courseApi = inject(CourseApiService);
   private readonly router = inject(Router);
-  private readonly tokenService = inject(SecureTokenService);
+  private readonly authState = inject(AuthStateService);
+  private readonly toast = inject(ToastService);
 
-  constructor()
-  {
+  private authSub?: Subscription;
+
+  constructor() {
     this.form = this.fb.group({
       title: ['', Validators.required],
       description: [''],
@@ -46,8 +50,13 @@ export class AddCourseComponent implements OnInit {
 
   ngOnInit(): void {
     this.courseApi.getCategories().subscribe({
-      next: (res: any) => (this.categories = res),
-      error: err => console.error(err)
+      next: res => this.categories = res || [],
+      error: () => this.categories = []
+    });
+
+    this.authSub = this.authState.user$.subscribe(user => {
+      if (!user) { return; }
+      this.userId = user.userId;
     });
   }
 
@@ -72,62 +81,59 @@ export class AddCourseComponent implements OnInit {
     moveItemInArray(this.modules.controls, event.previousIndex, event.currentIndex);
   }
 
-  fieldInvalid(name: string): boolean | undefined {
-    const control = this.form.get(name);
-    return this.submitted && control?.invalid;
+  fieldInvalid(name: string): boolean {
+    return this.submitted && !!this.form.get(name)?.invalid;
   }
 
-  fieldValid(name: string): boolean | undefined {
-    const control = this.form.get(name);
-    return control?.valid && control?.touched;
-  }
-
-  submit():void {
+  submit(): void {
     this.submitted = true;
 
-    // Course must have at least one module
-    if (this.modules.length === 0 || this.form.invalid) {
+    // Must have at least one module + valid form
+    if (this.form.invalid || this.modules.length === 0) {
       this.form.markAllAsTouched();
       return;
     }
 
-    const userId = this.tokenService.getUserId();
-
-    if (!userId) {
+    if (!this.userId) {
+      this.toast.showError('User session not found.');
       return;
     }
 
-    this.userId = userId;
-
-
-    const dto = {
-      ...this.form.value,
-      instructorUserId: this.userId
+    // 🔑 EXPLICIT PAYLOAD (backend-safe)
+    const requestBody = {
+      title: this.form.value.title,
+      description: this.form.value.description,
+      categoryId: Number(this.form.value.categoryId),
+      instructorUserId: this.userId,
+      modules: this.form.value.modules.map((m: any) => ({
+        title: m.title,
+        content: m.content
+      }))
     };
 
-    this.courseApi.addCourse(dto).subscribe({
+    this.courseApi.addCourse(requestBody).subscribe({
       next: (res: any) => {
         const courseId = res?.id;
         if (!courseId) {
+          this.toast.showError('Course created but ID not returned.');
           return;
         }
         this.router.navigate(['/assessment/add-quiz', courseId]);
       },
       error: err => {
         console.error(err);
-        // eslint-disable-next-line no-alert
-        alert('Error creating course');
+        this.toast.showError('Error creating course');
       }
     });
   }
 
-  cancel():void {
+  cancel(): void {
     this.router.navigate(['/courses']);
   }
-  autoResize(event: any):void {
-    const textarea = event.target;
-    textarea.style.height = 'auto';
-    textarea.style.height = `${textarea.scrollHeight  }px`;
-  }
 
+  autoResize(event: Event): void {
+    const textarea = event.target as HTMLTextAreaElement;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }
 }

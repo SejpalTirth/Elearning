@@ -30,31 +30,48 @@ public class UserServiceImpl : IUserService
         return user == null ? null : _mapper.Map<UserDto>(user);
     }
 
-    public async Task<bool> UpdateUserRoleAsync(UpdateUserRoleRequest req)
+    public async Task<UpdateUserRoleResult> UpdateUserRoleAsync(UpdateUserRoleRequest request)
     {
-        var user = await _repo.GetByIdAsync(req.UserId);
-        if (user == null) return false;
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == request.UserId);
 
-        // Prevent demoting last admin
-        if (user.Role == "Admin")
+        if (user == null)
+            return UpdateUserRoleResult.UserNotFound;
+
+        var role = await _context.Roles
+            .FirstOrDefaultAsync(r => r.Id == request.RoleId);
+
+        if (role == null)
+            return UpdateUserRoleResult.RoleNotFound;
+
+        // Same role check
+        if (string.Equals(
+            user.Role,
+            role.Name,
+            StringComparison.OrdinalIgnoreCase))
         {
-            var role = await _context.Roles.FindAsync(req.RoleId);
-            if (role != null && role.Name != "Admin")
+            return UpdateUserRoleResult.SameRole;
+        }
+
+        // 🚨 CRITICAL RULE: At least one Admin must remain
+        if (string.Equals(user.Role, "Admin", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(role.Name, "Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            var adminCount = await _context.Users
+                .CountAsync(u => u.Role == "Admin");
+
+            if (adminCount <= 1)
             {
-                var adminCount = await _context.Users.CountAsync(u => u.Role == "Admin");
-                if (adminCount <= 1)
-                    throw new InvalidOperationException("Cannot remove the last admin");
+                return UpdateUserRoleResult.LastAdminCannotBeRemoved;
             }
         }
 
-        var newRole = await _context.Roles.FindAsync(req.RoleId);
-        if (newRole == null) return false;
-
-        user.Role = newRole.Name;
+        user.Role = role.Name;
         user.UpdatedAt = DateTime.UtcNow;
 
-        await _repo.SaveAsync();
-        return true;
+        await _context.SaveChangesAsync();
+
+        return UpdateUserRoleResult.Success;
     }
 
 
@@ -106,4 +123,12 @@ public class UserServiceImpl : IUserService
         return true;
     }
 
+    public enum UpdateUserRoleResult
+    {
+        Success,
+        SameRole,
+        UserNotFound,
+        RoleNotFound,
+        LastAdminCannotBeRemoved
+    }
 }

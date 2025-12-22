@@ -27,6 +27,10 @@
 .toast.error {
   border-left-color: #d9534f;
 }
+.toast.info {
+  border-left-color: #5bc0de;
+}
+
 
 @keyframes fadeInOut {
   0% { opacity: 0; transform: translateX(20px); }

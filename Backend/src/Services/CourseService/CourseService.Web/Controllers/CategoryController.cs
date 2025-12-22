@@ -15,7 +15,7 @@ namespace CourseService.Web.Controllers
             _context = context;
         }
 
-        [HttpGet]
+        [HttpPost]
         public async Task<IActionResult> GetAll()
         {
             var categories = await _context.Categories

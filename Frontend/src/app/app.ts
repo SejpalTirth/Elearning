@@ -5,6 +5,8 @@ import { CommonModule } from '@angular/common';
 import { HeaderComponent } from './GatewayService/header/header';
 import { SharedHeaderComponent } from './shared/header/header';
 import { ToastContainerComponent } from './shared/toast/toast';
+import { AuthStateService } from './GatewayService/Auth/auth-state.service';
+import { LoadingOverlay } from './shared/loading/loading-overlay';
 
 @Component({
   selector: 'app-root',
@@ -14,18 +16,23 @@ import { ToastContainerComponent } from './shared/toast/toast';
     RouterOutlet,
     HeaderComponent,
     SharedHeaderComponent,
-    ToastContainerComponent
-  ],
+    ToastContainerComponent,
+    LoadingOverlay
+],
   templateUrl: './app.html'
 })
 export class App {
 
-  private readonly _router = inject(Router);
-
+  private readonly _authState = inject(AuthStateService);
   currentUrl = '';
 
-  constructor() {
-    this._router.events.subscribe(event => {
+  constructor(private router: Router) {
+
+    // AUTH MUST INIT IMMEDIATELY
+    this._authState.initialize();
+
+    // URL tracking only
+    this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
         this.currentUrl = event.url;
       }

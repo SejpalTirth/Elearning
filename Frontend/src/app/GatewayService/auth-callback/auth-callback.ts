@@ -1,6 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from 'app/GatewayService/Auth/auth.service';
+import { AuthStateService } from 'app/GatewayService/Auth/auth-state.service';
 
 @Component({
   selector: 'app-auth-callback',
@@ -12,6 +13,7 @@ export class AuthCallback implements OnInit {
 
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
+  private readonly authState = inject(AuthStateService);
 
   ngOnInit(): void {
 
@@ -28,7 +30,8 @@ export class AuthCallback implements OnInit {
     // -------------------------------
     if (isNewUser === 'true' && userId) {
       this.router.navigate(['/complete-profile'], {
-        queryParams: { userId }
+        queryParams: { userId },
+        replaceUrl : true
       });
       return;
     }
@@ -36,16 +39,22 @@ export class AuthCallback implements OnInit {
     // -------------------------------
     // EXISTING USER → Store tokens
     // -------------------------------
-    if (accessToken && refreshToken) {
+   if (accessToken && refreshToken) {
+    this.auth.storeTokens({
+      accessToken,
+      refreshToken
+    });
 
-      this.auth.storeTokens({
-        accessToken,
-        refreshToken
-      });
+    this.authState.onLoginSuccess();
 
-      setTimeout(() => this.router.navigate(['/home']), 300);
-      return;
-    }
+    this.router.navigate(['/home'], {
+      replaceUrl: true
+    });
+
+    return;
+  }
+
+
 
     // -------------------------------
     // FALLBACK

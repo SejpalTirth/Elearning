@@ -1,13 +1,11 @@
-@if(isLoginPage())
-{
-    <app-header></app-header>
+@if(isLoginPage()) {
+  <app-header></app-header>
 }
 
-@if(!isLoginPage())
-{
-    <app-shared-header></app-shared-header>
+@if(!isLoginPage()) {
+  <app-shared-header></app-shared-header>
 }
 
 <app-toast-container></app-toast-container>
-
+<app-loading-overlay></app-loading-overlay>
 <router-outlet></router-outlet>

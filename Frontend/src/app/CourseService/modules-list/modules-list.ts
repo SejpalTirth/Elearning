@@ -1,9 +1,10 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { CourseApiService } from '../services/course-api';
 import { ProgressService } from '../../CourseService/services/progress.service';
-import { SecureTokenService } from 'app/GatewayService/Security/secure-token.service';
+import { AuthStateService } from 'app/GatewayService/Auth/auth-state.service';
+import { combineLatest, Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-modules-list',
@@ -12,59 +13,70 @@ import { SecureTokenService } from 'app/GatewayService/Security/secure-token.ser
   templateUrl: './modules-list.html',
   styleUrls: ['./modules-list.css']
 })
-export class ModulesListComponent implements OnInit {
+export class ModulesListComponent implements OnInit, OnDestroy {
 
   modules: any[] = [];
   courseId!: number;
   loading = true;
-  userId: string | null = null;
 
   private readonly route = inject(ActivatedRoute);
   private readonly api = inject(CourseApiService);
   private readonly progressService = inject(ProgressService);
+  private readonly authState = inject(AuthStateService);
   private readonly router = inject(Router);
-  private readonly tokenService  = inject(SecureTokenService);
+
+  private sub?: Subscription;
 
   ngOnInit(): void {
-    this.extractUserId();
     this.courseId = Number(this.route.snapshot.paramMap.get('id'));
-    this.loadData();
-  }
 
-  extractUserId():void {
-    this.userId = this.tokenService.getUserId();
-  }
+    this.sub = this.authState.user$.subscribe(user => {
+      if (!user) {
+        this.modules = [];
+        this.loading = false;
+        return;
+      }
 
-  loadData(): void {
+      // Load progress once (subsequent updates come via BehaviorSubject)
+      this.progressService.loadUserProgress().subscribe();
 
-    if (!this.userId) {
-      this.loading = false;
-      return;
-    }
-
-    // Fetch progress first
-    this.progressService.getUserProgress(this.userId).subscribe((progress: any[]) => {
-
-      // Then load modules
-      this.api.getModules(this.courseId).subscribe({
-        next: (res: any[]) => {
-
-          this.modules = res.map(m => {
-            const match = progress.find(p => p.moduleId === m.id);
-            return {
-              ...m,
-              progressPercent: match ? match.progressPercent : 0,
-              isCompleted: match ? match.progressPercent === 100 : false
-            };
-          });
-
-          this.loading = false;
-        },
-        error: () => this.loading = false
-      });
-
+      this.bindModulesWithProgress();
+      
     });
   }
+
+  ngOnDestroy(): void {
+    this.sub?.unsubscribe();
+  }
+
+  private bindModulesWithProgress(): void {
+
+  this.loading = true;
+
+  this.sub = combineLatest([
+    this.api.getModules(this.courseId),
+    this.progressService.progress$
+  ]).subscribe({
+    next: ([modules, progress]) => {
+      this.modules = modules.map(m => {
+    const match = progress.find(
+      p => p.courseId === this.courseId && p.moduleId === m.id
+    );
+
+    return {
+      ...m,
+      progressPercent: match?.progressPercent ?? 0,
+      isCompleted: match?.isCompleted === true
+    };
+  });
+
+
+      this.loading = false;
+    },
+    error: () => this.loading = false
+  });
+}
+
 
   openModule(moduleId: number): void {
     this.router.navigate([`/courses/module/${moduleId}`]);

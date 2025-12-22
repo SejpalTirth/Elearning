@@ -1,9 +1,14 @@
 ﻿using AutoMapper;
 using CourseService.BLL.DTOs;
 using CourseService.BLL.Interface;
+using CourseService.BLL.UserContext;
 using CourseService.DAL.Models;
 using CourseService.DAL.Repo;
+using Microsoft.AspNetCore.Http;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Runtime.CompilerServices;
 
 namespace CourseService.BLL.Service
 {
@@ -14,19 +19,25 @@ namespace CourseService.BLL.Service
         private readonly IModuleRepository _moduleRepo;
         private readonly IHttpClientFactory _httpFactory;
         private readonly IMapper _mapper;
+        private readonly IUserContextAccessor _userContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public CourseServiceimpl(
             ICourseRepository repo,
             IEnrollmentRepository enrollRepo,
             IModuleRepository moduleRepo,
             IHttpClientFactory httpFactory,
-            IMapper mapper)
+            IMapper mapper,
+            IUserContextAccessor userContext,
+            IHttpContextAccessor httpContextAccessor)
         {
             _repo = repo;
             _enrollRepo = enrollRepo;
             _moduleRepo = moduleRepo;
             _httpFactory = httpFactory;
             _mapper = mapper;
+            _userContext = userContext;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         // --------------------------------------------------------------------
@@ -143,27 +154,72 @@ namespace CourseService.BLL.Service
         // --------------------------------------------------------------------
         // ENROLL USER
         // --------------------------------------------------------------------
-        public async Task<bool> EnrollUserAsync(EnrollRequestDto dto)
+        public async Task<bool> EnrollUserAsync(
+            Guid userId,
+            int courseId,
+            string userEmail,
+            string authorizationHeader
+        )
         {
-            if (await _enrollRepo.IsUserEnrolledAsync(dto.UserId, dto.CourseId))
+            if (await _enrollRepo.IsUserEnrolledAsync(userId.ToString(), courseId))
                 return false;
 
             var enrollment = new Enrollment
             {
-                CourseId = dto.CourseId,
-                UserId = dto.UserId,
+                CourseId = courseId,
+                UserId = userId.ToString(),
                 EnrolledAt = DateTime.UtcNow
             };
 
             await _enrollRepo.AddAsync(enrollment);
             await _enrollRepo.SaveChangesAsync();
+
+            // ---------------- SEND ENROLLMENT MAIL ----------------
+            try
+            {
+                var client = _httpFactory.CreateClient("NotificationService");
+
+                if (!string.IsNullOrWhiteSpace(authorizationHeader))
+                {
+                    client.DefaultRequestHeaders.Authorization =
+                        AuthenticationHeaderValue.Parse(authorizationHeader);
+                }
+
+                var course = await _repo.GetByIdAsync(courseId);
+                var username = GetUserNameFromClaims();
+
+                var notification = new TriggerNotificationDto
+                {
+                    UserId = userId,
+                    Email = userEmail,
+                    Type = NotificationType.Enrollment,
+                    Data = new Dictionary<string, string>
+                    {
+                        { "UserName", username },
+                        { "CourseName", course?.Title ?? "your course" }
+                    }
+                };
+
+                await client.PostAsJsonAsync(
+                    "/api/notification/trigger",
+                    notification
+                );
+            }
+            catch
+            {
+                // Do not fail enrollment if email fails
+            }
+
+
             return true;
         }
 
-        // --------------------------------------------------------------------
-        // UNFINISHED COURSE (Instructor pending task)
-        // --------------------------------------------------------------------
-        public async Task<IEnumerable<Course>> GetAllUnfinishedCoursesAsync(Guid instructorId)
+
+
+    // --------------------------------------------------------------------
+    // UNFINISHED COURSE (Instructor pending task)
+    // --------------------------------------------------------------------
+    public async Task<IEnumerable<Course>> GetAllUnfinishedCoursesAsync(Guid instructorId)
         {
             var courses = await _repo.GetAllAsync();
 
@@ -189,9 +245,9 @@ namespace CourseService.BLL.Service
         // --------------------------------------------------------------------
         // AUTO-PUBLISH CHECK (Only when all quizzes exist)
         // --------------------------------------------------------------------
-        public async Task<bool> PublishCourseIfReadyAsync(int courseId)
+        public async Task<bool> PublishCourseIfReadyAsync(int courseId, string authorizationHeader)
         {
-            var course = await _repo.GetByIdAllowDeletedAsync(courseId); // FIXED
+            var course = await _repo.GetByIdAllowDeletedAsync(courseId);
             if (course == null)
                 return false;
 
@@ -200,11 +256,35 @@ namespace CourseService.BLL.Service
                 return false;
 
             var client = _httpFactory.CreateClient("AssessmentService");
-            var missing = await client.GetFromJsonAsync<List<int>>(
-                $"/api/Assessment/unquizzed-modules/{courseId}"
-            );
 
-            if (missing == null || missing.Any())
+            // 🔑 FORWARD USER TOKEN
+            if (!string.IsNullOrWhiteSpace(authorizationHeader))
+            {
+                client.DefaultRequestHeaders.Authorization =
+                    AuthenticationHeaderValue.Parse(authorizationHeader);
+            }
+
+            HttpResponseMessage response;
+            try
+            {
+                response = await client.PostAsJsonAsync(
+                    "/api/Assessment/course/unquizzed-modules",
+                    new { CourseId = courseId }
+                );
+            }
+            catch
+            {
+                // Assessment service unreachable
+                return false;
+            }
+
+            if (!response.IsSuccessStatusCode)
+                return false;
+
+            var missingModules =
+                await response.Content.ReadFromJsonAsync<List<int>>();
+
+            if (missingModules == null || missingModules.Any())
                 return false;
 
             course.IsDeleted = false;
@@ -232,15 +312,27 @@ namespace CourseService.BLL.Service
         // --------------------------------------------------------------------
         private async Task<InstructorDto> FetchInstructorAsync(Guid id)
         {
+            if (id == Guid.Empty)
+            {
+                return new InstructorDto
+                {
+                    Id = id,
+                    Name = "Unknown Instructor"
+                };
+            }
+
             try
             {
                 var client = _httpFactory.CreateClient("UserService");
-                var user = await client.GetFromJsonAsync<UserAuthDto>($"api/users/{id}");
+
+                var user = await client.GetFromJsonAsync<PublicUserDto>(
+                    $"api/users/public/{id}"
+                );
 
                 return new InstructorDto
                 {
                     Id = id,
-                    Name = user?.Name ?? user?.Email ?? "Unknown Instructor"
+                    Name = user?.Name ?? "Unknown Instructor"
                 };
             }
             catch
@@ -289,6 +381,17 @@ namespace CourseService.BLL.Service
             await _repo.SaveChangesAsync();
             return true;
         }
+
+        //Helper method
+        private string GetUserNameFromClaims()
+        {
+            return _httpContextAccessor.HttpContext?.User?
+                .Claims
+                .FirstOrDefault(c => c.Type == "name")
+                ?.Value
+                ?? "Learner";
+        }
+
 
         // Helper DTO
         private class InstructorDto

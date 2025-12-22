@@ -1,10 +1,10 @@
-﻿namespace ProgressService.BLL.Models
+﻿namespace ProgresService.BLL.Models
 {
-    public class ProgressDto
+    public class ProgresDto
     {
         public int CourseId { get; set; }
         public int? ModuleId { get; set; }
         public bool IsCompleted { get; set; }
-        public decimal ProgressPercent { get; set; }
+        public decimal ProgresPercent { get; set; }
     }
 }

@@ -3,7 +3,6 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { environment } from 'Environment/environment';
-import { SecureTokenService } from '../Security/secure-token.service';
 
 export interface TokenResponse {
   accessToken: string;
@@ -14,11 +13,12 @@ export interface TokenResponse {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
 
-  private baseUrl = `${environment.baseapiurl}/GatewayAuth`;
-  private userUrl = `${environment.baseapiurl}/GatewayUsers`;
+  private readonly baseUrl = `${environment.baseapiurl}/GatewayAuth`;
+  private readonly userUrl = `${environment.baseapiurl}/GatewayUsers`;
 
   private readonly http = inject(HttpClient);
-  private readonly secureToken = inject(SecureTokenService);
+
+  // -------------------- TOKEN STORAGE --------------------
 
   getAccessToken(): string | null {
     return localStorage.getItem('accessToken');
@@ -33,55 +33,69 @@ export class AuthService {
 
     localStorage.setItem('accessToken', tokens.accessToken);
     localStorage.setItem('refreshToken', tokens.refreshToken);
-    if (tokens.expiresAt)
-    {localStorage.setItem('expiresAt', tokens.expiresAt);}
 
-    this.secureToken.setEncryptedToken(tokens.accessToken);
+    if (tokens.expiresAt) {
+      localStorage.setItem('expiresAt', tokens.expiresAt);
+    }
   }
+
+  clearTokens(): void {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('expiresAt');
+  }
+
+  // -------------------- REFRESH --------------------
 
   refreshTokens(): Observable<TokenResponse | null> {
     const refreshToken = this.getRefreshToken();
-
     if (!refreshToken) {
       return of(null);
     }
 
     return this.http
-      .post<TokenResponse>(`${this.baseUrl}/refresh`, { refreshToken })
+      .post<TokenResponse>(`${this.baseUrl}/refresh`, {
+        refreshToken: refreshToken
+      })
       .pipe(
-        tap((tokens) => {
-          if (tokens) {
+        tap(tokens => {
+          if (tokens?.accessToken) {
             this.storeTokens(tokens);
           }
         }),
-       catchError(() => of(null))
+        catchError(err => {
+          console.error('Refresh failed', err);
+          return of(null);
+        })
       );
   }
 
-  completeProfile(dto: { userId: string; name: string; roleId: number }): Observable<any> {
-    return this.http.post(`${this.userUrl}/complete-profile`, dto);
-  }
+  // -------------------- LOGOUT --------------------
 
   logout(): void {
     const refreshToken = this.getRefreshToken();
 
     if (!refreshToken) {
-      localStorage.clear();
-      this.secureToken.clear();
+      this.clearTokens();
       window.location.href = '/';
       return;
     }
 
     this.http.post(`${this.baseUrl}/logout`, { refreshToken })
-      .pipe(
-        catchError(() => of(null))
-      )
+      .pipe(catchError(() => of(null)))
       .subscribe(() => {
-        localStorage.clear();
-        this.secureToken.clear();
+        this.clearTokens();
         window.location.href = '/';
       });
   }
+
+  // -------------------- PROFILE --------------------
+
+  completeProfile(dto: { name: string; roleId: number }): Observable<any> {
+    return this.http.post(`${this.userUrl}/complete-profile`, dto);
+  }
+
+  // -------------------- LOGIN --------------------
 
   loginWithGoogle(): void {
     window.location.href = `${this.baseUrl}/google-login`;
@@ -90,5 +104,4 @@ export class AuthService {
   loginWithMicrosoft(): void {
     window.location.href = `${this.baseUrl}/microsoft-login`;
   }
-
 }
