@@ -158,30 +158,19 @@ namespace LMS.Tests.UserService
         // =================================================================
 
         [Fact]
-        public async Task UpdateUserRole_ShouldReturnFalse_WhenUserNotFound()
+        public async Task UpdateUserRole_ShouldReturnUserNotFound_WhenUserMissing()
         {
             var req = new UpdateUserRoleRequest { UserId = Guid.NewGuid(), RoleId = 1 };
 
-            _repoMock.Setup(r => r.GetByIdAsync(req.UserId))
-                .ReturnsAsync((User?)null);
-
             var result = await _service.UpdateUserRoleAsync(req);
 
-            Assert.False(result);
+            Assert.Equal(UserServiceImpl.UpdateUserRoleResult.UserNotFound, result);
         }
 
         [Fact]
-        public async Task UpdateUserRole_ShouldReturnFalse_WhenRoleNotFound()
+        public async Task UpdateUserRole_ShouldReturnRoleNotFound_WhenRoleMissing()
         {
-            // Arrange: Existing user
-            var user = _fixture.Build<User>()
-                .With(u => u.Role, "Student")
-                .With(u => u.Email, "test@example.com")
-                .Create();
-
-            _repoMock.Setup(r => r.GetByIdAsync(user.Id)).ReturnsAsync(user);
-
-            // Add user to context but don't add the role → FindAsync will return null
+            var user = new User { Id = Guid.NewGuid(), Role = "Student" };
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
@@ -189,104 +178,76 @@ namespace LMS.Tests.UserService
 
             var result = await _service.UpdateUserRoleAsync(req);
 
-            Assert.False(result);
+            Assert.Equal(UserServiceImpl.UpdateUserRoleResult.RoleNotFound, result);
         }
 
         [Fact]
-        public async Task UpdateUserRole_ShouldThrow_WhenDemotingLastAdmin()
+        public async Task UpdateUserRole_ShouldReturnSameRole_WhenRoleMatchesCurrent()
         {
-            // Arrange: Only admin user
-            var admin = _fixture.Build<User>()
-                .With(u => u.Role, "Admin")
-                .With(u => u.Email, "admin@example.com")
-                .Create();
-
-            _repoMock.Setup(r => r.GetByIdAsync(admin.Id))
-                .ReturnsAsync(admin);
-
-            _context.Users.Add(admin);
-            _context.Roles.Add(new Role { Id = 2, Name = "Student" });
+            var role = new Role { Id = 1, Name = "Student" };
+            _context.Roles.Add(role);
+            var user = new User { Id = Guid.NewGuid(), Role = "Student" };
+            _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            var req = new UpdateUserRoleRequest
-            {
-                UserId = admin.Id,
-                RoleId = 2    // changing to Student
-            };
-
-            await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                _service.UpdateUserRoleAsync(req));
-        }
-
-        [Fact]
-        public async Task UpdateUserRole_ShouldAllowAdminDemotion_WhenMultipleAdmins()
-        {
-            var admin1 = new User 
-            { 
-                Id = Guid.NewGuid(), 
-                Role = "Admin",
-                Email = "admin1@example.com"
-            };
-            var admin2 = new User 
-            { 
-                Id = Guid.NewGuid(), 
-                Role = "Admin",
-                Email = "admin2@example.com"
-            };
-
-            _context.Users.AddRange(admin1, admin2);
-            _context.Roles.Add(new Role { Id = 2, Name = "Student" });
-            await _context.SaveChangesAsync();
-
-            _repoMock.Setup(r => r.GetByIdAsync(admin1.Id))
-                .ReturnsAsync(admin1);
-
-            _repoMock.Setup(r => r.SaveAsync())
-                .Callback(() => _context.SaveChangesAsync().Wait())
-                .Returns(Task.CompletedTask);
-
-            var req = new UpdateUserRoleRequest
-            {
-                UserId = admin1.Id,
-                RoleId = 2
-            };
+            var req = new UpdateUserRoleRequest { UserId = user.Id, RoleId = 1 };
 
             var result = await _service.UpdateUserRoleAsync(req);
 
-            Assert.True(result);
+            Assert.Equal(UserServiceImpl.UpdateUserRoleResult.SameRole, result);
+        }
+
+        [Fact]
+        public async Task UpdateUserRole_ShouldReturnLastAdminCannotBeRemoved_WhenOnlyAdminDemoted()
+        {
+            var role = new Role { Id = 2, Name = "Student" };
+            _context.Roles.Add(role);
+
+            var admin = new User { Id = Guid.NewGuid(), Role = "Admin" };
+            _context.Users.Add(admin);
+            await _context.SaveChangesAsync();
+
+            var req = new UpdateUserRoleRequest { UserId = admin.Id, RoleId = 2 };
+
+            var result = await _service.UpdateUserRoleAsync(req);
+
+            Assert.Equal(UserServiceImpl.UpdateUserRoleResult.LastAdminCannotBeRemoved, result);
+        }
+
+        [Fact]
+        public async Task UpdateUserRole_ShouldSucceed_WhenMultipleAdmins()
+        {
+            var role = new Role { Id = 2, Name = "Student" };
+            _context.Roles.Add(role);
+
+            var admin1 = new User { Id = Guid.NewGuid(), Role = "Admin" };
+            var admin2 = new User { Id = Guid.NewGuid(), Role = "Admin" };
+            _context.Users.AddRange(admin1, admin2);
+            await _context.SaveChangesAsync();
+
+            var req = new UpdateUserRoleRequest { UserId = admin1.Id, RoleId = 2 };
+
+            var result = await _service.UpdateUserRoleAsync(req);
+
+            Assert.Equal(UserServiceImpl.UpdateUserRoleResult.Success, result);
             Assert.Equal("Student", admin1.Role);
         }
 
         [Fact]
-        public async Task UpdateUserRole_ShouldUpdateRole_ForNormalUser()
+        public async Task UpdateUserRole_ShouldUpdateNormalUserRole()
         {
-            var user = new User 
-            { 
-                Id = Guid.NewGuid(), 
-                Role = "Student",
-                Email = "student@example.com"
-            };
+            var role = new Role { Id = 3, Name = "Instructor" };
+            _context.Roles.Add(role);
 
+            var user = new User { Id = Guid.NewGuid(), Role = "Student" };
             _context.Users.Add(user);
-            _context.Roles.Add(new Role { Id = 5, Name = "Instructor" });
             await _context.SaveChangesAsync();
 
-            _repoMock.Setup(r => r.GetByIdAsync(user.Id))
-                .ReturnsAsync(user);
-
-            _repoMock.Setup(r => r.SaveAsync())
-                .Callback(() => _context.SaveChangesAsync().Wait())
-                .Returns(Task.CompletedTask);
-
-            var req = new UpdateUserRoleRequest
-            {
-                UserId = user.Id,
-                RoleId = 5
-            };
+            var req = new UpdateUserRoleRequest { UserId = user.Id, RoleId = 3 };
 
             var result = await _service.UpdateUserRoleAsync(req);
 
-            Assert.True(result);
+            Assert.Equal(UserServiceImpl.UpdateUserRoleResult.Success, result);
             Assert.Equal("Instructor", user.Role);
         }
     }

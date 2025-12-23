@@ -28,7 +28,7 @@ namespace LMS.Tests.NotificationService
         }
 
         // -----------------------------------------------------
-        // SEND
+        // SEND DIRECT EMAIL
         // -----------------------------------------------------
         [Fact]
         public async Task Send_ShouldInvokeService_AndReturnOk()
@@ -45,16 +45,16 @@ namespace LMS.Tests.NotificationService
                 Times.Once);
 
             Assert.NotNull(result);
-            Assert.Equal("Sent", result!.Value);
+            Assert.Equal("Email sent successfully.", result!.Value);
         }
 
         // -----------------------------------------------------
-        // SEND TEMPLATE
+        // SEND TEMPLATE EMAIL
         // -----------------------------------------------------
         [Fact]
         public async Task SendTemplate_ShouldInvokeService_AndReturnOk()
         {
-            var req = _fixture.Build<TemplateRequest>()
+            var req = _fixture.Build<TemplateRequestDTO>()
                 .With(t => t.TemplateName, "Welcome")
                 .With(t => t.Model, new { Name = "Kira" })
                 .Create();
@@ -66,7 +66,7 @@ namespace LMS.Tests.NotificationService
                 Times.Once);
 
             Assert.NotNull(result);
-            Assert.Equal("Sent using template", result!.Value);
+            Assert.Equal("Template email sent successfully.", result!.Value);
         }
 
         // -----------------------------------------------------
@@ -75,40 +75,21 @@ namespace LMS.Tests.NotificationService
         [Fact]
         public async Task GetUserNotifications_ShouldReturnNotifications()
         {
-            var userId = Guid.NewGuid();
+            var dto = _fixture.Create<UserIdRequestDto>();
 
             var notifications = _fixture.CreateMany<NotificationDto>(1).ToList();
             notifications[0].Title = "T1";
 
-            _serviceMock.Setup(s => s.GetUserNotificationsAsync(userId))
+            _serviceMock
+                .Setup(s => s.GetUserNotificationsAsync(dto.UserId))
                 .ReturnsAsync(notifications);
 
-            var result = await _controller.GetUserNotifications(userId) as OkObjectResult;
+            var result = await _controller.GetUserNotifications(dto) as OkObjectResult;
 
             Assert.NotNull(result);
             var list = Assert.IsType<List<NotificationDto>>(result!.Value);
             Assert.Single(list);
             Assert.Equal("T1", list[0].Title);
-        }
-
-        // -----------------------------------------------------
-        // TEST EMAIL ENDPOINT
-        // -----------------------------------------------------
-        [Fact]
-        public async Task Test_ShouldSendEmailDirect_AndReturnOk()
-        {
-            var result = await _controller.Test() as OkObjectResult;
-
-            _serviceMock.Verify(s =>
-                s.SendEmailDirectAsync(
-                    "tirths331@outlook.com",
-                    "Test Email",
-                    "This is a successful test email from Notification Service!"
-                ),
-                Times.Once);
-
-            Assert.NotNull(result);
-            Assert.Equal("Test email sent!", result!.Value);
         }
 
         // -----------------------------------------------------
@@ -118,9 +99,11 @@ namespace LMS.Tests.NotificationService
         public async Task TriggerNotification_ShouldCallService_AndReturnOk()
         {
             var dto = _fixture.Build<TriggerNotificationDto>()
-                .With(x => x.Email, "test@mail.com")
                 .With(x => x.Type, NotificationType.Enrollment)
-                .With(x => x.Data, new Dictionary<string, string> { { "UserName", "Kira" } })
+                .With(x => x.Data, new Dictionary<string, string>
+                {
+                    { "UserName", "Kira" }
+                })
                 .Create();
 
             var result = await _controller.TriggerNotification(dto) as OkObjectResult;
@@ -130,7 +113,7 @@ namespace LMS.Tests.NotificationService
                 Times.Once);
 
             Assert.NotNull(result);
-            Assert.Equal("Notification processed", result!.Value);
+            Assert.Equal("Notification processed successfully.", result!.Value);
         }
     }
 }

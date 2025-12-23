@@ -1,10 +1,11 @@
 ﻿using AutoFixture;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
-using ProgressService.Web.Controllers;
-using ProgressService.BLL.Interface;
 using ProgresService.BLL.DTOs;
-using ProgressService.BLL.Models;
+using ProgresService.BLL.Interface;
+using ProgresService.BLL.Models;
+using ProgresService.BLL.UserContext;
+using ProgressService.Web.Controllers;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -15,16 +16,17 @@ namespace LMS.Tests.ProgressService
     {
         private readonly Mock<IProgressService> _serviceMock;
         private readonly Mock<IHttpClientFactory> _httpClientFactoryMock;
+        private readonly Mock<IUserContextAccessor> _userContextAccessorMock;
         private readonly IFixture _fixture;
 
         public ProgressControllerTests()
         {
             _serviceMock = new Mock<IProgressService>();
             _httpClientFactoryMock = new Mock<IHttpClientFactory>();
+            _userContextAccessorMock = new Mock<IUserContextAccessor>();
 
             _fixture = new Fixture();
 
-            // ---- FIX AUTO-FIXTURE RECURSION ----
             _fixture.Behaviors
                 .OfType<ThrowingRecursionBehavior>()
                 .ToList()
@@ -33,43 +35,33 @@ namespace LMS.Tests.ProgressService
             _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
         }
 
-        // -------------------------------------------------------------------
-        // Fake handler for mocking external CourseService calls
-        // -------------------------------------------------------------------
+        // ---------------------------------------------------------
+        // Fake Http Handler
+        // ---------------------------------------------------------
         private class FakeHttpHandler : HttpMessageHandler
         {
-            public readonly Dictionary<string, object?> Responses = new();
-
-            public void Add(string contains, object? response)
-            {
-                Responses[contains] = response;
-            }
+            public HttpStatusCode StatusCode { get; set; } = HttpStatusCode.OK;
+            public object? Response { get; set; }
 
             protected override Task<HttpResponseMessage> SendAsync(
-                HttpRequestMessage request, CancellationToken cancellationToken)
+                HttpRequestMessage request,
+                CancellationToken cancellationToken)
             {
-                string url = request.RequestUri!.AbsoluteUri;
+                var message = new HttpResponseMessage(StatusCode);
 
-                foreach (var kv in Responses)
+                if (Response != null)
                 {
-                    if (url.Contains(kv.Key))
-                    {
-                        string json = kv.Value == null
-                            ? "null"
-                            : JsonSerializer.Serialize(kv.Value);
-
-                        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-                        {
-                            Content = new StringContent(json, Encoding.UTF8, "application/json")
-                        });
-                    }
+                    var json = JsonSerializer.Serialize(Response);
+                    message.Content = new StringContent(json, Encoding.UTF8, "application/json");
                 }
 
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+                return Task.FromResult(message);
             }
         }
 
-        private ProgressController CreateController(HttpClient? httpClient = null)
+        private ProgressController CreateController(
+            HttpClient? httpClient = null,
+            Guid? userId = null)
         {
             if (httpClient != null)
             {
@@ -78,154 +70,165 @@ namespace LMS.Tests.ProgressService
                     .Returns(httpClient);
             }
 
-            return new ProgressController(_serviceMock.Object, _httpClientFactoryMock.Object);
+            if (userId.HasValue)
+            {
+                _userContextAccessorMock
+                    .Setup(u => u.Current)
+                    .Returns(new UserContextDto { UserId = userId.Value });
+            }
+            else
+            {
+                _userContextAccessorMock
+                    .Setup(u => u.Current)
+                    .Returns((UserContextDto?)null);
+            }
+
+            return new ProgressController(
+                _serviceMock.Object,
+                _httpClientFactoryMock.Object,
+                _userContextAccessorMock.Object);
         }
 
-        // -------------------------------------------------------------------
-        // TEST 1: GET /api/progress/{userId}
-        // -------------------------------------------------------------------
+        // ---------------------------------------------------------
+        // TEST 1: GetUserProgress → OK
+        // ---------------------------------------------------------
         [Fact]
-        public async Task GetUserProgress_ShouldReturnOkWithData()
+        public async Task GetUserProgress_ShouldReturnOk_WhenUserContextIsValid()
         {
             var userId = Guid.NewGuid();
-            var progressList = new List<ProgressDto>
+
+            var progress = new List<ProgresDto>
             {
-                new ProgressDto { CourseId = 1, ModuleId = 10, IsCompleted = true }
+                new ProgresDto
+                {
+                    CourseId = 1,
+                    ModuleId = 10,
+                    IsCompleted = true
+                }
             };
 
-            _serviceMock.Setup(s => s.GetUserProgressAsync(userId))
-                        .ReturnsAsync(progressList);
+            _serviceMock
+                .Setup(s => s.GetUserProgressAsync(userId))
+                .ReturnsAsync(progress);
 
-            var controller = CreateController();
+            var controller = CreateController(userId: userId);
 
-            var result = await controller.GetUserProgress(userId) as OkObjectResult;
+            var result = await controller.GetUserProgress();
 
-            Assert.NotNull(result);
-            Assert.Equal(200, result.StatusCode);
-            Assert.Equal(progressList, result.Value);
+            var ok = Assert.IsType<OkObjectResult>(result);
+            Assert.Equal(progress, ok.Value);
         }
 
-        // -------------------------------------------------------------------
-        // TEST 2: CompleteModule → Request null
-        // -------------------------------------------------------------------
+        // ---------------------------------------------------------
+        // TEST 2: GetUserProgress → Unauthorized
+        // ---------------------------------------------------------
         [Fact]
-        public async Task CompleteModule_ShouldReturnBadRequest_WhenRequestIsNull()
+        public async Task GetUserProgress_ShouldReturnUnauthorized_WhenUserContextMissing()
         {
             var controller = CreateController();
 
-            var result = await controller.CompleteModule(null);
+            var result = await controller.GetUserProgress();
+
+            Assert.IsType<UnauthorizedObjectResult>(result);
+        }
+
+        // ---------------------------------------------------------
+        // TEST 3: CompleteModule → CourseService failure
+        // ---------------------------------------------------------
+        [Fact]
+        public async Task CompleteModule_ShouldReturnBadRequest_WhenCourseServiceFails()
+        {
+            var handler = new FakeHttpHandler
+            {
+                StatusCode = HttpStatusCode.BadRequest
+            };
+
+            var client = new HttpClient(handler)
+            {
+                BaseAddress = new Uri("http://fake/")
+            };
+
+            var controller = CreateController(client, Guid.NewGuid());
+
+            var request = new ModuleCompleteRequest { ModuleId = 10 };
+
+            var result = await controller.CompleteModule(request);
 
             Assert.IsType<BadRequestObjectResult>(result);
         }
 
-        // -------------------------------------------------------------------
-        // TEST 3: CourseService returns invalid JSON → BadRequest
-        // -------------------------------------------------------------------
-        [Fact]
-        public async Task CompleteModule_ShouldReturnBadRequest_WhenCourseServiceReturnsInvalidJson()
-        {
-            var handler = new FakeHttpHandler();
-            // Simulate an exception by not adding any response
-            handler.Responses.Clear();
-
-            var httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://fake/") };
-
-            var controller = CreateController(httpClient);
-
-            var req = new ModuleCompleteRequest
-            {
-                UserId = Guid.NewGuid(),
-                ModuleId = 10
-            };
-
-            var result = await controller.CompleteModule(req) as BadRequestObjectResult;
-
-            Assert.NotNull(result);
-            Assert.Equal(400, result.StatusCode);
-        }
-
-        // -------------------------------------------------------------------
-        // TEST 4: CourseService returns null → NotFound
-        // -------------------------------------------------------------------
+        // ---------------------------------------------------------
+        // TEST 4: CompleteModule → CourseService returns null
+        // ---------------------------------------------------------
         [Fact]
         public async Task CompleteModule_ShouldReturnNotFound_WhenCourseServiceReturnsNull()
         {
-            var handler = new FakeHttpHandler();
-            handler.Add("course-id", null);
-
-            var httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://fake/") };
-
-            var controller = CreateController(httpClient);
-
-            var req = new ModuleCompleteRequest
+            var handler = new FakeHttpHandler
             {
-                UserId = Guid.NewGuid(),
-                ModuleId = 99
+                Response = null
             };
 
-            var result = await controller.CompleteModule(req) as NotFoundObjectResult;
+            var client = new HttpClient(handler)
+            {
+                BaseAddress = new Uri("http://fake/")
+            };
 
-            Assert.NotNull(result);
-            Assert.Equal(404, result.StatusCode);
+            var controller = CreateController(client, Guid.NewGuid());
+
+            var request = new ModuleCompleteRequest { ModuleId = 99 };
+
+            var result = await controller.CompleteModule(request);
+
+            Assert.IsType<NotFoundObjectResult>(result);
         }
 
-        // -------------------------------------------------------------------
-        // TEST 5: Success → Should call service
-        // -------------------------------------------------------------------
+        // ---------------------------------------------------------
+        // TEST 5: CompleteModule → Success
+        // ---------------------------------------------------------
         [Fact]
         public async Task CompleteModule_ShouldCallService_AndReturnOk()
         {
-            var response = new CourseIdResponse { CourseId = 5, ModuleId = 10 };
+            var userId = Guid.NewGuid();
 
-            var handler = new FakeHttpHandler();
-            handler.Add("course-id", response);
+            var handler = new FakeHttpHandler
+            {
+                Response = new CourseIdResponseDTO
+                {
+                    CourseId = 5
+                }
+            };
 
-            var httpClient = new HttpClient(handler)
+            var client = new HttpClient(handler)
             {
                 BaseAddress = new Uri("http://fake/")
             };
 
-            var controller = CreateController(httpClient);
+            var controller = CreateController(client, userId);
 
-            var req = new ModuleCompleteRequest
-            {
-                UserId = Guid.NewGuid(),
-                ModuleId = 10
-            };
+            var request = new ModuleCompleteRequest { ModuleId = 10 };
 
-            var result = await controller.CompleteModule(req) as OkObjectResult;
+            var result = await controller.CompleteModule(request);
 
-            Assert.NotNull(result);
-            Assert.Equal(200, result.StatusCode);
+            Assert.IsType<OkObjectResult>(result);
 
             _serviceMock.Verify(s =>
-                s.MarkModuleCompletedAsync(req.UserId, 5, 10),
+                s.MarkModuleCompletedAsync(userId, 5, 10),
                 Times.Once);
         }
 
+        // ---------------------------------------------------------
+        // TEST 6: CompleteModule → Unauthorized
+        // ---------------------------------------------------------
         [Fact]
-        public async Task CompleteModule_ShouldReturnNotFound_WhenHttpClientReturns404()
+        public async Task CompleteModule_ShouldReturnUnauthorized_WhenUserContextMissing()
         {
-            var handler = new FakeHttpHandler();
-            handler.Responses.Clear(); // no matching URL → 404
+            var controller = CreateController();
 
-            var httpClient = new HttpClient(handler)
-            {
-                BaseAddress = new Uri("http://fake/")
-            };
+            var request = new ModuleCompleteRequest { ModuleId = 10 };
 
-            var controller = CreateController(httpClient);
+            var result = await controller.CompleteModule(request);
 
-            var req = new ModuleCompleteRequest
-            {
-                UserId = Guid.NewGuid(),
-                ModuleId = 123
-            };
-
-            var result = await controller.CompleteModule(req) as BadRequestObjectResult;
-
-            Assert.NotNull(result);
-            Assert.Equal(400, result.StatusCode);
+            Assert.IsType<UnauthorizedObjectResult>(result);
         }
     }
 }

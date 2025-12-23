@@ -142,7 +142,7 @@ namespace ProgresService.BLL.Service
         }
 
         private async Task<(string courseName, string moduleName, int totalModules)>
-    GetCourseAndModuleInfoAsync(int courseId, int moduleId, string authHeader)
+        GetCourseAndModuleInfoAsync(int courseId, int moduleId, string authHeader)
         {
             var courseClient = _httpClientFactory.CreateClient("CourseService");
 

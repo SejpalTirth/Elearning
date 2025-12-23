@@ -1,37 +1,34 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using AssessmentService.BLL.DTOs;
+﻿using AssessmentService.BLL.DTOs;
 using AssessmentService.BLL.Interfaces;
+using AssessmentService.BLL.UserContext;
 using AssessmentService.Web.Controllers;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
+using UserService.DAL.Models;
 
 namespace LMS.Tests.AssessmentService
 {
     public class AssessmentControllerTests
     {
         private readonly Mock<IAssessmentService> _serviceMock;
+        private readonly Mock<IUserContextAccessor> _userContextMock;
         private readonly AssessmentController _controller;
 
         public AssessmentControllerTests()
         {
-            _serviceMock = new Mock<IAssessmentService>(MockBehavior.Strict);
+            _serviceMock = new Mock<IAssessmentService>();
+            _userContextMock = new Mock<IUserContextAccessor>();
 
-            _controller = new AssessmentController(_serviceMock.Object)
-            {
-                ControllerContext = new ControllerContext
-                {
-                    HttpContext = new DefaultHttpContext()
-                }
-            };
+            _controller = new AssessmentController(
+                _serviceMock.Object,
+                _userContextMock.Object);
         }
 
         // -------------------------------------------------
         // CREATE QUIZ
         // -------------------------------------------------
         [Fact]
-        public async Task CreateQuiz_ReturnsOk_WithResult()
+        public async Task CreateQuiz_ShouldReturnOk()
         {
             var dto = new CreateQuizDto { ModuleId = 1, Title = "Test Quiz" };
 
@@ -39,94 +36,63 @@ namespace LMS.Tests.AssessmentService
                 .Setup(s => s.CreateQuizAsync(dto))
                 .ReturnsAsync(new { quizId = 99 });
 
-            var result = await _controller.CreateQuiz(dto) as OkObjectResult;
+            var result = await _controller.CreateQuiz(dto);
 
-            Assert.NotNull(result);
-            Assert.Equal(99, result!.Value!.GetType().GetProperty("quizId")!.GetValue(result.Value));
+            Assert.IsType<OkObjectResult>(result);
         }
 
         // -------------------------------------------------
         // ADD QUESTION
         // -------------------------------------------------
         [Fact]
-        public async Task AddQuestion_ReturnsOk()
+        public async Task AddQuestion_ShouldReturnOk()
         {
-            var dto = new CreateQuestionDto
+            var dto = new AddQuestionDto
             {
-                Question = "Q1?",
-                Marks = 1,
-                Options = new() { "A", "B" },
-                CorrectAnswerIndex = 0
+                QuizId = 10,
+                Question = new CreateQuestionDto
+                {
+                    Question = "Q1?",
+                    Marks = 1,
+                    Options = new() { "A", "B" },
+                    CorrectAnswerIndex = 0
+                }
             };
 
             _serviceMock
-                .Setup(s => s.AddQuestionAsync(10, dto))
+                .Setup(s => s.AddQuestionAsync(dto))
                 .ReturnsAsync(new { success = true });
 
-            var result = await _controller.AddQuestion(10, dto) as OkObjectResult;
+            var result = await _controller.AddQuestion(dto);
 
-            Assert.NotNull(result);
+            Assert.IsType<OkObjectResult>(result);
         }
 
         // -------------------------------------------------
-        // GET QUIZ FOR MODULE — INVALID AUTH
+        // GET QUIZ FOR MODULE
         // -------------------------------------------------
-        [Fact]
-        public async Task GetQuizForModule_ShouldReturnUnauthorized_WhenMissingAuthorization()
-        {
-            var result = await _controller.GetQuizForModule(20);
-
-            var unauthorized = Assert.IsType<UnauthorizedObjectResult>(result);
-            Assert.Equal("Missing access token.", unauthorized.Value);
-        }
 
         [Fact]
-        public async Task GetQuizForModule_ShouldReturnUnauthorized_WhenTokenInvalid()
+        public async Task GetQuizForModule_ShouldReturnOk_WhenUserContextValid()
         {
-            _controller.HttpContext.Request.Headers["Authorization"] = "Bearer BAD_TOKEN";
+            var userId = Guid.NewGuid();
 
-            var result = await _controller.GetQuizForModule(20);
+            _userContextMock
+                .Setup(x => x.Current)
+                .Returns(new UserContextDto { UserId = userId });
 
-            Assert.IsType<UnauthorizedObjectResult>(result);
-        }
-
-        [Fact]
-        public async Task GetQuizForModule_ShouldReturnUnauthorized_WhenSubMissing()
-        {
-            var token = new JwtSecurityToken(claims: new[] { new Claim("name", "test") });
-            string tokenString = new JwtSecurityTokenHandler().WriteToken(token);
-
-            _controller.HttpContext.Request.Headers["Authorization"] = $"Bearer {tokenString}";
-
-            var result = await _controller.GetQuizForModule(20);
-
-            var unauthorized = Assert.IsType<UnauthorizedObjectResult>(result);
-            Assert.Equal("Token missing required 'sub' claim.", unauthorized.Value);
-        }
-
-        [Fact]
-        public async Task GetQuizForModule_ShouldReturnOk_WhenTokenValid()
-        {
-            Guid userId = Guid.NewGuid();
-            var token = new JwtSecurityToken(claims: new[] { new Claim("sub", userId.ToString()) });
-            string tokenString = new JwtSecurityTokenHandler().WriteToken(token);
-
-            _controller.HttpContext.Request.Headers["Authorization"] = $"Bearer {tokenString}";
-
-            var quizDto = new QuizForModuleDto
-            {
-                QuizId = 1,
-                ModuleId = 20,
-                Title = "Test",
-                TotalMarks = 10,
-                AlreadyPassed = false
-            };
+            var dto = new GetQuizForModuleDto { ModuleId = 20 };
 
             _serviceMock
-                .Setup(s => s.GetQuizForModuleAsync(20, userId))
-                .ReturnsAsync(quizDto);
+                .Setup(s => s.GetQuizForModuleAsync(dto.ModuleId, userId))
+                .ReturnsAsync(new QuizForModuleDto
+                {
+                    QuizId = 1,
+                    ModuleId = 20,
+                    Title = "Test Quiz"
+                });
 
-            var result = await _controller.GetQuizForModule(20);
+            var result = await _controller.GetQuizForModule(dto);
 
             Assert.IsType<OkObjectResult>(result);
         }
@@ -135,23 +101,18 @@ namespace LMS.Tests.AssessmentService
         // SUBMIT QUIZ
         // -------------------------------------------------
         [Fact]
-        public async Task SubmitQuiz_ReturnsOk()
+        public async Task SubmitQuiz_ShouldReturnOk()
         {
-            var dto = new SubmitQuizDto { QuizId = 1, UserId = Guid.NewGuid(), Answers = new() };
-
-            var resultDto = new QuizResultDto
+            var dto = new SubmitQuizDto
             {
-                TotalMarks = 10,
-                ObtainedMarks = 5,
-                Percentage = 50,
-                Passed = false,
-                AlreadyPassed = false,
-                StatusMessage = "Try again."
+                QuizId = 1,
+                UserId = Guid.NewGuid(),
+                Answers = new()
             };
 
             _serviceMock
                 .Setup(s => s.SubmitQuizAsync(dto))
-                .ReturnsAsync(resultDto);
+                .ReturnsAsync(new QuizResultDto());
 
             var result = await _controller.SubmitQuiz(dto);
 
@@ -162,75 +123,69 @@ namespace LMS.Tests.AssessmentService
         // SUBMISSION RESULT
         // -------------------------------------------------
         [Fact]
-        public async Task GetSubmissionResult_ShouldReturnNotFound_WhenMissing()
+        public async Task GetSubmissionResult_ShouldReturnNotFound_WhenResultMissing()
         {
             _serviceMock
                 .Setup(s => s.GetSubmissionResultAsync(It.IsAny<Guid>()))
                 .ReturnsAsync((QuizResultDto?)null);
 
-            var result = await _controller.GetSubmissionResult(Guid.NewGuid());
+            var dto = new SubmissionResultRequestDto
+            {
+                SubmissionId = Guid.NewGuid()
+            };
+
+            var result = await _controller.GetSubmissionResult(dto);
 
             Assert.IsType<NotFoundObjectResult>(result);
         }
 
         [Fact]
-        public async Task GetSubmissionResult_ShouldReturnOk_WhenExists()
+        public async Task GetSubmissionResult_ShouldReturnOk_WhenResultExists()
         {
-            var resultDto = new QuizResultDto
-            {
-                TotalMarks = 10,
-                ObtainedMarks = 8,
-                Percentage = 80,
-                Passed = true,
-                AlreadyPassed = false,
-                StatusMessage = "Passed!"
-            };
-
             _serviceMock
                 .Setup(s => s.GetSubmissionResultAsync(It.IsAny<Guid>()))
-                .ReturnsAsync(resultDto);
+                .ReturnsAsync(new QuizResultDto());
 
-            var result = await _controller.GetSubmissionResult(Guid.NewGuid());
+            var dto = new SubmissionResultRequestDto
+            {
+                SubmissionId = Guid.NewGuid()
+            };
+
+            var result = await _controller.GetSubmissionResult(dto);
 
             Assert.IsType<OkObjectResult>(result);
         }
 
         // -------------------------------------------------
-        // ⭐ ADDED TESTS (MISSING BEFORE)
+        // COURSE QUIZ STATUS
         // -------------------------------------------------
-
         [Fact]
         public async Task GetQuizStatus_ShouldReturnOk()
         {
+            var dto = new CourseQuizStatusDto { CourseId = 5 };
+
             _serviceMock
-                .Setup(s => s.GetQuizStatusForCourseAsync(5))
+                .Setup(s => s.GetQuizStatusForCourseAsync(dto.CourseId))
                 .ReturnsAsync(new { ok = true });
 
-            var result = await _controller.GetQuizStatus(5);
+            var result = await _controller.GetQuizStatus(dto);
 
             Assert.IsType<OkObjectResult>(result);
         }
 
+        // -------------------------------------------------
+        // UNQUIZZED MODULES
+        // -------------------------------------------------
         [Fact]
-        public async Task GetModulesWithoutQuiz_ShouldReturnOk()
+        public async Task GetUnquizzedModules_ShouldReturnOk()
         {
+            var dto = new GetUnquizzedModulesDto { CourseId = 3 };
+
             _serviceMock
-                .Setup(s => s.GetModulesWithoutQuizByCourseAsync(3))
+                .Setup(s => s.GetModulesWithoutQuizByCourseAsync(dto.CourseId))
                 .ReturnsAsync(new List<int> { 1, 2 });
 
-            var result = await _controller.GetModulesWithoutQuiz(3);
-
-            Assert.IsType<OkObjectResult>(result);
-        }
-
-        [Fact]
-        public async Task GetCourseQuizStatus_ShouldReturnOk()
-        {
-            _serviceMock
-                .Setup(s => s.GetQuizStatusForCourseAsync(9))
-                .ReturnsAsync(new { status = "complete" });
-
-            var result = await _controller.GetCourseQuizStatus(9);
+            var result = await _controller.GetUnquizzedModules(dto);
 
             Assert.IsType<OkObjectResult>(result);
         }

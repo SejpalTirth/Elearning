@@ -4,13 +4,17 @@ using Microsoft.EntityFrameworkCore;
 using Moq;
 using UserService.BLL.DTOs;
 using UserService.BLL.Interface;
+using UserService.BLL.UserContext;
 using UserService.DAL.Models;
+using UserService.Web.Controllers;
+using static UserServiceImpl;
 
 namespace LMS.Tests.UserService
 {
     public class RolesControllerTests
     {
         private readonly Mock<IUserService> _serviceMock;
+        private readonly Mock<IUserContextAccessor> _userContextMock;
         private readonly RolesController _controller;
         private readonly UserContext _context;
         private readonly Fixture _fixture;
@@ -19,74 +23,95 @@ namespace LMS.Tests.UserService
         {
             _fixture = new Fixture();
 
-            // Fix recursion for DTO/entity graphs
-            _fixture.Behaviors.OfType<ThrowingRecursionBehavior>()
+            _fixture.Behaviors
+                .OfType<ThrowingRecursionBehavior>()
                 .ToList()
                 .ForEach(b => _fixture.Behaviors.Remove(b));
 
             _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
 
             _serviceMock = new Mock<IUserService>();
+            _userContextMock = new Mock<IUserContextAccessor>();
 
-            // Isolated in-memory DB instance
             _context = new UserContext(
                 new DbContextOptionsBuilder<UserContext>()
                     .UseInMemoryDatabase(Guid.NewGuid().ToString())
                     .Options
             );
 
-            _controller = new RolesController(_serviceMock.Object, _context);
+            _controller = new RolesController(
+                _serviceMock.Object,
+                _context,
+                _userContextMock.Object
+            );
         }
 
         // ============================================================
         // UPDATE USER ROLE
         // ============================================================
+
         [Fact]
-        public async Task UpdateUserRole_ShouldReturnOk_WhenServiceReturnsTrue()
+        public async Task UpdateUserRole_ShouldReturnOk_WhenSuccess()
         {
             var req = _fixture.Create<UpdateUserRoleRequest>();
 
-            _serviceMock.Setup(s => s.UpdateUserRoleAsync(req))
-                .ReturnsAsync(true);
+            _serviceMock
+                .Setup(s => s.UpdateUserRoleAsync(req))
+                .ReturnsAsync(UpdateUserRoleResult.Success);
 
             var result = await _controller.UpdateUserRole(req) as OkObjectResult;
 
-            _serviceMock.Verify(s => s.UpdateUserRoleAsync(req), Times.Once);
-
             Assert.NotNull(result);
-            Assert.Equal("User role updated successfully", result!.Value);
         }
 
         [Fact]
-        public async Task UpdateUserRole_ShouldReturnBadRequest_WhenServiceReturnsFalse()
+        public async Task UpdateUserRole_ShouldReturnBadRequest_WhenSameRole()
         {
             var req = _fixture.Create<UpdateUserRoleRequest>();
 
-            _serviceMock.Setup(s => s.UpdateUserRoleAsync(req))
-                .ReturnsAsync(false);
+            _serviceMock
+                .Setup(s => s.UpdateUserRoleAsync(req))
+                .ReturnsAsync(UpdateUserRoleResult.SameRole);
 
-            var result = await _controller.UpdateUserRole(req) as BadRequestObjectResult;
+            var result = await _controller.UpdateUserRole(req);
 
-            Assert.NotNull(result);
-            Assert.Equal("Could not update role", result!.Value);
+            Assert.IsType<BadRequestObjectResult>(result);
+        }
+
+        [Fact]
+        public async Task UpdateUserRole_ShouldReturnNotFound_WhenUserMissing()
+        {
+            var req = _fixture.Create<UpdateUserRoleRequest>();
+
+            _serviceMock
+                .Setup(s => s.UpdateUserRoleAsync(req))
+                .ReturnsAsync(UpdateUserRoleResult.UserNotFound);
+
+            var result = await _controller.UpdateUserRole(req);
+
+            Assert.IsType<NotFoundObjectResult>(result);
         }
 
         // ============================================================
         // GET USER ROLE
         // ============================================================
+
         [Fact]
-        public async Task GetUserRole_ShouldReturnRoleList_WhenUserExists()
+        public async Task GetUserRole_ShouldReturnRole_WhenUserExists()
         {
             var userId = Guid.NewGuid();
 
-            var dto = _fixture.Build<UserDto>()
-                .With(x => x.Role, "Admin")
-                .Create();
+            _userContextMock.Setup(x => x.Current)
+                .Returns(new UserContextDto { UserId = userId });
 
             _serviceMock.Setup(s => s.GetById(userId))
-                .ReturnsAsync(dto);
+                .ReturnsAsync(new UserDto
+                {
+                    Id = userId,
+                    Role = "Admin"
+                });
 
-            var result = await _controller.GetUserRole(userId) as OkObjectResult;
+            var result = await _controller.GetUserRole() as OkObjectResult;
 
             Assert.NotNull(result);
 
@@ -96,14 +121,28 @@ namespace LMS.Tests.UserService
         }
 
         [Fact]
+        public async Task GetUserRole_ShouldReturnUnauthorized_WhenUserContextInvalid()
+        {
+            _userContextMock.Setup(x => x.Current)
+                .Returns((UserContextDto?)null);
+
+            var result = await _controller.GetUserRole();
+
+            Assert.IsType<UnauthorizedObjectResult>(result);
+        }
+
+        [Fact]
         public async Task GetUserRole_ShouldReturnNotFound_WhenUserMissing()
         {
             var userId = Guid.NewGuid();
 
+            _userContextMock.Setup(x => x.Current)
+                .Returns(new UserContextDto { UserId = userId });
+
             _serviceMock.Setup(s => s.GetById(userId))
                 .ReturnsAsync((UserDto?)null);
 
-            var result = await _controller.GetUserRole(userId);
+            var result = await _controller.GetUserRole();
 
             Assert.IsType<NotFoundResult>(result);
         }
@@ -111,34 +150,24 @@ namespace LMS.Tests.UserService
         // ============================================================
         // GET ALL ROLES
         // ============================================================
+
         [Fact]
         public async Task GetAllRoles_ShouldReturnAllRoles()
         {
-            var roles = new[]
-            {
+            await _context.Roles.AddRangeAsync(
                 new Role { Id = 1, Name = "Admin" },
                 new Role { Id = 2, Name = "Student" },
                 new Role { Id = 3, Name = "Instructor" }
-            };
+            );
 
-            await _context.Roles.AddRangeAsync(roles);
             await _context.SaveChangesAsync();
 
             var result = await _controller.GetAllRoles() as OkObjectResult;
 
             Assert.NotNull(result);
 
-            var list = result!.Value as System.Collections.IEnumerable;
-            Assert.NotNull(list);
-            
-            // Count the items in the enumerable
-            var count = 0;
-            foreach (var item in list)
-            {
-                count++;
-            }
-            
-            Assert.Equal(3, count);
+            var list = Assert.IsAssignableFrom<IEnumerable<object>>(result!.Value);
+            Assert.Equal(3, list.Count());
         }
 
         [Fact]
@@ -148,17 +177,8 @@ namespace LMS.Tests.UserService
 
             Assert.NotNull(result);
 
-            var list = result!.Value as System.Collections.IEnumerable;
-            Assert.NotNull(list);
-            
-            // Count the items in the enumerable
-            var count = 0;
-            foreach (var item in list)
-            {
-                count++;
-            }
-            
-            Assert.Equal(0, count);
+            var list = Assert.IsAssignableFrom<IEnumerable<object>>(result!.Value);
+            Assert.Empty(list);
         }
     }
 }

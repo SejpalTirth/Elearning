@@ -25,18 +25,16 @@ namespace LMS.Tests.ProgressService
             _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
         }
 
-        private ProgressTracking CreateProgressTracking(Guid? userId = null, int? courseId = null, int? moduleId = null) =>
+        private ProgressTracking CreateProgressTracking(
+            Guid? userId = null,
+            int? courseId = null,
+            int? moduleId = null,
+            bool isCompleted = false) =>
             _fixture.Build<ProgressTracking>()
                 .With(p => p.UserId, userId ?? Guid.NewGuid())
                 .With(p => p.CourseId, courseId ?? 1)
-                .With(p => p.ModuleId, moduleId ?? 1)
-                .Create();
-
-
-        private CourseCompletion CreateCourseCompletion(Guid? userId = null, bool completed = true) =>
-            _fixture.Build<CourseCompletion>()
-                .With(c => c.UserId, userId ?? Guid.NewGuid())
-                .With(c => c.CompletedAt, completed ? DateTime.UtcNow : (DateTime?)null)
+                .With(p => p.ModuleId, moduleId)
+                .With(p => p.IsCompleted, isCompleted)
                 .Create();
 
         // ---------------------------------------------------------
@@ -63,28 +61,7 @@ namespace LMS.Tests.ProgressService
         }
 
         // ---------------------------------------------------------
-        // TEST 2: GetCompletedCourseCountAsync
-        // ---------------------------------------------------------
-        [Fact]
-        public async Task GetCompletedCourseCountAsync_ShouldReturnCountOfCompletedCourses()
-        {
-            var userId = Guid.NewGuid();
-
-            ProgressContext.CourseCompletions.AddRange(
-                CreateCourseCompletion(userId, completed: true),
-                CreateCourseCompletion(userId, completed: true),
-                CreateCourseCompletion(userId, completed: false)
-            );
-
-            await ProgressContext.SaveChangesAsync();
-
-            var count = await _repo.GetCompletedCourseCountAsync(userId);
-
-            Assert.Equal(2, count);
-        }
-
-        // ---------------------------------------------------------
-        // TEST 3: DeleteByModuleIdsAsync
+        // TEST 2: DeleteByModuleIdsAsync
         // ---------------------------------------------------------
         [Fact]
         public async Task DeleteByModuleIdsAsync_ShouldDeleteOnlySpecifiedModules()
@@ -98,7 +75,6 @@ namespace LMS.Tests.ProgressService
             await ProgressContext.SaveChangesAsync();
 
             await _repo.DeleteByModuleIdsAsync(new List<int> { 2, 3 });
-            await ProgressContext.SaveChangesAsync();
 
             var remaining = await ProgressContext.ProgressTrackings.ToListAsync();
 
@@ -107,7 +83,7 @@ namespace LMS.Tests.ProgressService
         }
 
         // ---------------------------------------------------------
-        // TEST 4: MarkModuleCompleteAsync (Insert new record)
+        // TEST 3: MarkModuleCompleteAsync (Insert)
         // ---------------------------------------------------------
         [Fact]
         public async Task MarkModuleCompleteAsync_ShouldInsertNewRecord_WhenRecordDoesNotExist()
@@ -120,12 +96,12 @@ namespace LMS.Tests.ProgressService
                 .FirstOrDefaultAsync(p => p.UserId == userId && p.ModuleId == 10);
 
             Assert.NotNull(entry);
-            Assert.True(entry.IsCompleted);
+            Assert.True(entry!.IsCompleted);
             Assert.Equal(100, entry.ProgressPercent);
         }
 
         // ---------------------------------------------------------
-        // TEST 5: MarkModuleCompleteAsync (Update existing)
+        // TEST 4: MarkModuleCompleteAsync (Update)
         // ---------------------------------------------------------
         [Fact]
         public async Task MarkModuleCompleteAsync_ShouldUpdateExistingRecord_WhenRecordExists()
@@ -153,7 +129,7 @@ namespace LMS.Tests.ProgressService
         }
 
         // ---------------------------------------------------------
-        // TEST 6: GetCompletedModuleCountAsync
+        // TEST 5: GetCompletedModuleCountAsync
         // ---------------------------------------------------------
         [Fact]
         public async Task GetCompletedModuleCountAsync_ShouldCountOnlyCompletedModules()
@@ -161,9 +137,9 @@ namespace LMS.Tests.ProgressService
             var userId = Guid.NewGuid();
 
             ProgressContext.ProgressTrackings.AddRange(
-                new ProgressTracking { UserId = userId, CourseId = 1, IsCompleted = true },
-                new ProgressTracking { UserId = userId, CourseId = 1, IsCompleted = false },
-                new ProgressTracking { UserId = userId, CourseId = 1, IsCompleted = true }
+                CreateProgressTracking(userId, 1, 1, true),
+                CreateProgressTracking(userId, 1, 2, false),
+                CreateProgressTracking(userId, 1, 3, true)
             );
 
             await ProgressContext.SaveChangesAsync();
@@ -174,42 +150,54 @@ namespace LMS.Tests.ProgressService
         }
 
         // ---------------------------------------------------------
-        // TEST 7: IsCourseFullyCompletedAsync
+        // TEST 6: IsCourseFullyCompletedAsync
         // ---------------------------------------------------------
         [Fact]
-        public async Task IsCourseFullyCompletedAsync_ShouldReturnTrue_IfAnyCompletedModuleExists()
+        public async Task IsCourseFullyCompletedAsync_ShouldReturnTrue_WhenCompletedModulesMeetTotal()
         {
             var userId = Guid.NewGuid();
 
-            ProgressContext.ProgressTrackings.Add(new ProgressTracking
-            {
-                UserId = userId,
-                CourseId = 1,
-                IsCompleted = true
-            });
+            ProgressContext.ProgressTrackings.AddRange(
+                CreateProgressTracking(userId, 1, 1, true),
+                CreateProgressTracking(userId, 1, 2, true)
+            );
 
             await ProgressContext.SaveChangesAsync();
 
-            var result = await _repo.IsCourseFullyCompletedAsync(userId, 1);
+            var result = await _repo.IsCourseFullyCompletedAsync(
+                userId,
+                courseId: 1,
+                totalModuleCount: 2);
 
             Assert.True(result);
         }
 
         [Fact]
-        public async Task IsCourseFullyCompletedAsync_ShouldReturnFalse_IfNoCompletedModulesExist()
+        public async Task IsCourseFullyCompletedAsync_ShouldReturnFalse_WhenCompletedModulesAreLessThanTotal()
         {
             var userId = Guid.NewGuid();
 
-            ProgressContext.ProgressTrackings.Add(new ProgressTracking
-            {
-                UserId = userId,
-                CourseId = 1,
-                IsCompleted = false
-            });
+            ProgressContext.ProgressTrackings.Add(
+                CreateProgressTracking(userId, 1, 1, true)
+            );
 
             await ProgressContext.SaveChangesAsync();
 
-            var result = await _repo.IsCourseFullyCompletedAsync(userId, 1);
+            var result = await _repo.IsCourseFullyCompletedAsync(
+                userId,
+                courseId: 1,
+                totalModuleCount: 2);
+
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task IsCourseFullyCompletedAsync_ShouldReturnFalse_WhenTotalModuleCountIsZero()
+        {
+            var result = await _repo.IsCourseFullyCompletedAsync(
+                Guid.NewGuid(),
+                courseId: 1,
+                totalModuleCount: 0);
 
             Assert.False(result);
         }

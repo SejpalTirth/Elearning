@@ -1,8 +1,10 @@
 ﻿using AutoFixture;
 using CourseService.BLL.DTOs;
 using CourseService.BLL.Interface;
+using CourseService.BLL.UserContext;
 using CourseService.DAL.Models;
 using CourseService.Web.Controllers;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 
@@ -13,13 +15,13 @@ namespace LMS.Tests.CourseService
         private readonly Mock<ICourseService> _courseMock;
         private readonly Mock<IModuleService> _moduleMock;
         private readonly Mock<IHttpClientFactory> _httpClientFactoryMock;
+        private readonly Mock<IUserContextAccessor> _userContextMock;
         private readonly CoursesController _controller;
         private readonly Fixture _fixture;
 
         public CoursesControllerTests()
         {
             _fixture = new Fixture();
-
             _fixture.Behaviors.OfType<ThrowingRecursionBehavior>()
                 .ToList()
                 .ForEach(b => _fixture.Behaviors.Remove(b));
@@ -28,17 +30,34 @@ namespace LMS.Tests.CourseService
             _courseMock = new Mock<ICourseService>();
             _moduleMock = new Mock<IModuleService>();
             _httpClientFactoryMock = new Mock<IHttpClientFactory>();
+            _userContextMock = new Mock<IUserContextAccessor>();
 
-            _controller = new CoursesController(_courseMock.Object, _moduleMock.Object, _httpClientFactoryMock.Object);
+            _userContextMock.Setup(x => x.Current)
+                .Returns(new UserContextDto
+                {
+                    UserId = Guid.NewGuid(),
+                    Email = "test@mail.com"
+                });
+
+            _controller = new CoursesController(
+                _courseMock.Object,
+                _moduleMock.Object,
+                _httpClientFactoryMock.Object,
+                _userContextMock.Object
+            );
+
+            // Setup HttpContext for Authorization header if needed
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext()
+            };
         }
 
-        // -----------------------------------------------------
-        // GET ALL
-        // -----------------------------------------------------
+        // ---------------- GET ALL COURSES ----------------
         [Fact]
         public async Task GetAll_ShouldReturnList()
         {
-            var list = _fixture.CreateMany<CourseResponseDto>(2).ToList();
+            var list = _fixture.CreateMany<Course>(2).ToList();
             _courseMock.Setup(s => s.GetAllAsync()).ReturnsAsync(list);
 
             var result = await _controller.GetAll() as OkObjectResult;
@@ -47,58 +66,54 @@ namespace LMS.Tests.CourseService
             Assert.Equal(list, result!.Value);
         }
 
-        // -----------------------------------------------------
-        // GET BY ID
-        // -----------------------------------------------------
+        // ---------------- GET BY ID ----------------
         [Fact]
         public async Task GetById_ShouldReturnCourse_WhenExists()
         {
-            var dto = _fixture.Create<CourseResponseDto>();
-            _courseMock.Setup(s => s.GetByIdAsync(dto.Id)).ReturnsAsync(dto);
+            var course = _fixture.Build<Course>().With(c => c.Id, 1).Create();
+            _courseMock.Setup(s => s.GetByIdAsync(course.Id)).ReturnsAsync(course);
 
-            var result = await _controller.GetById(dto.Id) as OkObjectResult;
+            var dto = new CourseIdRequestDto { CourseId = course.Id };
+            var result = await _controller.GetById(dto) as OkObjectResult;
 
             Assert.NotNull(result);
-            Assert.Equal(dto, result!.Value);
+            Assert.Equal(course, result!.Value);
         }
 
         [Fact]
         public async Task GetById_ShouldReturnNotFound_WhenMissing()
         {
             _courseMock.Setup(s => s.GetByIdAsync(It.IsAny<int>()))
-                       .ReturnsAsync((CourseResponseDto?)null);
+                .ReturnsAsync((Course?)null);
 
-            var result = await _controller.GetById(999);
+            var dto = new CourseIdRequestDto { CourseId = 999 };
+            var result = await _controller.GetById(dto);
 
             Assert.IsType<NotFoundResult>(result);
         }
 
-        // -----------------------------------------------------
-        // GET BY INSTRUCTOR
-        // -----------------------------------------------------
+        // ---------------- GET COURSES BY INSTRUCTOR ----------------
         [Fact]
         public async Task GetByInstructor_ShouldReturnList()
         {
-            var instructor = Guid.NewGuid();
+            var userId = _userContextMock.Object.Current!.UserId;
             var list = _fixture.CreateMany<Course>(3).ToList();
 
-            _courseMock.Setup(s => s.GetCoursesByInstructorAsync(instructor))
-                       .Returns(Task.FromResult((IEnumerable<Course>)list));
+            _courseMock.Setup(s => s.GetCoursesByInstructorAsync(userId))
+                .ReturnsAsync(list);
 
-            var result = await _controller.GetByInstructor(instructor) as OkObjectResult;
+            var result = await _controller.GetByInstructor() as OkObjectResult;
 
             Assert.NotNull(result);
             Assert.Equal(list, result!.Value);
         }
 
-        // -----------------------------------------------------
-        // CREATE
-        // -----------------------------------------------------
+        // ---------------- CREATE COURSE ----------------
         [Fact]
-        public async Task Create_ShouldReturnCreated()
+        public async Task Create_ShouldReturnOk()
         {
             var req = _fixture.Build<CourseDto>()
-                .With(r => r.InstructorUserId, Guid.NewGuid().ToString())
+                .With(r => r.InstructorUserId, _userContextMock.Object.Current!.UserId.ToString())
                 .Create();
 
             var created = _fixture.Build<Course>()
@@ -107,11 +122,10 @@ namespace LMS.Tests.CourseService
 
             _courseMock.Setup(s => s.CreateAsync(req)).ReturnsAsync(created);
 
-            var result = await _controller.Create(req) as CreatedAtActionResult;
+            var result = await _controller.Create(req) as OkObjectResult;
 
             Assert.NotNull(result);
             Assert.Equal(created, result!.Value);
-            Assert.Equal("GetById", result.ActionName);
         }
 
         [Fact]
@@ -127,19 +141,16 @@ namespace LMS.Tests.CourseService
             Assert.Contains("InstructorUserId", bad.Value!.ToString());
         }
 
-        // -----------------------------------------------------
-        // UPDATE
-        // -----------------------------------------------------
+        // ---------------- UPDATE COURSE ----------------
         [Fact]
         public async Task Update_ShouldReturnOk_WhenUpdated()
         {
-            var dto = _fixture.Create<UpdateCourseDto>();
-            var updated = _fixture.Build<Course>().With(x => x.Id, 1).Create();
+            var dto = _fixture.Create<UpdateCourseRequestDto>();
+            var updated = _fixture.Build<Course>().With(x => x.Id, dto.CourseId).Create();
 
-            _courseMock.Setup(s => s.UpdateAsync(1, dto))
-                       .ReturnsAsync(updated);
+            _courseMock.Setup(s => s.UpdateAsync(dto.CourseId, dto.Course)).ReturnsAsync(updated);
 
-            var result = await _controller.Update(1, dto) as OkObjectResult;
+            var result = await _controller.Update(dto) as OkObjectResult;
 
             Assert.NotNull(result);
             Assert.Equal(updated, result!.Value);
@@ -148,23 +159,22 @@ namespace LMS.Tests.CourseService
         [Fact]
         public async Task Update_ShouldReturnNotFound_WhenMissing()
         {
-            _courseMock.Setup(s => s.UpdateAsync(1, It.IsAny<UpdateCourseDto>()))
-                       .ReturnsAsync((Course?)null);
+            var dto = _fixture.Create<UpdateCourseRequestDto>();
+            _courseMock.Setup(s => s.UpdateAsync(dto.CourseId, dto.Course)).ReturnsAsync((Course?)null);
 
-            var result = await _controller.Update(1, new UpdateCourseDto());
+            var result = await _controller.Update(dto);
 
             Assert.IsType<NotFoundResult>(result);
         }
 
-        // -----------------------------------------------------
-        // DELETE
-        // -----------------------------------------------------
+        // ---------------- DELETE COURSE ----------------
         [Fact]
         public async Task Delete_ShouldReturnOk_WhenDeleted()
         {
-            _courseMock.Setup(s => s.DeleteAsync(1)).ReturnsAsync(true);
+            var dto = new CourseIdRequestDto { CourseId = 1 };
+            _courseMock.Setup(s => s.DeleteAsync(dto.CourseId)).ReturnsAsync(true);
 
-            var result = await _controller.Delete(1);
+            var result = await _controller.Delete(dto);
 
             Assert.IsType<OkResult>(result);
         }
@@ -172,89 +182,88 @@ namespace LMS.Tests.CourseService
         [Fact]
         public async Task Delete_ShouldReturnNotFound_WhenMissing()
         {
-            _courseMock.Setup(s => s.DeleteAsync(2)).ReturnsAsync(false);
+            var dto = new CourseIdRequestDto { CourseId = 2 };
+            _courseMock.Setup(s => s.DeleteAsync(dto.CourseId)).ReturnsAsync(false);
 
-            var result = await _controller.Delete(2);
+            var result = await _controller.Delete(dto);
 
-            var notFound = Assert.IsType<NotFoundObjectResult>(result);
-            Assert.Equal("The course cannot be found", notFound.Value);
+            Assert.IsType<NotFoundResult>(result);
         }
 
-        // -----------------------------------------------------
-        // GET ENROLLED COURSES
-        // -----------------------------------------------------
+        // ---------------- GET ENROLLED COURSES ----------------
         [Fact]
         public async Task GetEnrolledCourses_ShouldReturnList()
         {
-            var userId = Guid.NewGuid();
+            var userId = _userContextMock.Object.Current!.UserId;
             var list = _fixture.CreateMany<Course>(2).ToList();
 
             _courseMock.Setup(s => s.GetUserEnrolledCoursesAsync(userId.ToString()))
-                       .Returns(Task.FromResult((IEnumerable<Course>)list));
+                .ReturnsAsync(list);
 
-            var result = await _controller.GetEnrolledCourses(userId) as OkObjectResult;
+            var result = await _controller.GetEnrolledCourses() as OkObjectResult;
 
             Assert.NotNull(result);
             Assert.Equal(list, result!.Value);
         }
 
-        // -----------------------------------------------------
-        // MODULE ROUTE
-        // -----------------------------------------------------
+        // ---------------- MODULES ----------------
         [Fact]
         public async Task GetModulesForCourse_ShouldReturnModules()
         {
             var modules = _fixture.CreateMany<ModuleSummaryDto>(3).ToList();
+            var dto = new CourseIdRequestDto { CourseId = 5 };
 
-            _moduleMock.Setup(s => s.GetModulesByCourseAsync(5))
-                       .ReturnsAsync(modules);
+            _moduleMock.Setup(s => s.GetModulesByCourseAsync(dto.CourseId))
+                .ReturnsAsync(modules);
 
-            var result = await _controller.GetModulesForCourse(5) as OkObjectResult;
+            var result = await _controller.GetModulesForCourse(dto) as OkObjectResult;
 
             Assert.NotNull(result);
             Assert.Equal(modules, result!.Value);
         }
 
-        // -----------------------------------------------------
-        // PUBLISH COURSE
-        // -----------------------------------------------------
+        // ---------------- PUBLISH COURSE ----------------
         [Fact]
         public async Task PublishCourse_ShouldReturnOk_WhenSuccess()
         {
-            _courseMock.Setup(s => s.PublishCourseIfReadyAsync(10))
-                       .ReturnsAsync(true);
+            var dto = new CourseIdRequestDto { CourseId = 10 };
+            _courseMock.Setup(s => s.PublishCourseIfReadyAsync(dto.CourseId, It.IsAny<string>()))
+                .ReturnsAsync(true);
 
-            var result = await _controller.PublishCourse(10) as OkObjectResult;
+            _controller.ControllerContext.HttpContext!.Request.Headers["Authorization"] = "Bearer token";
+
+            var result = await _controller.PublishCourse(dto) as OkObjectResult;
 
             Assert.NotNull(result);
-            Assert.Equal("Course published successfully.", result!.Value);
+            Assert.Equal("Course published successfully.", ((dynamic)result!.Value).message);
         }
 
         [Fact]
         public async Task PublishCourse_ShouldReturnBadRequest_WhenNotReady()
         {
-            _courseMock.Setup(s => s.PublishCourseIfReadyAsync(10))
-                       .ReturnsAsync(false);
+            var dto = new CourseIdRequestDto { CourseId = 10 };
+            _courseMock.Setup(s => s.PublishCourseIfReadyAsync(dto.CourseId, It.IsAny<string>()))
+                .ReturnsAsync(false);
 
-            var result = await _controller.PublishCourse(10) as BadRequestObjectResult;
+            _controller.ControllerContext.HttpContext!.Request.Headers["Authorization"] = "Bearer token";
+
+            var result = await _controller.PublishCourse(dto) as BadRequestObjectResult;
 
             Assert.NotNull(result);
-            Assert.Contains("modules must have a quiz", result!.Value!.ToString());
+            Assert.Contains("modules must have a quiz", ((dynamic)result!.Value).message.ToString());
         }
 
-        // -----------------------------------------------------
-        // CONTINUE COURSE
-        // -----------------------------------------------------
+        // ---------------- CONTINUE COURSE ----------------
         [Fact]
         public async Task ContinueCourse_ShouldReturnOk()
         {
-            _courseMock.Setup(s => s.ContinueUnfinishedCourseAsync(5))
-                       .Returns(Task.FromResult(true));
+            var dto = new ContinueCourseRequestDto { CourseId = 5 };
+            _courseMock.Setup(s => s.ContinueUnfinishedCourseAsync(dto.CourseId)).ReturnsAsync(true);
 
-            var result = await _controller.ContinueCourse(5) as OkObjectResult;
+            var result = await _controller.ContinueCourse(dto) as OkObjectResult;
 
             Assert.NotNull(result);
-            Assert.True((bool)result!.Value!);
+            Assert.True((bool)result!.Value);
         }
     }
 }
