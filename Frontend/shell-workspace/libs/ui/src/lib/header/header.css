@@ -1,0 +1,108 @@
+/* NAVBAR CORE */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #1e57e7;
+  padding: 15px 30px;
+  color: white;
+
+  /* fix: header always visible */
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+
+  /* optional: small shadow for nice look */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* LOGO */
+.logo a {
+  color: white;
+  font-size: 26px;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+/* MENU ITEMS */
+.menu {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.menu a {
+  color: white;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: 4px;
+  transition: 0.3s ease;
+}
+
+.menu a:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* USER PROFILE BOX */
+.user-box {
+  position: relative;
+  cursor: pointer;
+}
+
+.user-name {
+  font-weight: 600;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  transition: 0.3s;
+}
+
+.user-name:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* DROPDOWN */
+.dropdown {
+  position: absolute;
+  right: 0;
+  top: 45px;
+  background: #0f298a;
+  padding: 10px;
+  border-radius: 6px;
+
+  /* fix visibility */
+  z-index: 2000;
+
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.dropdown button {
+  background: transparent;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 15px;
+  padding: 6px 10px;
+  width: 100%;
+  text-align: left;
+}
+
+.dropdown button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+/* BADGES */
+.badge {
+  margin-left: 8px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.badge.admin { background: red; }
+.badge.instructor { background: orange; }
+.badge.user { background: green; }

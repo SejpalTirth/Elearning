@@ -1,0 +1,55 @@
+<h2 class="page-title">Pending Tasks</h2>
+
+<!-- Empty State -->
+@if (pendingCourses.length === 0) {
+  <div class="empty-state-box">
+    <h3>All caught up!</h3>
+    <p>You have no pending modules or quizzes to complete.</p>
+  </div>
+}
+
+<!-- List of pending courses -->
+@if (pendingCourses.length > 0) {
+  <div class="pending-list">
+
+    @for (c of pendingCourses; track c.id) {
+      <div class="pending-card">
+
+        <h3 class="course-title">{{ c.title }}</h3>
+
+        <!-- Safety Badge -->
+        @if (c.isDeleted) {
+          <div class="deleted-badge">
+            Deleted by Admin — Cannot continue
+          </div>
+        }
+
+        <!-- Missing quizzes -->
+        @if (!c.isDeleted && c.pendingModules?.length > 0) {
+          <p class="subtext">Quizzes pending for the following modules:</p>
+
+          <ul class="module-list">
+            @for (m of c.pendingModules; track m.moduleId) {
+              <li>{{ m.title }}</li>
+            }
+          </ul>
+
+          <button class="action-btn" (click)="continueQuiz(c.id)">
+            Continue Quiz Creation →
+          </button>
+        }
+
+        <!-- Ready to publish -->
+        @if (!c.isDeleted && c.pendingModules?.length === 0 && c.allQuizzesDone) {
+          <p class="subtext success">All quizzes completed! 🎉</p>
+
+          <button class="action-btn publish" (click)="publishCourse(c.id)">
+            Publish Course
+          </button>
+        }
+
+      </div>
+    }
+
+  </div>
+}

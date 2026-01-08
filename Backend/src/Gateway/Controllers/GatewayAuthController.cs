@@ -114,39 +114,111 @@ public class GatewayAuthController : ControllerBase
         await HttpContext.SignOutAsync("External");
 
         if (result.Tokens != null)
-            return Redirect($"{returnUrl}?token={result.Tokens.AccessToken}&refresh={result.Tokens.RefreshToken}");
+        {
+            Response.Cookies.Append(
+                "access_token",
+                result.Tokens.AccessToken,
+                new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.None,
+                    Path = "/",
+                    Domain = "localhost"
+                }
+            );
 
+            Response.Cookies.Append(
+                "refresh_token",
+                result.Tokens.RefreshToken,
+                new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.None,
+                    Path = "/",
+                    Domain = "localhost"
+                }
+            );
+        }
         return Redirect(returnUrl);
     }
 
-    
+
 
     [HttpPost("refresh")]
-    public async Task<IActionResult> Refresh([FromBody] RefreshRequest request)
+    public async Task<IActionResult> Refresh()
     {
-        var tokens = await _auth.RefreshTokenAsync(request.RefreshToken);
+        var refreshToken = Request.Cookies["refresh_token"];
+        if (string.IsNullOrEmpty(refreshToken))
+            return Unauthorized();
 
+        var tokens = await _auth.RefreshTokenAsync(refreshToken);
         if (tokens == null)
-        {
-            _log.LogWarning("Refresh failed for token (maybe not found/expired/revoked)");
-            return Unauthorized(new { message = "Invalid or expired refresh token" });
-        }
-        return Ok(tokens);
+            return Unauthorized();
+
+        Response.Cookies.Append(
+            "access_token",
+            tokens.AccessToken,
+            new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None,
+                Path = "/",
+                Domain = "localhost"
+            });
+
+        Response.Cookies.Append(
+            "refresh_token",
+            tokens.RefreshToken,
+            new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None,
+                Path = "/",
+                Domain = "localhost"
+            });
+
+        return Ok();
     }
+
 
     [Authorize]
     [HttpPost("logout")]
-    public async Task<IActionResult> Logout([FromBody] LogoutRequest req)
+    public async Task<IActionResult> Logout([FromQuery] string? redirectUrl)
     {
-        if (!string.IsNullOrWhiteSpace(req.RefreshToken))
-            await _auth.RevokeRefreshTokenAsync(req.RefreshToken);
+        var refreshToken = Request.Cookies["refresh_token"];
+        if (!string.IsNullOrWhiteSpace(refreshToken))
+        {
+            await _auth.RevokeRefreshTokenAsync(refreshToken);
+        }
 
-        // Clears identity cookies
-        await HttpContext.SignOutAsync();
+        var cookieOptions = new CookieOptions
+        {
+            Path = "/",
+            Domain = "localhost",
+            Secure = true,
+            SameSite = SameSiteMode.None
+        };
+
+        Response.Cookies.Delete("access_token", cookieOptions);
+        Response.Cookies.Delete("refresh_token", cookieOptions);
+        Response.Cookies.Delete(".Gateway.Auth", cookieOptions);
+        Response.Cookies.Delete(".Gateway.External", cookieOptions);
+
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignOutAsync("External");
 
-        return Ok(new { message = "Logged out" });
+        if (!string.IsNullOrWhiteSpace(redirectUrl))
+        {
+            return Redirect(redirectUrl);
+        }
+
+        return Ok(new { message = "Logged out successfully" });
     }
+
 
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [HttpGet("me")]
@@ -170,5 +242,4 @@ public class GatewayAuthController : ControllerBase
             provider = User.FindFirst("provider")?.Value
         });
     }
-
 }

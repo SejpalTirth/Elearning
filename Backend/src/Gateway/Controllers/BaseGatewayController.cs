@@ -71,10 +71,20 @@ namespace Gateway.Controllers
 
         private void ForwardAuth(HttpRequestMessage req)
         {
-            if (Request.Headers.TryGetValue("Authorization", out var token))
+            // If Authorization header already exists (Bearer flow)
+            if (Request.Headers.TryGetValue("Authorization", out var authHeader))
             {
                 req.Headers.Authorization =
-                    AuthenticationHeaderValue.Parse(token!);
+                    AuthenticationHeaderValue.Parse(authHeader!);
+                return;
+            }
+
+            // Otherwise try cookie-based JWT
+            if (Request.Cookies.TryGetValue("access_token", out var accessToken)
+                && !string.IsNullOrWhiteSpace(accessToken))
+            {
+                req.Headers.Authorization =
+                    new AuthenticationHeaderValue("Bearer", accessToken);
             }
         }
 

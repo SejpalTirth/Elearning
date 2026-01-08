@@ -1,0 +1,7 @@
+@if(showHeader())
+{
+    <app-shared-header [menu] = 'menu'></app-shared-header>
+}
+<app-loading-overlay></app-loading-overlay>
+<router-outlet></router-outlet>
+<app-toast-container></app-toast-container>

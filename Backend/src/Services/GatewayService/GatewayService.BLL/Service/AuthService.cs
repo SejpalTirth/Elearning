@@ -1,5 +1,6 @@
 ﻿using GatewayService.BLL.DTOs;
 using GatewayService.BLL.Interface;
+using GatewayService.BLL.Security;
 using GatewayService.DAL.Models;
 using GatewayService.DAL.Repo;
 using Microsoft.Extensions.Configuration;
@@ -8,6 +9,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 
 public class AuthService : IAuthService
 {
@@ -35,9 +37,7 @@ public class AuthService : IAuthService
         );
     }
 
-    // ==============================
     // EXTERNAL SIGN-IN
-    // ==============================
     public async Task<ExternalSignInResultDto> SignInExternalAsync(
         string provider,
         string providerUserId,
@@ -92,9 +92,7 @@ public class AuthService : IAuthService
         };
     }
 
-    // ==============================
     // TOKEN GENERATION
-    // ==============================
     private async Task<TokenResponseDto> GenerateAndStoreTokensAsync(User user)
     {
         var accessToken = CreateEncryptedJwt(user);
@@ -118,9 +116,7 @@ public class AuthService : IAuthService
         };
     }
 
-    // ==============================
     // REFRESH TOKEN
-    // ==============================
     public async Task<TokenResponseDto?> RefreshTokenAsync(string refreshToken)
     {
         if (string.IsNullOrWhiteSpace(refreshToken))
@@ -155,9 +151,7 @@ public class AuthService : IAuthService
         await _refreshTokens.RevokeTokenAsync(tokenEntity);
     }
 
-    // ==============================
-    // JWE CREATION (CORE PART)
-    // ==============================
+    // JWE CREATION
     private string CreateEncryptedJwt(User user)
     {
         var issuer = _config["Jwt:Issuer"];
@@ -213,9 +207,7 @@ public class AuthService : IAuthService
         return handler.WriteToken(token);
     }
 
-    // ==============================
     // UTIL
-    // ==============================
     private static string GenerateSecureToken(int size = 64)
     {
         var bytes = new byte[size];

@@ -1,0 +1,33 @@
+/* Root takes full viewport */
+.access-denied-root {
+  min-height: 100vh;
+  width: 100%;
+  background-color: #0f172a; /* slate-900 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Centered container */
+.access-denied-container {
+  text-align: center;
+  padding: 2rem;
+  max-width: 480px;
+}
+
+/* Big authoritative title */
+.access-denied-title {
+  margin: 0;
+  font-size: 2.75rem;
+  letter-spacing: 0.12em;
+  color: #ef4444; /* red-500 */
+}
+
+/* Calm, neutral message */
+.access-denied-message {
+  margin-top: 1.25rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #9ca3af; /* gray-400 */
+}

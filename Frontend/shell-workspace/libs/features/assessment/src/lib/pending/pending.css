@@ -1,0 +1,106 @@
+.page-title {
+  text-align: center;
+  margin-top: 30px;
+  font-size: 2rem;
+  color: #1a1a1a;
+  font-weight: 700;
+}
+
+.pending-list {
+  width: 80%;
+  margin: 20px auto;
+}
+
+.pending-card {
+  padding: 25px;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  border: 1px solid #e5e5e5;
+  margin-bottom: 25px;
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+.course-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: #1a1a1a;
+}
+
+.subtext {
+  font-size: 1.05rem;
+  color: #555;
+  margin-bottom: 10px;
+}
+
+.subtext.success {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.module-list {
+  margin-left: 15px;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.action-btn {
+  width: 100%;
+  padding: 12px;
+  background: #1e57f1;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1.05rem;
+  font-weight: 600;
+  transition: 0.2s ease-in-out;
+}
+
+.action-btn:hover {
+  background: #1645c7;
+}
+
+.action-btn.publish {
+  background: #16a34a;
+}
+
+.action-btn.publish:hover {
+  background: #15803d;
+}
+
+/* EMPTY STATE */
+.empty-state-box {
+  width: 60%;
+  margin: 50px auto;
+  text-align: center;
+  padding: 40px;
+  border-radius: 14px;
+  background: #f5faff;
+  border: 1px solid #d0e7ff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+.empty-state-box h3 {
+  font-size: 1.6rem;
+  color: #1e40af;
+  margin-bottom: 10px;
+}
+
+.empty-state-box p {
+  color: #555;
+  font-size: 1.05rem;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.deleted-badge {
+  color: #dc2626;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
