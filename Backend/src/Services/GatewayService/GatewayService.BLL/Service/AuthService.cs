@@ -9,7 +9,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.RegularExpressions;
 
 public class AuthService : IAuthService
 {
@@ -18,15 +17,21 @@ public class AuthService : IAuthService
     private readonly IConfiguration _config;
     private readonly TimeSpan _accessTokenLifetime;
     private readonly TimeSpan _refreshTokenLifetime;
+    private readonly IPasswordDecryptor _decryptor;
+    private readonly IPasswordHasher _hasher;
 
     public AuthService(
         IUserRepository users,
         IRefreshTokenRepository refreshTokens,
-        IConfiguration config)
+        IConfiguration config,
+        IPasswordDecryptor decryptor,
+        IPasswordHasher hasher)
     {
         _users = users;
         _refreshTokens = refreshTokens;
         _config = config;
+        _decryptor = decryptor;
+        _hasher = hasher;   
 
         _accessTokenLifetime = TimeSpan.FromMinutes(
             int.Parse(_config["Jwt:AccessTokenExpiryMinutes"] ?? "1")
@@ -215,4 +220,48 @@ public class AuthService : IAuthService
         rng.GetBytes(bytes);
         return Convert.ToBase64String(bytes);
     }
+
+    public async Task<Guid> RegisterLocalAsync(
+    string email,
+    string encryptedPassword)
+    {
+        var existing = await _users.GetByEmailAsync(email);
+        if (existing != null)
+            throw new InvalidOperationException("User already exists");
+
+        var decrypted = _decryptor.Decrypt(encryptedPassword);
+        var hash = _hasher.Hash(decrypted);
+
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = email,
+            PasswordHash = hash,
+            Role = "Pending",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _users.AddUserAsync(user);
+
+        return user.Id;
+    }
+
+
+    public async Task<TokenResponseDto?> LoginLocalAsync(
+    string email,
+    string encryptedPassword)
+    {
+        var user = await _users.GetByEmailAsync(email);
+        if (user == null || user.PasswordHash == null)
+            return null;
+
+        var decrypted = _decryptor.Decrypt(encryptedPassword);
+
+        if (!_hasher.Verify(decrypted, user.PasswordHash))
+            return null;
+
+        return await GenerateAndStoreTokensAsync(user);
+    }
+
 }

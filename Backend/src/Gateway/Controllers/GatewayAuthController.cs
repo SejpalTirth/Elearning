@@ -1,4 +1,5 @@
 using Gateway.Contracts.Auth;
+using Gateway.UserContext;
 using GatewayService.BLL.Interface;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -15,11 +16,16 @@ public class GatewayAuthController : ControllerBase
 {
     private readonly IAuthService _auth;
     private readonly ILogger<GatewayAuthController> _log;
+    private readonly IConfiguration _config;
 
-    public GatewayAuthController(IAuthService auth, ILogger<GatewayAuthController> log)
+    public GatewayAuthController(
+        IAuthService auth,
+        ILogger<GatewayAuthController> log,
+        IConfiguration config)
     {
         _auth = auth;
         _log = log;
+        _config = config;
     }
 
     private string SafeReturn(string? url)
@@ -144,8 +150,6 @@ public class GatewayAuthController : ControllerBase
         return Redirect(returnUrl);
     }
 
-
-
     [HttpPost("refresh")]
     public async Task<IActionResult> Refresh()
     {
@@ -241,5 +245,68 @@ public class GatewayAuthController : ControllerBase
             role = User.FindFirst(ClaimTypes.Role)?.Value,
             provider = User.FindFirst("provider")?.Value
         });
+    }
+
+    [HttpPost("local-register")]
+    public async Task<IActionResult> LocalRegister([FromBody] RegisterRequest request)
+    {
+        try
+        {
+            var userId = await _auth.RegisterLocalAsync(
+                request.Email,
+                request.Password
+            );
+
+            return Ok(new
+            {
+                isNewUser = true,
+                userId = userId
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+
+    [HttpPost("local-login")]
+    public async Task<IActionResult> LocalLogin([FromBody] LoginRequest request)
+    {
+        var tokens = await _auth.LoginLocalAsync(
+            request.Email,
+            request.Password
+        );
+
+        if (tokens == null)
+            return Unauthorized(new { message = "Invalid email or password" });
+
+        Response.Cookies.Append(
+            "access_token",
+            tokens.AccessToken,
+            new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None,
+                Path = "/",
+                Domain = "localhost"
+            }
+        );
+
+        Response.Cookies.Append(
+            "refresh_token",
+            tokens.RefreshToken,
+            new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None,
+                Path = "/",
+                Domain = "localhost"
+            }
+        );
+
+        return Ok(new { success = true });
     }
 }

@@ -1,1 +1,0 @@
-export * from './module-title.pipe';

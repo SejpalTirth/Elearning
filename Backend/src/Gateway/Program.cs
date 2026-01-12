@@ -1,4 +1,5 @@
 ﻿using GatewayService.BLL.Interface;
+using GatewayService.BLL.Security;
 using GatewayService.DAL.Data;
 using GatewayService.DAL.Repo;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -80,6 +81,9 @@ services.AddHttpClient("UserService", c =>
 services.AddScoped<IUserRepository, UserRepository>();
 services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IPasswordDecryptor, CryptoJsPasswordDecryptor>();
+builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
+
 
 // Authentication
 services

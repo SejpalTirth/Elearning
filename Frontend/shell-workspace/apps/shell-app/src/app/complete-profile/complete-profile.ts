@@ -58,7 +58,7 @@ export class CompleteProfileComponent implements OnInit {
   this.userApi.completeProfile(payload).subscribe({
     next: () => {
       this.toast.showInfo('Profile completed successfully! Please login again.')
-      this.router.navigate(['/login']);
+      this.router.navigate(['/']);
     },
     error: (err) => {
       this.loading = false;

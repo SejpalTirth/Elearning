@@ -3,6 +3,7 @@ import { LoginComponent } from './login/login';
 import { AuthCallback } from './auth-calback/auth-calback';
 import { Home } from './home/home';
 import { CompleteProfileComponent } from './complete-profile/complete-profile';
+import { SignUpComponent } from './sign-up/sign-up';
 
 export const routes: Routes = [
 
@@ -26,5 +27,9 @@ export const routes: Routes = [
   {
     path: 'complete-profile',
     component: CompleteProfileComponent
+  },
+  {
+    path: 'sign-up',
+    component: SignUpComponent
   }
 ];

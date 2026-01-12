@@ -1,11 +1,16 @@
 import { Inject, Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, of } from 'rxjs';
-import { catchError, map, finalize } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
 
-import { GatewayAuthService } from '@frontend/api';
+import { 
+  GatewayAuthService,
+  GatewayContractsAuthLoginRequest,
+  GatewayContractsAuthRegisterRequest
+} from '@frontend/api';
 import { AuthUser } from '../models/auth-user.model';
 import { API_BASE_URL } from '@frontend/core';
+import { encryptPassword } from '../utils/password-encryption';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -57,4 +62,28 @@ export class AuthService {
     window.location.href =
       `${this.apiBaseUrl}/api/GatewayAuth/microsoft-login`;
   }
+
+  localRegister(email: string, password: string) {
+  const payload: GatewayContractsAuthRegisterRequest = {
+    email,
+    password: encryptPassword(password)
+  };
+
+  return this.authClient.postApiGatewayAuthLocalRegister(
+    payload,
+    { withCredentials: true }
+  );
+}
+
+localLogin(email: string, password: string) {
+  const payload: GatewayContractsAuthLoginRequest = {
+    email,
+    password: encryptPassword(password)
+  };
+
+  return this.authClient.postApiGatewayAuthLocalLogin(
+    payload,
+    { withCredentials: true }
+  );
+}
 }

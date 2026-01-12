@@ -1,18 +1,49 @@
-<div class="login-container">
-  <h2>Sign in to Continue</h2>
+<div class="login-page">
+  <div class="login-card">
+    <h2>Sign in to Continue</h2>
 
-  <button class="google-btn" (click)="loginWithGoogle()">
-    <img src="assets/google-logo.png" alt="Google Logo" class="logo" />
-    <span>Sign in with Google</span>
-  </button>
+    <!-- Email Login -->
+    <input
+      type="email"
+      placeholder="Email"
+      [(ngModel)]="email"
+    />
 
-  <button class="microsoft-btn" (click)="loginWithMicrosoft()">
-    <img src="assets/microsoft-logo.png" alt="Microsoft Logo" class="logo" />
-    <span>Sign in with Microsoft</span>
-  </button>
+    <input
+      type="password"
+      placeholder="Password"
+      [(ngModel)]="password"
+    />
 
-  @if(loginMessage)
-  {
-    <p class="success-message">{{ loginMessage }}</p>
-  }
+    <button class="primary-btn" (click)="loginWithEmail()">
+      Sign in with Email
+    </button>
+
+    <div class="divider">
+      <span>or</span>
+    </div>
+
+    <!-- SSO -->
+    <button class="google-btn" (click)="loginWithGoogle()">
+      <img src="assets/google-logo.png" alt="Google" />
+      Sign in with Google
+    </button>
+
+    <button class="microsoft-btn" (click)="loginWithMicrosoft()">
+      <img src="assets/microsoft-logo.png" alt="Microsoft" />
+      Sign in with Microsoft
+    </button>
+
+    <a class="signup-link" routerLink="/sign-up">
+      Create an account
+    </a>
+
+    <p class="error-message" *ngIf="error">
+      {{ error }}
+    </p>
+
+    <p class="success-message" *ngIf="loginMessage">
+      {{ loginMessage }}
+    </p>
+  </div>
 </div>

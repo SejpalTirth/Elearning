@@ -69,8 +69,7 @@ export class UserFacade {
     payload: GatewayContractsUsersCompleteProfileRequest
   ): Observable<void> {
     return this.api.postApiUsersCompleteProfile(
-      payload,
-      { withCredentials: true }
+      payload
     );
   }
 }

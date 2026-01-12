@@ -29,9 +29,12 @@ import {
 } from 'rxjs';
 
 import type {
+  GatewayContractsAuthLoginRequest,
+  GatewayContractsAuthRegisterRequest,
   GetApiGatewayAuthExternalResponseParams,
   GetApiGatewayAuthGoogleLoginParams,
-  GetApiGatewayAuthMicrosoftLoginParams
+  GetApiGatewayAuthMicrosoftLoginParams,
+  PostApiGatewayAuthLogoutParams
 } from '../models';
 
 
@@ -104,13 +107,15 @@ export class GatewayAuthService {
       `/api/GatewayAuth/refresh`,undefined,options
     );
   }
- postApiGatewayAuthLogout<TData = void>( options?: HttpClientOptions & { observe?: 'body' }): Observable<TData>;
- postApiGatewayAuthLogout<TData = void>( options?: HttpClientOptions & { observe: 'events' }): Observable<HttpEvent<TData>>;
- postApiGatewayAuthLogout<TData = void>( options?: HttpClientOptions & { observe: 'response' }): Observable<AngularHttpResponse<TData>>;
+ postApiGatewayAuthLogout<TData = void>(params?: DeepNonNullable<PostApiGatewayAuthLogoutParams>, options?: HttpClientOptions & { observe?: 'body' }): Observable<TData>;
+ postApiGatewayAuthLogout<TData = void>(params?: DeepNonNullable<PostApiGatewayAuthLogoutParams>, options?: HttpClientOptions & { observe: 'events' }): Observable<HttpEvent<TData>>;
+ postApiGatewayAuthLogout<TData = void>(params?: DeepNonNullable<PostApiGatewayAuthLogoutParams>, options?: HttpClientOptions & { observe: 'response' }): Observable<AngularHttpResponse<TData>>;
   postApiGatewayAuthLogout<TData = void>(
-     options?: HttpClientOptions & { observe?: any }): Observable<any> {
+    params?: DeepNonNullable<PostApiGatewayAuthLogoutParams>, options?: HttpClientOptions & { observe?: any }): Observable<any> {
     return this.http.post<TData>(
-      `/api/GatewayAuth/logout`,undefined,options
+      `/api/GatewayAuth/logout`,undefined,{
+    ...options,
+        params: {...params, ...options?.params},}
     );
   }
  getApiGatewayAuthMe<TData = void>( options?: HttpClientOptions & { observe?: 'body' }): Observable<TData>;
@@ -122,6 +127,26 @@ export class GatewayAuthService {
       `/api/GatewayAuth/me`,options
     );
   }
+ postApiGatewayAuthLocalRegister<TData = void>(gatewayContractsAuthRegisterRequest: GatewayContractsAuthRegisterRequest, options?: HttpClientOptions & { observe?: 'body' }): Observable<TData>;
+ postApiGatewayAuthLocalRegister<TData = void>(gatewayContractsAuthRegisterRequest: GatewayContractsAuthRegisterRequest, options?: HttpClientOptions & { observe: 'events' }): Observable<HttpEvent<TData>>;
+ postApiGatewayAuthLocalRegister<TData = void>(gatewayContractsAuthRegisterRequest: GatewayContractsAuthRegisterRequest, options?: HttpClientOptions & { observe: 'response' }): Observable<AngularHttpResponse<TData>>;
+  postApiGatewayAuthLocalRegister<TData = void>(
+    gatewayContractsAuthRegisterRequest: GatewayContractsAuthRegisterRequest, options?: HttpClientOptions & { observe?: any }): Observable<any> {
+    return this.http.post<TData>(
+      `/api/GatewayAuth/local-register`,
+      gatewayContractsAuthRegisterRequest,options
+    );
+  }
+ postApiGatewayAuthLocalLogin<TData = void>(gatewayContractsAuthLoginRequest: GatewayContractsAuthLoginRequest, options?: HttpClientOptions & { observe?: 'body' }): Observable<TData>;
+ postApiGatewayAuthLocalLogin<TData = void>(gatewayContractsAuthLoginRequest: GatewayContractsAuthLoginRequest, options?: HttpClientOptions & { observe: 'events' }): Observable<HttpEvent<TData>>;
+ postApiGatewayAuthLocalLogin<TData = void>(gatewayContractsAuthLoginRequest: GatewayContractsAuthLoginRequest, options?: HttpClientOptions & { observe: 'response' }): Observable<AngularHttpResponse<TData>>;
+  postApiGatewayAuthLocalLogin<TData = void>(
+    gatewayContractsAuthLoginRequest: GatewayContractsAuthLoginRequest, options?: HttpClientOptions & { observe?: any }): Observable<any> {
+    return this.http.post<TData>(
+      `/api/GatewayAuth/local-login`,
+      gatewayContractsAuthLoginRequest,options
+    );
+  }
 };
 
 export type GetApiGatewayAuthGoogleLoginClientResult = NonNullable<void>
@@ -130,3 +155,5 @@ export type GetApiGatewayAuthExternalResponseClientResult = NonNullable<void>
 export type PostApiGatewayAuthRefreshClientResult = NonNullable<void>
 export type PostApiGatewayAuthLogoutClientResult = NonNullable<void>
 export type GetApiGatewayAuthMeClientResult = NonNullable<void>
+export type PostApiGatewayAuthLocalRegisterClientResult = NonNullable<void>
+export type PostApiGatewayAuthLocalLoginClientResult = NonNullable<void>

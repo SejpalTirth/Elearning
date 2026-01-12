@@ -1,1 +1,47 @@
-<p>sign-up works!</p>
+<div class="signup-page">
+  <div class="signup-card">
+    <h2>Create Account</h2>
+
+    <input
+      type="email"
+      placeholder="Email"
+      [(ngModel)]="email"
+    />
+
+    <input
+  type="password"
+  placeholder="Password"
+  [(ngModel)]="password"
+/>
+
+<input
+  type="password"
+  placeholder="Confirm Password"
+  [(ngModel)]="confirmPassword"
+/>
+
+
+    <div class="password-hint">
+      <strong>Password must contain:</strong>
+      <ul>
+        <li>At least 8 characters</li>
+        <li>1 uppercase letter</li>
+        <li>1 lowercase letter</li>
+        <li>1 number</li>
+        <li>1 special character</li>
+      </ul>
+    </div>
+
+    <button class="primary-btn" (click)="register()">
+      Register
+    </button>
+
+    <button class="secondary-btn" (click)="goToLogin()">
+      Back to Login
+    </button>
+
+    <p class="error-message" *ngIf="error">
+      {{ error }}
+    </p>
+  </div>
+</div>
