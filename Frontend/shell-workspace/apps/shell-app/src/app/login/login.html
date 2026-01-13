@@ -2,22 +2,28 @@
   <div class="login-card">
     <h2>Sign in to Continue</h2>
 
-    <!-- Email Login -->
-    <input
-      type="email"
-      placeholder="Email"
-      [(ngModel)]="email"
-    />
+    <!-- Wrap inputs and button inside form -->
+    <form (ngSubmit)="loginWithEmail()">
+      <input
+        type="email"
+        placeholder="Email"
+        [(ngModel)]="email"
+        name="email"
+        required
+      />
 
-    <input
-      type="password"
-      placeholder="Password"
-      [(ngModel)]="password"
-    />
+      <input
+        type="password"
+        placeholder="Password"
+        [(ngModel)]="password"
+        name="password"
+        required
+      />
 
-    <button class="primary-btn" (click)="loginWithEmail()">
-      Sign in with Email
-    </button>
+      <button class="primary-btn" type="submit">
+        Sign in with Email
+      </button>
+    </form>
 
     <div class="divider">
       <span>or</span>

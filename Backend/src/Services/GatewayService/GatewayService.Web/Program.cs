@@ -17,8 +17,8 @@ builder.Services.AddDbContext<GatewayServiceContext>(options =>
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IPasswordDecryptor, CryptoJsPasswordDecryptor>();
-builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
+builder.Services.AddScoped<IPasswordDecryptor, PasswordDecryptor>();
+builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 
 // Controllers + Swagger
 builder.Services.AddControllers();

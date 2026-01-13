@@ -1,14 +1,15 @@
 import { Component, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { Header } from "./header/header";
-import { ToastContainerComponent } from '@frontend/ui'
+import { ToastContainerComponent, Loading } from '@frontend/ui'
 
 @Component({
   selector: 'app-root',
   imports: [
     RouterOutlet,
     Header,
-    ToastContainerComponent
+    ToastContainerComponent,
+    Loading
   ],
   templateUrl: './app.html',
   styleUrl: './app.css'

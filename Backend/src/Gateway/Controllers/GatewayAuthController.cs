@@ -1,5 +1,4 @@
 using Gateway.Contracts.Auth;
-using Gateway.UserContext;
 using GatewayService.BLL.Interface;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -269,17 +268,16 @@ public class GatewayAuthController : ControllerBase
         }
     }
 
-
     [HttpPost("local-login")]
     public async Task<IActionResult> LocalLogin([FromBody] LoginRequest request)
     {
-        var tokens = await _auth.LoginLocalAsync(
-            request.Email,
-            request.Password
-        );
+        if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
+            return BadRequest(new { message = "Email and password are required" });
+
+        var tokens = await _auth.LoginLocalAsync(request.Email, request.Password);
 
         if (tokens == null)
-            return Unauthorized(new { message = "Invalid email or password" });
+            return BadRequest(new { message = "Invalid email or password" });
 
         Response.Cookies.Append(
             "access_token",
@@ -307,6 +305,10 @@ public class GatewayAuthController : ControllerBase
             }
         );
 
-        return Ok(new { success = true });
+        return Ok(new
+        {
+            success = true,
+            message = "Login successful"
+        });
     }
 }

@@ -42,20 +42,35 @@ export class LoginComponent implements OnInit {
   }
 
   loginWithEmail(): void {
-    this.error = null;
-    this.loader.show();
+  this.error = null;
 
-    this.auth.localLogin(this.email, this.password).subscribe({
-      next: () => {
-        this.loader.hide();
-        window.location.href =
-        'http://localhost:4200/gateway/auth/callback';
-      },
-      error: err => {
-        this.loader.hide();
-        this.error = err?.error?.message || 'Login failed';
-      }
-    });
-
+  if (!this.email.trim() || !this.password) {
+    this.error = 'Please enter both email and password';
+    return;
   }
+
+  this.loader.show();
+
+  this.auth.localLogin(this.email, this.password).subscribe({
+    next: (response: any) => {
+      // Only redirect if login actually succeeded
+      if (response?.success) {
+        window.location.href = 'http://localhost:4200/gateway/auth/callback';
+        this.loader.hide();
+      } else {
+        this.error = response?.message || 'Login failed';
+        this.loader.hide();
+      }
+    },
+    error: (err) => {
+      this.error = err?.error?.message || 'Login failed';
+      this.loader.hide();
+    },
+    complete: () => {
+      this.loader.hide();
+    }
+  });
+}
+
+
 }

@@ -4,11 +4,11 @@ using Microsoft.Extensions.Configuration;
 
 namespace GatewayService.BLL.Security;
 
-public class CryptoJsPasswordDecryptor : IPasswordDecryptor
+public class PasswordDecryptor : IPasswordDecryptor
 {
     private readonly string _key;
 
-    public CryptoJsPasswordDecryptor(IConfiguration config)
+    public PasswordDecryptor(IConfiguration config)
     {
         _key = config["PasswordEncryption:Key"]
                ?? throw new InvalidOperationException("PasswordEncryption key missing");

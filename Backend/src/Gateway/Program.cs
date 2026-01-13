@@ -81,8 +81,8 @@ services.AddHttpClient("UserService", c =>
 services.AddScoped<IUserRepository, UserRepository>();
 services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IPasswordDecryptor, CryptoJsPasswordDecryptor>();
-builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
+builder.Services.AddScoped<IPasswordDecryptor, PasswordDecryptor>();
+builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 
 
 // Authentication
