@@ -1,0 +1,36 @@
+<div class="learning-container">
+  <h2>My Learning</h2>
+
+  @if (loading) {
+    <div class="loading">Loading your enrolled courses...</div>
+  }
+
+  @if (!loading && courses.length === 0) {
+    <div class="empty">You haven't enrolled in any courses yet.</div>
+  }
+
+  @if (!loading && courses.length > 0) {
+
+    @for (c of courses; track c.id) {
+
+      <div class="learning-card">
+
+        <h3>{{ c.title }}</h3>
+        <p class="instructor">Instructor: {{ c.instructor?.name }}</p>
+
+        <!-- Progress Bar -->
+        <div class="progress-wrapper">
+          <div class="progress-bar" [style.width]="c.progressPercent + '%'"></div>
+        </div>
+
+        <p class="progress-text">{{ c.progressPercent }}% Completed</p>
+
+        <button (click)="continueLearning(c.id)">
+          Continue Learning
+        </button>
+
+      </div>
+
+    }
+  }
+</div>

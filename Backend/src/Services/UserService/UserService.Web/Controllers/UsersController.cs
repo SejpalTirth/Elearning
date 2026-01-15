@@ -61,6 +61,7 @@ namespace UserService.Web.Controllers
 
         // ---------------- COMPLETE PROFILE ----------------
 
+        [AllowAnonymous]
         [HttpPost("complete-profile")]
         public async Task<IActionResult> CompleteProfile(
             [FromBody] CompleteProfileDto dto)

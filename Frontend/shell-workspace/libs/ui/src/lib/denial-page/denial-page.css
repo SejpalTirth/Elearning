@@ -1,0 +1,36 @@
+:host {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: #f9fafb; /* light gray background */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.access-denied-card {
+  background-color: #ffffff; /* white card */
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+  padding: 2.5rem 3rem;
+  max-width: 380px;
+  text-align: center;
+  color: #374151; /* cool dark gray text */
+}
+
+.icon-wrapper {
+  margin-bottom: 1.5rem;
+}
+
+.access-denied-title {
+  font-weight: 600;
+  font-size: 1.9rem;
+  color: #2563eb; /* calm blue */
+  margin-bottom: 0.5rem;
+  text-transform: none;
+}
+
+.access-denied-message {
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #6b7280; /* medium gray */
+}

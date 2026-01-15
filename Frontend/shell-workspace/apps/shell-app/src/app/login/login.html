@@ -1,0 +1,54 @@
+<div class="login-page">
+  <div class="login-card">
+    <h2>Sign in to Continue</h2>
+
+    <!-- Wrap inputs and button inside form -->
+    <form (ngSubmit)="loginWithEmail()">
+      <input
+        type="email"
+        placeholder="Email"
+        [(ngModel)]="email"
+        name="email"
+        required
+      />
+
+      <input
+        type="password"
+        placeholder="Password"
+        [(ngModel)]="password"
+        name="password"
+        required
+      />
+
+      <button class="primary-btn" type="submit">
+        Sign in with Email
+      </button>
+    </form>
+    <p class="error-message" *ngIf="error">
+      {{ error }}
+    </p>
+
+    <p class="success-message" *ngIf="loginMessage">
+      {{ loginMessage }}
+    </p>
+
+    <div class="divider">
+      <span>or</span>
+    </div>
+
+    <!-- SSO -->
+    <button class="google-btn" (click)="loginWithGoogle()">
+      <img src="assets/google-logo.png" alt="Google" />
+      Sign in with Google
+    </button>
+
+    <button class="microsoft-btn" (click)="loginWithMicrosoft()">
+      <img src="assets/microsoft-logo.png" alt="Microsoft" />
+      Sign in with Microsoft
+    </button>
+
+    <a class="signup-link" routerLink="/sign-up">
+      Create an account
+    </a>
+  </div>
+</div>

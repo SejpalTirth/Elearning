@@ -1,57 +1,19 @@
 {
-  "name": "src",
-  "version": "0.0.0",
+  "name": "Frontend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
   "scripts": {
-    "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
-    "watch": "ng build --watch --configuration development",
-    "test": "ng test",
-    "lint": "ng lint"
+    "generate:api": "openapi-generator-cli generate -i swagger.json -c openapi-config.json",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "concurrently -n shell,admin,instructor,student -c blue,red,green,yellow \"pnpm ng serve shell-app\" \"pnpm ng serve admin-app --port 4300 --open false\" \"pnpm ng serve instructor-app --port 4400 --open false\" \"pnpm ng serve student-app --port 4500 --open false\""
   },
-  "prettier": {
-    "printWidth": 100,
-    "singleQuote": true,
-    "overrides": [
-      {
-        "files": "*.html",
-        "options": {
-          "parser": "angular"
-        }
-      }
-    ]
-  },
-  "private": true,
-  "dependencies": {
-    "@angular/cdk": "^20.2.14",
-    "@angular/common": "^20.3.0",
-    "@angular/compiler": "^20.3.0",
-    "@angular/core": "^20.3.0",
-    "@angular/forms": "^20.3.0",
-    "@angular/material": "^20.2.14",
-    "@angular/platform-browser": "^20.3.0",
-    "@angular/router": "^20.3.10",
-    "crypto-js": "^4.2.0",
-    "ngx-toastr": "^19.1.0",
-    "rxjs": "~7.8.0",
-    "tslib": "^2.3.0",
-    "zone.js": "~0.15.0"
-  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.26.2",
   "devDependencies": {
-    "@angular/build": "^20.3.4",
-    "@angular/cli": "^20.3.4",
-    "@angular/compiler-cli": "^20.3.0",
-    "@types/crypto-js": "^4.2.2",
-    "@types/jasmine": "~5.1.0",
-    "angular-eslint": "21.0.1",
-    "eslint": "^9.39.1",
-    "jasmine-core": "~5.9.0",
-    "karma": "~6.4.0",
-    "karma-chrome-launcher": "~3.2.0",
-    "karma-coverage": "~2.2.0",
-    "karma-jasmine": "~5.1.0",
-    "karma-jasmine-html-reporter": "~2.1.0",
-    "typescript": "~5.9.2",
-    "typescript-eslint": "8.46.4"
+    "@openapitools/openapi-generator-cli": "^2.26.0",
+    "concurrently": "^9.2.1"
   }
 }

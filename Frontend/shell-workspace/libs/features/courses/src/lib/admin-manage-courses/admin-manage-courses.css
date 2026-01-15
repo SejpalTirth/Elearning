@@ -1,0 +1,89 @@
+.course-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 18px 22px;
+  margin-bottom: 18px;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  position: relative;
+}
+
+/* Left content area */
+.info {
+  flex: 1;
+  overflow: hidden;
+  padding-right: 260px;
+}
+
+/* Right-side button block */
+.actions {
+  position: absolute;
+  right: 22px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: row;
+  gap: 14px;
+  white-space: nowrap;
+
+  width: 240px;
+  justify-content: flex-end;
+}
+
+
+/* Buttons */
+.actions button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  transition: 0.2s ease-in-out;
+  min-width: 100px;
+  text-align: center;
+}
+
+/* Edit */
+.edit-btn {
+  background: #2563eb;
+  color: #fff;
+}
+
+.edit-btn:hover {
+  background: #1e4fc9;
+}
+
+/* Archive */
+.delete-btn {
+  background: #dc2626;
+  color: #fff;
+}
+
+.delete-btn:hover {
+  background: #b91c1c;
+}
+
+/* Restore */
+.restore-btn {
+  background: #059669;
+  color: #fff;
+}
+
+.restore-btn:hover {
+  background: #047857;
+}
+
+/* Deleted course background */
+.course-card.deleted {
+  background: #ffeaea;
+  border-left: 6px solid #dc2626;
+}
+
+.status-deleted {
+  color: #dc2626;
+  font-weight: 700;
+  margin-top: 6px;
+}

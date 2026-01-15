@@ -16,6 +16,7 @@ public class ProgressGatewayController : BaseGatewayController
     }
 
     [HttpPost("user")]
+    [ProducesResponseType(typeof(List<ProgressRecordDto>), 200)]
     public Task<IActionResult> GetUserProgress() =>
         ForwardPost($"{BASE}/user", new { });
 
@@ -23,4 +24,13 @@ public class ProgressGatewayController : BaseGatewayController
     public Task<IActionResult> CompleteModule(
         [FromBody] ModuleCompleteRequest payload) =>
         ForwardPost($"{BASE}/complete-module", payload);
+
+    public class ProgressRecordDto
+    {
+        public int CourseId { get; set; }
+        public int? ModuleId { get; set; }
+        public bool IsCompleted { get; set; }
+        public double ProgressPercent { get; set; }
+    }
+
 }

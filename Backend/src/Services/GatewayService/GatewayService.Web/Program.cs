@@ -1,6 +1,7 @@
+using GatewayService.BLL.Interface;
+using GatewayService.BLL.Security;
 using GatewayService.DAL.Data;
 using GatewayService.DAL.Repo;
-using GatewayService.BLL.Interface;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,6 +17,8 @@ builder.Services.AddDbContext<GatewayServiceContext>(options =>
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IPasswordDecryptor, PasswordDecryptor>();
+builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 
 // Controllers + Swagger
 builder.Services.AddControllers();

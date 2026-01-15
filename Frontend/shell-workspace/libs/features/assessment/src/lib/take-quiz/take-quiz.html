@@ -1,0 +1,51 @@
+@if (loading) {
+  <div class="loading">
+    Loading quiz...
+  </div>
+}
+
+@if (!loading && quiz) {
+  <div class="quiz-container">
+
+    <h2>{{ quiz.title }}</h2>
+    <p><strong>Time Limit:</strong> {{ quiz.timeLimitMinutes }} min</p>
+
+    @for (q of quiz.questions; let i = $index; track q.id ?? i) {
+      <div class="question-card">
+
+        <h4>
+          {{ i + 1 }}.
+          {{ q.questionText || q.text || q.title || 'Question text not available' }}
+        </h4>
+
+        <small>Marks: {{ q.marks }}</small>
+
+        @for (opt of (q.answers || q.options); track opt.id ?? opt.answerId) {
+          <div class="option">
+            <label>
+              <input 
+                type="radio"
+                name="question_{{ q.id || q.questionId }}"
+                [value]="opt.id || opt.answerId"
+                [(ngModel)]="answers[i].selectedAnswerId"
+              />
+              {{ opt.answerText || opt.text }}
+            </label>
+          </div>
+        }
+      </div>
+    }
+
+    <button class="submit-btn"
+            (click)="submit()"
+            [disabled]="submitting || !allQuestionsAnswered()">
+      {{ submitting ? "Submitting..." : "Submit Quiz" }}
+    </button>
+  </div>
+}
+
+@if (!loading && !quiz) {
+  <div class="no-quiz">
+    No quiz available for this module.
+  </div>
+}

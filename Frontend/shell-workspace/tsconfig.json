@@ -1,0 +1,147 @@
+/* To learn more about Typescript configuration file: https://www.typescriptlang.org/docs/handbook/tsconfig-json.html. */
+/* To learn more about Angular compiler options: https://angular.dev/reference/configs/angular-compiler-options. */
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "paths": {
+      "@frontend/api": [
+        "./dist/api"
+      ],
+      "@frontend/auth": [
+        "./dist/auth"
+      ],
+      "@frontend/core": [
+        "./dist/core"
+      ],
+      "@frontend/shared": [
+        "./dist/shared"
+      ],
+      "@frontend/ui": [
+        "./dist/ui"
+      ],
+      "@frontend/features/home": [
+        "./dist/home"
+      ],
+      "@frontend/features/courses": [
+        "./dist/courses"
+      ],
+      "@frontend/features/assessment": [
+        "./dist/assessment"
+      ],
+      "@frontend/features/admin": [
+        "./dist/admin"
+      ]
+    },
+    "strict": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "ES2022",
+    "module": "preserve"
+  },
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "typeCheckHostBindings": true,
+    "strictTemplates": true
+  },
+  "files": [],
+  "references": [
+    {
+      "path": "./apps/shell-app/tsconfig.app.json"
+    },
+    {
+      "path": "./apps/shell-app/tsconfig.spec.json"
+    },
+    {
+      "path": "./apps/student-app/tsconfig.app.json"
+    },
+    {
+      "path": "./apps/student-app/tsconfig.spec.json"
+    },
+    {
+      "path": "./apps/instructor-app/tsconfig.app.json"
+    },
+    {
+      "path": "./apps/instructor-app/tsconfig.spec.json"
+    },
+    {
+      "path": "./apps/admin-app/tsconfig.app.json"
+    },
+    {
+      "path": "./apps/admin-app/tsconfig.spec.json"
+    },
+    {
+      "path": "./libs/auth/tsconfig.lib.json"
+    },
+    {
+      "path": "./libs/auth/tsconfig.spec.json"
+    },
+    {
+      "path": "./libs/core/tsconfig.lib.json"
+    },
+    {
+      "path": "./libs/core/tsconfig.spec.json"
+    },
+    {
+      "path": "./libs/api/tsconfig.lib.json"
+    },
+    {
+      "path": "./libs/api/tsconfig.spec.json"
+    },
+    {
+      "path": "./libs/shared/tsconfig.lib.json"
+    },
+    {
+      "path": "./libs/shared/tsconfig.spec.json"
+    },
+    {
+      "path": "./libs/ui/tsconfig.lib.json"
+    },
+    {
+      "path": "./libs/ui/tsconfig.spec.json"
+    },
+    {
+      "path": "./libs/auth/tsconfig.lib.json"
+    },
+    {
+      "path": "./libs/auth/tsconfig.spec.json"
+    },
+    {
+      "path": "./libs/api/tsconfig.lib.json"
+    },
+    {
+      "path": "./libs/api/tsconfig.spec.json"
+    },
+    {
+      "path": "./libs/features/home/tsconfig.lib.json"
+    },
+    {
+      "path": "./libs/features/home/tsconfig.spec.json"
+    },
+    {
+      "path": "./libs/features/courses/tsconfig.lib.json"
+    },
+    {
+      "path": "./libs/features/courses/tsconfig.spec.json"
+    },
+    {
+      "path": "./libs/features/assessment/tsconfig.lib.json"
+    },
+    {
+      "path": "./libs/features/assessment/tsconfig.spec.json"
+    },
+    {
+      "path": "./libs/features/admin/tsconfig.lib.json"
+    },
+    {
+      "path": "./libs/features/admin/tsconfig.spec.json"
+    }
+  ]
+}

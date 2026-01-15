@@ -33,6 +33,7 @@ namespace Gateway.Controllers
             [FromBody] UserIdRequest request) =>
             ForwardPost($"{BASE_USERS}/delete", request);
 
+        [AllowAnonymous]
         [HttpPost("complete-profile")]
         public Task<IActionResult> CompleteProfile(
             [FromBody] CompleteProfileRequest dto) =>
