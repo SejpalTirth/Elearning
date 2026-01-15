@@ -33,8 +33,8 @@ import type {
   GatewayContractsAuthRegisterRequest,
   GetApiGatewayAuthExternalResponseParams,
   GetApiGatewayAuthGoogleLoginParams,
-  GetApiGatewayAuthMicrosoftLoginParams,
-  PostApiGatewayAuthLogoutParams
+  GetApiGatewayAuthLogoutParams,
+  GetApiGatewayAuthMicrosoftLoginParams
 } from '../models';
 
 
@@ -107,13 +107,13 @@ export class GatewayAuthService {
       `/api/GatewayAuth/refresh`,undefined,options
     );
   }
- postApiGatewayAuthLogout<TData = void>(params?: DeepNonNullable<PostApiGatewayAuthLogoutParams>, options?: HttpClientOptions & { observe?: 'body' }): Observable<TData>;
- postApiGatewayAuthLogout<TData = void>(params?: DeepNonNullable<PostApiGatewayAuthLogoutParams>, options?: HttpClientOptions & { observe: 'events' }): Observable<HttpEvent<TData>>;
- postApiGatewayAuthLogout<TData = void>(params?: DeepNonNullable<PostApiGatewayAuthLogoutParams>, options?: HttpClientOptions & { observe: 'response' }): Observable<AngularHttpResponse<TData>>;
-  postApiGatewayAuthLogout<TData = void>(
-    params?: DeepNonNullable<PostApiGatewayAuthLogoutParams>, options?: HttpClientOptions & { observe?: any }): Observable<any> {
-    return this.http.post<TData>(
-      `/api/GatewayAuth/logout`,undefined,{
+ getApiGatewayAuthLogout<TData = void>(params?: DeepNonNullable<GetApiGatewayAuthLogoutParams>, options?: HttpClientOptions & { observe?: 'body' }): Observable<TData>;
+ getApiGatewayAuthLogout<TData = void>(params?: DeepNonNullable<GetApiGatewayAuthLogoutParams>, options?: HttpClientOptions & { observe: 'events' }): Observable<HttpEvent<TData>>;
+ getApiGatewayAuthLogout<TData = void>(params?: DeepNonNullable<GetApiGatewayAuthLogoutParams>, options?: HttpClientOptions & { observe: 'response' }): Observable<AngularHttpResponse<TData>>;
+  getApiGatewayAuthLogout<TData = void>(
+    params?: DeepNonNullable<GetApiGatewayAuthLogoutParams>, options?: HttpClientOptions & { observe?: any }): Observable<any> {
+    return this.http.get<TData>(
+      `/api/GatewayAuth/logout`,{
     ...options,
         params: {...params, ...options?.params},}
     );
@@ -153,7 +153,7 @@ export type GetApiGatewayAuthGoogleLoginClientResult = NonNullable<void>
 export type GetApiGatewayAuthMicrosoftLoginClientResult = NonNullable<void>
 export type GetApiGatewayAuthExternalResponseClientResult = NonNullable<void>
 export type PostApiGatewayAuthRefreshClientResult = NonNullable<void>
-export type PostApiGatewayAuthLogoutClientResult = NonNullable<void>
+export type GetApiGatewayAuthLogoutClientResult = NonNullable<void>
 export type GetApiGatewayAuthMeClientResult = NonNullable<void>
 export type PostApiGatewayAuthLocalRegisterClientResult = NonNullable<void>
 export type PostApiGatewayAuthLocalLoginClientResult = NonNullable<void>

@@ -38,6 +38,6 @@ export * from './gatewayContractsUsersUpdateUserRoleRequest';
 export * from './gatewayContractsUsersUserIdRequest';
 export * from './getApiGatewayAuthExternalResponseParams';
 export * from './getApiGatewayAuthGoogleLoginParams';
+export * from './getApiGatewayAuthLogoutParams';
 export * from './getApiGatewayAuthMicrosoftLoginParams';
-export * from './postApiGatewayAuthLogoutParams';
 export * from './progressGatewayControllerProgressRecordDto';

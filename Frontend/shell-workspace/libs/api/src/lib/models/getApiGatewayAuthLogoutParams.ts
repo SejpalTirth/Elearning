@@ -5,6 +5,6 @@
  * OpenAPI spec version: v1
  */
 
-export type PostApiGatewayAuthLogoutParams = {
+export type GetApiGatewayAuthLogoutParams = {
 redirectUrl?: string;
 };

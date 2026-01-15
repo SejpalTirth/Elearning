@@ -188,8 +188,8 @@ public class GatewayAuthController : ControllerBase
     }
 
 
-    [Authorize]
-    [HttpPost("logout")]
+    [AllowAnonymous]
+    [HttpGet("logout")]
     public async Task<IActionResult> Logout([FromQuery] string? redirectUrl)
     {
         var refreshToken = Request.Cookies["refresh_token"];

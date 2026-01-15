@@ -42,7 +42,7 @@ export class AuthService {
   }
 
   logout(): void {
-  const redirectUrl = encodeURIComponent('http://localhost:4200/login');
+  const redirectUrl = encodeURIComponent('http://localhost:4200');
 
   window.location.href =
     `${this.apiBaseUrl}/api/GatewayAuth/logout?redirectUrl=${redirectUrl}`;

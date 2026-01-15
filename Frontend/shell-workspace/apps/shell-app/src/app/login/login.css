@@ -23,14 +23,31 @@
   color: #1f2937;
 }
 
+/* Messages */
+.error-message {
+  margin-bottom: 12px; /* Added bottom margin for spacing */
+  color: #dc2626;
+  font-size: 0.9rem;
+  min-height: 1.2em; /* Reserve space even when no message */
+}
+
+.success-message {
+  margin-bottom: 12px; /* Added bottom margin for spacing */
+  color: #16a34a;
+  font-size: 0.9rem;
+  min-height: 1.2em; /* Reserve space even when no message */
+}
+
 /* Inputs */
 .login-card input {
   width: 100%;
-  padding: 12px;
+  padding: 10px 12px; /* Reduced padding vertically */
   margin: 8px 0;
   border-radius: 8px;
   border: 1px solid #d1d5db;
   font-size: 0.95rem;
+  box-sizing: border-box;
+  height: 40px; /* Set fixed height to match buttons */
 }
 
 .login-card input:focus {
@@ -43,7 +60,7 @@
 .primary-btn {
   width: 100%;
   margin-top: 14px;
-  padding: 12px;
+  padding: 10px 12px; /* Same vertical padding as inputs */
   background: #2563eb;
   color: white;
   border: none;
@@ -51,7 +68,9 @@
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
+  height: 40px; /* Fixed height */
   transition: background 0.2s, transform 0.15s;
+  box-sizing: border-box;
 }
 
 .primary-btn:hover {
@@ -88,7 +107,7 @@
 .google-btn,
 .microsoft-btn {
   width: 100%;
-  padding: 11px;
+  padding: 10px 12px; /* Match padding with inputs and primary button */
   margin: 8px 0;
   border-radius: 8px;
   border: none;
@@ -99,6 +118,8 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
+  height: 40px; /* Fixed height for all buttons */
+  box-sizing: border-box;
   transition: transform 0.15s, box-shadow 0.15s;
 }
 
@@ -138,17 +159,4 @@
 
 .signup-link:hover {
   text-decoration: underline;
-}
-
-/* Messages */
-.error-message {
-  margin-top: 10px;
-  color: #dc2626;
-  font-size: 0.9rem;
-}
-
-.success-message {
-  margin-top: 10px;
-  color: #16a34a;
-  font-size: 0.9rem;
 }
