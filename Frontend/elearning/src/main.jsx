@@ -6,6 +6,8 @@ import App from './App';
 import './index.css';
 import { ThemeProvider } from './context/theme/ThemeProvider';
 import { BrowserRouter } from 'react-router-dom';
+import { ToastContainer } from './components/ui/Toast';
+import { ToastProvider } from './context/toast/ToastProvider';
 
 const queryClient = new QueryClient();
 
@@ -14,9 +16,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <ThemeProvider>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
+          <ToastProvider>
+            <AuthProvider>
+              <App />
+            </AuthProvider>
+          </ToastProvider>
         </ThemeProvider>
       </BrowserRouter>
     </QueryClientProvider>

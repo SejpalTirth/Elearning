@@ -168,8 +168,8 @@ services
                 var cookieOptions = new CookieOptions
                 {
                     HttpOnly = true,
-                    Secure = false,               // DEV MODE
-                    SameSite = SameSiteMode.Lax,  // DEV MODE
+                    Secure = false,
+                    SameSite = SameSiteMode.Lax,
                     Path = "/"
                 };
 
@@ -213,7 +213,7 @@ services.AddAuthorization();
 // CORS (IMPORTANT)
 services.AddCors(options =>
 {
-    options.AddPolicy("AllowAngular", policy =>
+    options.AddPolicy("AllowFrontend", policy =>
     {
         policy.WithOrigins("http://localhost:5173")
               .AllowAnyHeader()
@@ -230,7 +230,7 @@ app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 
-app.UseCors("AllowAngular");
+app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
 app.UseAuthorization();

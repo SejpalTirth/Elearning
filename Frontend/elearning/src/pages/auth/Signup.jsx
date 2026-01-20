@@ -3,9 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { localRegistrationMutation } from '../../queries/auth/auth.mutations';
 import { NavLink } from 'react-router-dom';
 
-/* -----------------------------
-   Password rules helpers
------------------------------ */
+
 const passwordRules = {
   length: pwd => pwd.length >= 8,
   uppercase: pwd => /[A-Z]/.test(pwd),
@@ -14,9 +12,7 @@ const passwordRules = {
   special: pwd => /[^A-Za-z0-9]/.test(pwd),
 };
 
-/* -----------------------------
-   Rule component (MOVED OUTSIDE)
------------------------------ */
+
 const Rule = ({ ok, label }) => (
   <li className={`text-sm ${ok ? 'text-green-600' : 'text-slate-500'}`}>
     {ok ? '✔' : '✖'} {label}
@@ -56,7 +52,7 @@ const Signup = () => {
   return (
     <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-8">
       <h1 className="text-2xl font-semibold text-center text-slate-800 dark:text-white">
-        Create an account 🚀
+        Create an account 
       </h1>
 
       <form onSubmit={handleSubmit} className="space-y-4 mt-6">
@@ -117,7 +113,7 @@ const Signup = () => {
         >
             Back to Login
         </NavLink>
-</div>
+        </div>
       </form>
     </div>
   );

@@ -1,7 +1,11 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout/Layout';
-import Login from './features/auth/Login';
-import Signup from './features/auth/Sigun';
+import Login from './pages/auth/login';
+import Signup from './pages/auth/Signup';
+import CompleteProfile from './pages/auth/CompleteProfile';
+import AuthCallback from './pages/auth/AuthCallback';
+import Home from './pages/home';
+import Dashboard from './pages/Dashboard/Dashboard';
 
 function App() {
   return (
@@ -9,11 +13,11 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/sign-up" element={<Signup />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path='/complete-profile' element={<CompleteProfile />} />
+        <Route path="/" element={<Home />} />
+        <Route path='/dashboard' element={<Dashboard />} />
 
-        {/* Default route */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
-
-        {/* Fallback */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Layout>

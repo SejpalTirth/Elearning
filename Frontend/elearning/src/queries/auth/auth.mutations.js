@@ -6,8 +6,11 @@ const authApi = getGatewayAuth();
 export const localLoginMutation = async ({ email, password }) => {
   const payload = { email, password };
 
-  await authApi.postApiGatewayAuthLocalLogin(payload);
+  const response = await authApi.postApiGatewayAuthLocalLogin(payload);
+
+  return response.data;
 };
+
 
 export const logoutMutation = async () => {
   await authApi.getApiGatewayAuthLogout();
