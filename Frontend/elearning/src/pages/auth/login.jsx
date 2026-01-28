@@ -1,19 +1,32 @@
 import { useState } from 'react';
-import { useAuth } from '../../context/auth/AuthContext';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { useLoginMutation } from '../../services/authapislice';
+import { useDispatch } from 'react-redux';
+import { showToast } from '../../features/ui/toastSlice';
 
 const Login = () => {
-  const { login } = useAuth();
   const navigate = useNavigate();
+
+  const [
+    login,
+    { isLoading, isError, error, reset }
+  ] = useLoginMutation();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const dispatch = useDispatch();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    await login.mutateAsync({ email, password });
+  e.preventDefault();
+  try {
+    await login({ email, password }).unwrap();
+    dispatch({ type: 'auth/allowMe' });
+    dispatch(showToast({message : "Logged in successfully", type : 'success'}));
     navigate('/dashboard', { replace: true });
-  };
+  } catch {
+    // error handled by RTK Query
+  }
+};
 
   const handleSSOLogin = (provider) => {
     const baseURL = 'https://localhost:7249';
@@ -34,8 +47,7 @@ const Login = () => {
     >
       <div
         className="w-full max-w-md bg-white dark:bg-slate-900
-        rounded-2xl shadow-xl p-8
-        transition-all duration-500"
+        rounded-2xl shadow-xl p-8"
       >
         <div className="text-center mb-6">
           <h1 className="text-2xl font-semibold text-slate-800 dark:text-white">
@@ -53,7 +65,7 @@ const Login = () => {
             value={email}
             onChange={(e) => {
               setEmail(e.target.value);
-              login.reset();
+              reset();
             }}
             className="w-full px-4 py-2 rounded-lg border
               border-slate-300 dark:border-slate-700
@@ -70,7 +82,7 @@ const Login = () => {
             value={password}
             onChange={(e) => {
               setPassword(e.target.value);
-              login.reset();
+              reset();
             }}
             className="w-full px-4 py-2 rounded-lg border
               border-slate-300 dark:border-slate-700
@@ -83,20 +95,18 @@ const Login = () => {
 
           <button
             type="submit"
-            disabled={login.isLoading}
+            disabled={isLoading}
             className="w-full bg-indigo-600 hover:bg-indigo-700
               text-white font-medium py-2 rounded-lg
               transition
               disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {login.isLoading ? 'Logging in...' : 'Login'}
+            {isLoading ? 'Logging in...' : 'Login'}
           </button>
 
-          {/* INLINE ERROR MESSAGE */}
-          {login.isError && (
+          {isError && (
             <p className="text-sm text-red-500 text-center mt-2">
-              {login.error?.response?.data?.message ||
-                'Invalid email or password'}
+              {error?.data?.message || 'Invalid email or password'}
             </p>
           )}
         </form>

@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using UserService.BLL.DTOs;
 using UserService.BLL.Interface;
-using System.Security.Claims;
 using UserService.BLL.UserContext;
 
 namespace UserService.Web.Controllers

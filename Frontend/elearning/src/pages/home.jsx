@@ -1,9 +1,8 @@
 import { NavLink } from 'react-router-dom';
-import { Users, ArrowRight, Zap, Shield, BookOpen } from 'lucide-react';
-import { useAuth } from '../context/auth/AuthContext';
-
+import { Users, ArrowRight, Shield, BookOpen } from 'lucide-react';
+import { useSelector } from 'react-redux';
 const Home = () => {
-  const { isAuthenticated } = useAuth();
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-900 transition-colors duration-500">

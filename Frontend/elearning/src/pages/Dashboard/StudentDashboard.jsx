@@ -1,9 +1,9 @@
-import { useAuth } from '../../context/auth/AuthContext';
+import { useSelector } from 'react-redux';
 import { BookOpen, PlayCircle, Info } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 const StudentDashboard = () => {
-  const { user } = useAuth();
+  const user = useSelector((state) => state.auth.user);
 
   return (
     <div className="w-full max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
@@ -11,7 +11,7 @@ const StudentDashboard = () => {
       {/* HEADER */}
       <div className="mb-10">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-          Welcome back, {user?.name}
+          Welcome back{user?.name ? `, ${user.name}` : ''}
         </h1>
         <p className="mt-2 text-slate-500 dark:text-slate-400 max-w-2xl">
           This is your learning dashboard. From here, you can explore courses
@@ -32,7 +32,7 @@ const StudentDashboard = () => {
           icon={<PlayCircle className="w-6 h-6 text-emerald-600" />}
           title="Continue Learning"
           desc="Resume your enrolled courses and modules."
-          to="/courses"
+          to="/my-learning"
         />
       </div>
 
@@ -51,8 +51,10 @@ const StudentDashboard = () => {
       </section>
 
       {/* PLATFORM INFO */}
-      <div className="flex items-start gap-4 bg-indigo-50 dark:bg-indigo-950/40
-        border border-indigo-100 dark:border-indigo-900 rounded-2xl p-6">
+      <div
+        className="flex items-start gap-4 bg-indigo-50 dark:bg-indigo-950/40
+        border border-indigo-100 dark:border-indigo-900 rounded-2xl p-6"
+      >
         <Info className="w-6 h-6 text-indigo-600 dark:text-indigo-400 mt-1" />
         <p className="text-sm text-slate-600 dark:text-slate-400">
           This platform is actively evolving. New learning features will be

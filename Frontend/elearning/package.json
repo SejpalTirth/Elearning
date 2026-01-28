@@ -12,11 +12,14 @@
     "tw:init": "tailwindcss init -p"
   },
   "dependencies": {
+    "@reduxjs/toolkit": "^2.11.2",
     "@tanstack/react-query": "^5.90.17",
     "axios": "^1.13.2",
     "cross-env": "^10.1.0",
+    "crypto-js": "^4.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-redux": "^9.2.0",
     "react-router-dom": "^7.12.0"
   },
   "devDependencies": {

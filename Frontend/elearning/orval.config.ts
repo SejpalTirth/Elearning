@@ -1,9 +1,10 @@
 import { defineConfig } from 'orval';
+import { environment } from './src/Environment/environment.js'
 
 export default defineConfig({
   gateway: {
     input: {
-      target: 'https://localhost:7249/swagger/v1/swagger.json'
+      target: environment.targetURL
     },
     output: {
       target: './src/api/clients',

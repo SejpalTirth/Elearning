@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import { useToast } from '../../context/toast/ToastContext';
 import { UserCircle, ShieldCheck } from 'lucide-react';
 
 const ROLE_MAP = {
@@ -13,7 +12,6 @@ const ROLE_MAP = {
 const CompleteProfile = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { showError, showInfo } = useToast();
 
   const [name, setName] = useState('');
   const [roleId, setRoleId] = useState(3);
@@ -21,28 +19,24 @@ const CompleteProfile = () => {
 
   useEffect(() => {
     if (!userId) {
-      showError('User ID missing. Please login again.');
       navigate('/login');
     }
-  }, [userId, navigate, showError]);
+  }, [userId, navigate]);
 
   const completeProfileMutation = useMutation({
     mutationFn: async (payload) => {
       console.log("Saving Profile:", payload);
     },
     onSuccess: () => {
-      showInfo('Profile completed successfully! Please login now.');
       navigate('/login');
     },
     onError: () => {
-      showError('Something went wrong while saving your profile.');
     }
   });
 
   const handleSave = (e) => {
     e.preventDefault();
     if (!name.trim()) {
-      showError('Please enter your name');
       return;
     }
 

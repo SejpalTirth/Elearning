@@ -1,25 +1,31 @@
+import { useSelector } from 'react-redux';
 import Header from './Header';
 import Footer from './Footer';
-import { useIsFetching, useIsMutating } from '@tanstack/react-query';
 import { Loader } from '../ui/Loader';
 
 const Layout = ({ children }) => {
-  const isFetching = useIsFetching({
-    predicate: (query) => !query.meta?.hideLoader
-  });
+  const isLoading = useSelector((state) => {
+    const queries = state.authApi?.queries ?? {};
+    const mutations = state.authApi?.mutations ?? {};
 
-  const isMutating = useIsMutating({
-    predicate: (mutation) => !mutation.meta?.hideLoader
-  });
+    const isAnyQueryLoading = Object.values(queries).some(
+      (q) => q?.status === 'pending'
+    );
 
-  const isLoading = isFetching > 0 || isMutating > 0;
+    const isAnyMutationLoading = Object.values(mutations).some(
+      (m) => m?.status === 'pending'
+    );
+
+    return isAnyQueryLoading || isAnyMutationLoading;
+  });
 
   return (
-    <div className="min-h-screen flex flex-col
+    <div
+      className="min-h-screen flex flex-col
       bg-gradient-to-br from-indigo-50 to-slate-100
       dark:from-slate-900 dark:to-slate-800
-      transition-colors">
-
+      transition-colors"
+    >
       {isLoading && <Loader />}
 
       <Header />

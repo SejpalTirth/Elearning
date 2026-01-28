@@ -80,7 +80,7 @@ namespace CourseService.BLL.Service
             }
             catch
             {
-                return 0; // no quiz found
+                return 0;
             }
         }
     }

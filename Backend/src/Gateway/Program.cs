@@ -210,7 +210,7 @@ services
 // Authorization
 services.AddAuthorization();
 
-// CORS (IMPORTANT)
+// CORS
 services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>

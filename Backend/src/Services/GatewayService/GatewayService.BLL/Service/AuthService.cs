@@ -256,9 +256,10 @@ public class AuthService : IAuthService
         if (user == null || user.PasswordHash == null)
             return null;
 
-        //var decrypted = _decryptor.Decrypt(encryptedPassword);
+        var decrypted = _decryptor.Decrypt(encryptedPassword);
+        Console.WriteLine(decrypted);
 
-        if (!_hasher.Verify(encryptedPassword, user.PasswordHash))
+        if (!_hasher.Verify(decrypted, user.PasswordHash))
             return null;
 
         return await GenerateAndStoreTokensAsync(user);
