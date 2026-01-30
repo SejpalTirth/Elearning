@@ -13,8 +13,8 @@ namespace CourseService.Web.Controllers
     {
         private readonly ICourseService _courseService;
         private readonly IModuleService _moduleService;
-        private readonly IHttpClientFactory _httpClientFactory;
         private readonly IUserContextAccessor _userContext;
+        private readonly string invalid_user_context = "Invalid user context.";
 
         public CoursesController(
             ICourseService courseService,
@@ -24,7 +24,6 @@ namespace CourseService.Web.Controllers
         {
             _courseService = courseService;
             _moduleService = moduleService;
-            _httpClientFactory = httpClientFactory;
             _userContext = userContext;
         }
 
@@ -36,7 +35,7 @@ namespace CourseService.Web.Controllers
             var userId = _userContext.Current?.UserId;
 
             if (userId == null || userId == Guid.Empty)
-                return Unauthorized("Invalid user context.");
+                return Unauthorized(invalid_user_context);
 
             return Ok(await _courseService
                 .GetCoursesByInstructorAsync(userId.Value));
@@ -101,7 +100,7 @@ namespace CourseService.Web.Controllers
             var user = _userContext.Current;
 
             if (user == null || user.UserId == Guid.Empty)
-                return Unauthorized("Invalid user context.");
+                return Unauthorized(invalid_user_context);
 
             var authHeader = HttpContext.Request.Headers["Authorization"].ToString();
 
@@ -127,7 +126,7 @@ namespace CourseService.Web.Controllers
             var userId = _userContext.Current?.UserId;
 
             if (userId == null || userId == Guid.Empty)
-                return Unauthorized("Invalid user context.");
+                return Unauthorized(invalid_user_context);
 
             return Ok(await _courseService
                 .GetUserEnrolledCoursesAsync(userId.ToString()));
@@ -167,7 +166,7 @@ namespace CourseService.Web.Controllers
             var instructorId = _userContext.Current?.UserId;
 
             if (instructorId == null || instructorId == Guid.Empty)
-                return Unauthorized("Invalid user context.");
+                return Unauthorized(invalid_user_context);
 
             return Ok(await _courseService
                 .GetAllUnfinishedCoursesAsync(instructorId.Value));

@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Gateway.Controllers;
+using Gateway.Contracts.Assessment;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -85,7 +86,7 @@ namespace LMS.Tests.Gateway
 
             var controller = CreateControllerWithClient(client, authHeader: null);
 
-            var result = await controller.GetQuizForModule(5);
+            var result = await controller.GetQuizForModule(new GetQuizForModuleRequest { ModuleId = 5 });
 
             var unauthorized = Assert.IsType<UnauthorizedObjectResult>(result);
             Assert.Equal("Missing access token.", unauthorized.Value);
@@ -111,7 +112,7 @@ namespace LMS.Tests.Gateway
 
             var controller = CreateControllerWithClient(client, "Bearer token-abc");
 
-            var result = await controller.GetQuizForModule(12);
+            var result = await controller.GetQuizForModule(new GetQuizForModuleRequest { ModuleId = 12 });
 
             var contentResult = Assert.IsType<ContentResult>(result);
             Assert.Equal("application/json", contentResult.ContentType);
@@ -141,7 +142,16 @@ namespace LMS.Tests.Gateway
             var client = CreateClientThatReturns(response, req => captured = req);
             var controller = CreateControllerWithClient(client, "Bearer abc");
 
-            var dto = new { answers = new[] { 1, 2 } };
+            var dto = new SubmitQuiz
+            {
+                QuizId = 1,
+                UserId = Guid.NewGuid(),
+                Answers = new List<SubmitAnswer>
+                {
+                    new SubmitAnswer { QuestionId = 1, SelectedAnswerId = 2 },
+                    new SubmitAnswer { QuestionId = 2, SelectedAnswerId = 3 }
+                }
+            };
 
             var result = await controller.Submit(dto);
 
@@ -170,7 +180,18 @@ namespace LMS.Tests.Gateway
             var client = CreateClientThatReturns(response);
             var controller = CreateControllerWithClient(client, "Bearer abc");
 
-            var result = await controller.Submit(new { foo = "bar" });
+            var dto = new SubmitQuiz
+            {
+                QuizId = 1,
+                UserId = Guid.NewGuid(),
+                Answers = new List<SubmitAnswer>
+                {
+                    new SubmitAnswer { QuestionId = 1, SelectedAnswerId = 2 },
+                    new SubmitAnswer { QuestionId = 2, SelectedAnswerId = 3 }
+                }
+            };
+
+            var result = await controller.Submit(dto);
 
             var content = Assert.IsType<ContentResult>(result);
             Assert.Equal("application/json", content.ContentType);
@@ -194,7 +215,7 @@ namespace LMS.Tests.Gateway
             var client = CreateClientThatReturns(response);
             var controller = CreateControllerWithClient(client);
 
-            var result = await controller.Result(id);
+            var result = await controller.Result(new ResultRequest { SubmissionId = id });
 
             var content = Assert.IsType<ContentResult>(result);
             Assert.Equal("application/json", content.ContentType);
@@ -217,7 +238,7 @@ namespace LMS.Tests.Gateway
             var client = CreateClientThatReturns(response);
             var controller = CreateControllerWithClient(client, "Bearer zzz");
 
-            var result = await controller.CreateQuiz(new { title = "q" });
+            var result = await controller.CreateQuiz(new CreateQuiz { ModuleId = 1, Title = "q", TimeLimitMinutes = 30 });
 
             var content = Assert.IsType<ContentResult>(result);
             Assert.Equal("application/json", content.ContentType);
@@ -243,13 +264,23 @@ namespace LMS.Tests.Gateway
             var client = CreateClientThatReturns(response, req => captured = req);
             var controller = CreateControllerWithClient(client);
 
-            var result = await controller.AddQuestion(42, new { q = "x" });
+            var dto = new AddQuestionRequest
+            {
+                QuizId = 42,
+                Question = new CreateQuestion
+                {
+                    Question = "What is 2+2?",
+                    Marks = 2,
+                    Options = new List<string> { "1", "2", "3", "4" },
+                    CorrectAnswerIndex = 3
+                }
+            };
 
+            var result = await controller.AddQuestion(dto);
             Assert.IsType<ContentResult>(result);
 
             Assert.NotNull(captured);
-            Assert.Contains("/api/assessment/quiz/42/questions",
-                captured!.RequestUri!.ToString());
+            Assert.Contains("/api/assessment/quiz/42/questions", captured!.RequestUri!.ToString());
         }
     }
 }

@@ -1,32 +1,49 @@
-import { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { useLoginMutation } from '../../services/authapislice';
-import { useDispatch } from 'react-redux';
+import { useState, useEffect } from 'react';
+import { useNavigate, NavLink } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import { showToast } from '../../features/ui/toastSlice';
+import { loginAndBootstrapAuth } from '../../features/auth/authLoginBootstrap';
 
 const Login = () => {
   const navigate = useNavigate();
-
-  const [
-    login,
-    { isLoading, isError, error, reset }
-  ] = useLoginMutation();
+  const dispatch = useDispatch();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const dispatch = useDispatch();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const authStatus = useSelector((state) => state.auth.status);
+
+  useEffect(() => {
+    if (authStatus === 'authenticated') {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [authStatus, navigate]);
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  try {
-    await login({ email, password }).unwrap();
-    dispatch({ type: 'auth/allowMe' });
-    dispatch(showToast({message : "Logged in successfully", type : 'success'}));
-    navigate('/dashboard', { replace: true });
-  } catch {
-    // error handled by RTK Query
-  }
-};
+    e.preventDefault();
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      await dispatch(
+        loginAndBootstrapAuth({ email, password })
+      ).unwrap();
+
+      dispatch(
+        showToast({
+          message: 'Logged in successfully',
+          type: 'success',
+        })
+      );
+    } catch (err) {
+      setError(err?.data?.message || 'Invalid email or password');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSSOLogin = (provider) => {
     const baseURL = 'https://localhost:7249';
@@ -65,7 +82,7 @@ const Login = () => {
             value={email}
             onChange={(e) => {
               setEmail(e.target.value);
-              reset();
+              if (error) setError(null);
             }}
             className="w-full px-4 py-2 rounded-lg border
               border-slate-300 dark:border-slate-700
@@ -82,7 +99,7 @@ const Login = () => {
             value={password}
             onChange={(e) => {
               setPassword(e.target.value);
-              reset();
+              if (error) setError(null);
             }}
             className="w-full px-4 py-2 rounded-lg border
               border-slate-300 dark:border-slate-700
@@ -104,9 +121,9 @@ const Login = () => {
             {isLoading ? 'Logging in...' : 'Login'}
           </button>
 
-          {isError && (
+          {error && (
             <p className="text-sm text-red-500 text-center mt-2">
-              {error?.data?.message || 'Invalid email or password'}
+              {error}
             </p>
           )}
         </form>

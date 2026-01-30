@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useCreateCourseMutation, useGetCategoriesQuery } from '../../services/CourseApiSlice';
@@ -12,7 +12,6 @@ const CreateCourse = () => {
   const dispatch = useDispatch();
   
   const { user } = useSelector((state) => state.auth);
-  console.log(user);
 
   const { data: categories = [] } = useGetCategoriesQuery();
   const [createCourse, { isLoading }] = useCreateCourseMutation();

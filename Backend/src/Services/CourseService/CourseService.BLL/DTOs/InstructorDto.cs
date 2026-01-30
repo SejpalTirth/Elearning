@@ -3,7 +3,7 @@
     public class InstructorDto
     {
         public Guid Id { get; set; }
-        public string Name { get; set; }   // fetched from UserService
+        public required string Name { get; set; }
         public string? ProfileImage { get; set; }
     }
 }

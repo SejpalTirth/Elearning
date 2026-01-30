@@ -1,12 +1,14 @@
 ﻿using AutoFixture;
+using AutoMapper;
 using CourseService.BLL.DTOs;
 using CourseService.BLL.Service;
 using CourseService.DAL.Models;
 using CourseService.DAL.Repo;
+using CourseService.BLL.UserContext;
+using Microsoft.AspNetCore.Http;
 using Moq;
 using System.Net;
 using System.Text.Json;
-using AutoMapper;
 
 namespace LMS.Tests.CourseService
 {
@@ -26,6 +28,10 @@ namespace LMS.Tests.CourseService
 
         private readonly Fixture _fixture;
 
+        private readonly Mock<IUserContextAccessor> _userContextMock;
+        private readonly Mock<IHttpContextAccessor> _httpContextAccessorMock;
+
+
         public CourseServiceTests()
         {
             _fixture = new Fixture();
@@ -40,10 +46,15 @@ namespace LMS.Tests.CourseService
             _moduleRepo = new Mock<IModuleRepository>();
             _httpFactory = new Mock<IHttpClientFactory>();
             _mapperMock = new Mock<IMapper>();
+            _userContextMock = new Mock<IUserContextAccessor>();
+            _httpContextAccessorMock = new Mock<IHttpContextAccessor>();
 
             // Fake API handlers
             _userHandler = new FakeHandler();
             _assessmentHandler = new FakeHandler();
+            
+            _httpContextAccessorMock.Setup(x => x.HttpContext)
+                .Returns(new DefaultHttpContext());
 
             _fakeUserClient = new HttpClient(_userHandler) { BaseAddress = new Uri("https://fake-user/") };
             _fakeAssessmentClient = new HttpClient(_assessmentHandler) { BaseAddress = new Uri("https://fake-assessment/") };
@@ -215,15 +226,21 @@ namespace LMS.Tests.CourseService
         [Fact]
         public async Task EnrollUserAsync_ShouldAddEnrollment_WhenNotExists()
         {
-            _enrollRepo.Setup(r => r.IsUserEnrolledAsync("u1", 7)).ReturnsAsync(false);
+            var userId = Guid.NewGuid();
+            var courseId = 7;
+
+            _enrollRepo
+                .Setup(r => r.IsUserEnrolledAsync(userId.ToString(), courseId))
+                .ReturnsAsync(false);
 
             var service = CreateService();
 
-            var ok = await service.EnrollUserAsync(new EnrollRequestDto
-            {
-                UserId = "u1",
-                CourseId = 7
-            });
+            var ok = await service.EnrollUserAsync(
+                userId,
+                courseId,
+                "test@mail.com",
+                "Bearer fake-token"
+            );
 
             Assert.True(ok);
             _enrollRepo.Verify(r => r.AddAsync(It.IsAny<Enrollment>()), Times.Once);
@@ -295,7 +312,10 @@ namespace LMS.Tests.CourseService
 
             var service = CreateService();
 
-            var ok = await service.PublishCourseIfReadyAsync(10);
+            var ok = await service.PublishCourseIfReadyAsync(
+                10,
+                "Bearer fake-token"
+            );
 
             Assert.True(ok);
             Assert.False(course.IsDeleted);
@@ -316,7 +336,13 @@ namespace LMS.Tests.CourseService
 
             var service = CreateService();
 
-            Assert.False(await service.PublishCourseIfReadyAsync(10));
+            Assert.False(
+                await service.PublishCourseIfReadyAsync(
+                    10,
+                    "Bearer fake-token"
+                )
+            );
+
         }
 
 
@@ -358,7 +384,9 @@ namespace LMS.Tests.CourseService
                 _enrollRepo.Object,
                 _moduleRepo.Object,
                 _httpFactory.Object,
-                _mapperMock.Object
+                _mapperMock.Object,
+                _userContextMock.Object,
+                _httpContextAccessorMock.Object
             );
         }
     }

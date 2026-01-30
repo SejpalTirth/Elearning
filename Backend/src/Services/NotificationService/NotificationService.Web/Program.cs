@@ -72,12 +72,8 @@ builder.Services.AddScoped<INotificationService, NotificationServiceImpl>();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 
 //Fluent Validation
-builder.Services.AddControllers()
-    .AddFluentValidation(fv =>
-    {
-        fv.RegisterValidatorsFromAssemblyContaining<EmailRequestValidator>();
-    });
-
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddControllers();
 
 // JWT Bearer Authentication
 var jwtSection = builder.Configuration.GetSection("Jwt");

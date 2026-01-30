@@ -57,7 +57,7 @@ namespace LMS.Tests.CourseService
         [Fact]
         public async Task GetAll_ShouldReturnList()
         {
-            var list = _fixture.CreateMany<Course>(2).ToList();
+            var list = _fixture.CreateMany<CourseResponseDto>(2).ToList();
             _courseMock.Setup(s => s.GetAllAsync()).ReturnsAsync(list);
 
             var result = await _controller.GetAll() as OkObjectResult;
@@ -70,8 +70,13 @@ namespace LMS.Tests.CourseService
         [Fact]
         public async Task GetById_ShouldReturnCourse_WhenExists()
         {
-            var course = _fixture.Build<Course>().With(c => c.Id, 1).Create();
-            _courseMock.Setup(s => s.GetByIdAsync(course.Id)).ReturnsAsync(course);
+            var course = _fixture.Build<CourseResponseDto>()
+            .With(c => c.Id, 1)
+            .Create();
+
+            _courseMock.Setup(s => s.GetByIdAsync(course.Id))
+                .ReturnsAsync(course);
+
 
             var dto = new CourseIdRequestDto { CourseId = course.Id };
             var result = await _controller.GetById(dto) as OkObjectResult;
@@ -83,8 +88,9 @@ namespace LMS.Tests.CourseService
         [Fact]
         public async Task GetById_ShouldReturnNotFound_WhenMissing()
         {
-            _courseMock.Setup(s => s.GetByIdAsync(It.IsAny<int>()))
-                .ReturnsAsync((Course?)null);
+            _courseMock
+                .Setup(s => s.GetByIdAsync(It.IsAny<int>()))
+                .ReturnsAsync((CourseResponseDto?)null);
 
             var dto = new CourseIdRequestDto { CourseId = 999 };
             var result = await _controller.GetById(dto);

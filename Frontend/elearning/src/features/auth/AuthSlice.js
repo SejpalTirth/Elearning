@@ -1,53 +1,46 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { authApiSlice } from '../../services/authapislice';
 
 const initialState = {
   user: null,
-  isAuthenticated: false,
+  status: 'idle',
   authChecked: false,
-  allowMe: false,
 };
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    resetAuth: () => initialState,
-    
-    allowMe: (state) => {
-      state.allowMe = true;
+    resetAuth: () => ({
+      ...initialState,
+      status: 'unauthenticated',
+      authChecked: true,
+    }),
+
+    startAuthCheck: (state) => {
+      if (state.status !== 'idle') return;
+      state.status = 'checking';
       state.authChecked = false;
     },
-  },
-  extraReducers: (builder) => {
-    builder
-      .addMatcher(
-        authApiSlice.endpoints.getMe.matchFulfilled,
-        (state, action) => {
-          state.user = action.payload;
-          state.isAuthenticated = true;
-          state.authChecked = true;
-        }
-      )
-      .addMatcher(
-        authApiSlice.endpoints.getMe.matchRejected,
-        (state) => {
-          state.user = null;
-          state.isAuthenticated = false;
-          state.authChecked = true;
-        }
-      );
+
+    authSuccess: (state, action) => {
+      state.user = action.payload;
+      state.status = 'authenticated';
+      state.authChecked = true;
+    },
+
+    authFailure: (state) => {
+      state.user = null;
+      state.status = 'unauthenticated';
+      state.authChecked = true;
+    },
   },
 });
 
-export const { resetAuth } = authSlice.actions;
+export const {
+  resetAuth,
+  startAuthCheck,
+  authSuccess,
+  authFailure,
+} = authSlice.actions;
+
 export default authSlice.reducer;
-
-
-export const runMeOnce = () => (dispatch, getState) => {
-  const { authChecked } = getState().auth;
-
-  if (authChecked) return;
-
-  dispatch(authApiSlice.endpoints.getMe.initiate());
-};

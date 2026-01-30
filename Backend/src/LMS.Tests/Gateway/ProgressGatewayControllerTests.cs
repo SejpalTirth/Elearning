@@ -1,5 +1,5 @@
 ﻿using AutoFixture;
-using Gateway.Web.Controllers;
+using Gateway.Contracts.Progress;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -77,7 +77,8 @@ namespace LMS.Tests.Gateway
             var controller = CreateController();
             var userId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
 
-            var result = await controller.GetUserProgress(userId);
+            // Update the test to pass the userId as part of the request body
+            var result = await controller.GetUserProgress();
 
             var content = Assert.IsType<ContentResult>(result);
             Assert.Equal(expectedJson, content.Content);
@@ -86,12 +87,12 @@ namespace LMS.Tests.Gateway
                 "SendAsync",
                 Times.Once(),
                 ItExpr.Is<HttpRequestMessage>(req =>
-                    req.Method == HttpMethod.Get &&
+                    req.Method == HttpMethod.Post &&
                     req.RequestUri!.ToString()
-                        .EndsWith("/api/progress/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")),
+                        .EndsWith("/api/progress/user") &&
+                    req.Content != null), // Ensure that content is sent
                 ItExpr.IsAny<CancellationToken>());
         }
-
         // ---------------------------------------------------------------------
         // COMPLETE MODULE
         // ---------------------------------------------------------------------
@@ -103,11 +104,9 @@ namespace LMS.Tests.Gateway
 
             var controller = CreateController();
 
-            // AutoFixture for payload
-            var payload = new
+            var payload = new ModuleCompleteRequest
             {
-                userId = _fixture.Create<string>(),
-                moduleId = _fixture.Create<int>()
+                ModuleId = _fixture.Create<int>()
             };
 
             var result = await controller.CompleteModule(payload);

@@ -152,7 +152,7 @@ namespace ProgresService.BLL.Service
                     System.Net.Http.Headers.AuthenticationHeaderValue.Parse(authHeader);
             }
 
-            // 🔹 Course
+            //  Course
             var courseResponse = await courseClient.PostAsJsonAsync(
                 "/api/courses/by-id",
                 new { courseId }

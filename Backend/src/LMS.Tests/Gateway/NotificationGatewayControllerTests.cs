@@ -1,5 +1,6 @@
 ﻿using AutoFixture;
 using Gateway.Controllers;
+using Gateway.Contracts.Notification;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
@@ -48,9 +49,6 @@ namespace LMS.Tests.Gateway
             };
         }
 
-        // ---------------------------------------------------------
-        // Response Setup Helpers
-        // ---------------------------------------------------------
         private void SetupJsonResponse(string json, HttpStatusCode code = HttpStatusCode.OK)
         {
             _handlerMock.Protected()
@@ -65,40 +63,19 @@ namespace LMS.Tests.Gateway
                 });
         }
 
-        // ---------------------------------------------------------
-        // GET /test
-        // ---------------------------------------------------------
-        [Fact]
-        public async Task Test_ShouldCallCorrectUrl_AndReturnContent()
-        {
-            SetupJsonResponse("{\"ping\":true}");
-
-            var controller = CreateController();
-
-            var result = await controller.Test();
-            var content = Assert.IsType<ContentResult>(result);
-
-            Assert.Equal("{\"ping\":true}", content.Content);
-
-            _handlerMock.Protected().Verify(
-                "SendAsync",
-                Times.Once(),
-                ItExpr.Is<HttpRequestMessage>(req =>
-                    req.Method == HttpMethod.Get &&
-                    req.RequestUri!.ToString().EndsWith("/api/notification/test")),
-                ItExpr.IsAny<CancellationToken>());
-        }
-
-        // ---------------------------------------------------------
-        // POST /send
-        // ---------------------------------------------------------
+        // ------------------- SEND EMAIL -------------------
         [Fact]
         public async Task Send_ShouldPostCorrectUrl()
         {
             SetupJsonResponse("{\"sent\":true}");
 
             var controller = CreateController();
-            var dto = _fixture.Create<object>();
+            var dto = new EmailRequest
+            {
+                UserId = Guid.NewGuid(),
+                Subject = "Hello",
+                Body = "Test email body"
+            };
 
             var result = await controller.Send(dto);
             var content = Assert.IsType<ContentResult>(result);
@@ -114,16 +91,19 @@ namespace LMS.Tests.Gateway
                 ItExpr.IsAny<CancellationToken>());
         }
 
-        // ---------------------------------------------------------
-        // POST /template/send
-        // ---------------------------------------------------------
+        // ------------------- SEND TEMPLATE EMAIL -------------------
         [Fact]
         public async Task SendTemplate_ShouldPostCorrectUrl()
         {
             SetupJsonResponse("{\"templated\":true}");
 
             var controller = CreateController();
-            var dto = new { template = "welcome" };
+            var dto = new TemplateRequest
+            {
+                UserId = Guid.NewGuid(),
+                TemplateName = "welcome",
+                Model = new { Name = "John" }
+            };
 
             var result = await controller.SendTemplate(dto);
             var content = Assert.IsType<ContentResult>(result);
@@ -139,16 +119,20 @@ namespace LMS.Tests.Gateway
                 ItExpr.IsAny<CancellationToken>());
         }
 
-        // ---------------------------------------------------------
-        // POST /trigger
-        // ---------------------------------------------------------
+        // ------------------- TRIGGER NOTIFICATION -------------------
         [Fact]
         public async Task Trigger_ShouldPostCorrectUrl()
         {
             SetupJsonResponse("{\"triggered\":true}");
 
             var controller = CreateController();
-            var dto = new { type = "Enrollment" };
+            var dto = new TriggerNotification
+            {
+                UserId = Guid.NewGuid(),
+                Type = NotificationType.Enrollment,
+                Email = "user@mail.com",
+                Data = new Dictionary<string, string> { { "Course", "Math" } }
+            };
 
             var result = await controller.Trigger(dto);
             var content = Assert.IsType<ContentResult>(result);
@@ -164,18 +148,19 @@ namespace LMS.Tests.Gateway
                 ItExpr.IsAny<CancellationToken>());
         }
 
-        // ---------------------------------------------------------
-        // GET /{userId}
-        // ---------------------------------------------------------
+        // ------------------- GET USER NOTIFICATIONS -------------------
         [Fact]
-        public async Task GetUserNotifications_ShouldGetCorrectUrl()
+        public async Task GetUserNotifications_ShouldPostCorrectUrl()
         {
             SetupJsonResponse("[{\"title\":\"T1\"}]");
 
             var controller = CreateController();
-            var userId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+            var dto = new UserIdRequest
+            {
+                UserId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+            };
 
-            var result = await controller.GetUserNotifications(userId);
+            var result = await controller.GetUserNotifications(dto);
             var content = Assert.IsType<ContentResult>(result);
 
             Assert.Equal("[{\"title\":\"T1\"}]", content.Content);
@@ -184,9 +169,8 @@ namespace LMS.Tests.Gateway
                 "SendAsync",
                 Times.Once(),
                 ItExpr.Is<HttpRequestMessage>(req =>
-                    req.Method == HttpMethod.Get &&
-                    req.RequestUri!.ToString()
-                        .EndsWith("/api/notification/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")),
+                    req.Method == HttpMethod.Post &&
+                    req.RequestUri!.ToString().EndsWith("/api/notification/user")),
                 ItExpr.IsAny<CancellationToken>());
         }
     }

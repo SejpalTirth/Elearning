@@ -76,11 +76,8 @@ builder.Services.AddHttpClient("CourseService", c =>
 });
 
 //Fluent Validation
-builder.Services.AddControllers()
-    .AddFluentValidation(fv =>
-    {
-        fv.RegisterValidatorsFromAssemblyContaining<ModuleCompleteRequestValidator>();
-    });
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddControllers();
 
 // JWT Bearer Authentication
 var jwtSection = builder.Configuration.GetSection("Jwt");

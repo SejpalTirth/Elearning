@@ -46,7 +46,7 @@ const CourseDetails = () => {
 
   const handleEnrollOrContinue = async () => {
     if (isEnrolled) {
-      navigate(`/courses/${courseId}/modules`);
+      navigate(`/courses/${courseId}`, {replace : true });
       return;
     }
     try {

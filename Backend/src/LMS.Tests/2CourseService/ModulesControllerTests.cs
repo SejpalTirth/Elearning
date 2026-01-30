@@ -35,10 +35,13 @@ namespace LMS.Tests.CourseService
         {
             var modules = _fixture.CreateMany<ModuleSummaryDto>(2).ToList();
 
+            // Create the proper DTO to pass
+            var courseIdRequestDto = new CourseIdRequestDto { CourseId = 5 };
+
             _moduleMock.Setup(s => s.GetModulesByCourseAsync(5))
                 .ReturnsAsync(modules);
 
-            var result = await _controller.GetByCourse(5) as OkObjectResult;
+            var result = await _controller.GetByCourse(courseIdRequestDto) as OkObjectResult;
 
             Assert.NotNull(result);
             var list = Assert.IsType<List<ModuleSummaryDto>>(result.Value);
@@ -48,10 +51,12 @@ namespace LMS.Tests.CourseService
         [Fact]
         public async Task GetByCourse_ShouldReturnOk_WithEmptyList()
         {
+            var courseIdRequestDto = new CourseIdRequestDto { CourseId = 5 };
+
             _moduleMock.Setup(s => s.GetModulesByCourseAsync(5))
                 .ReturnsAsync(new List<ModuleSummaryDto>());
 
-            var result = await _controller.GetByCourse(5) as OkObjectResult;
+            var result = await _controller.GetByCourse(courseIdRequestDto) as OkObjectResult;
 
             Assert.NotNull(result);
             var list = Assert.IsType<List<ModuleSummaryDto>>(result.Value);
@@ -68,10 +73,13 @@ namespace LMS.Tests.CourseService
                 .With(m => m.Id, 10)
                 .Create();
 
+            // Create DTO with module ID
+            var moduleIdRequestDto = new ModuleIdRequestDto { ModuleId = 10 };
+
             _moduleMock.Setup(s => s.GetModuleContentAsync(10))
                 .ReturnsAsync(dto);
 
-            var result = await _controller.GetContent(10) as OkObjectResult;
+            var result = await _controller.GetContent(moduleIdRequestDto) as OkObjectResult;
 
             Assert.NotNull(result);
             Assert.Equal(dto, result.Value);
@@ -80,10 +88,12 @@ namespace LMS.Tests.CourseService
         [Fact]
         public async Task GetContent_ShouldReturnNotFound_WhenModuleMissing()
         {
+            var moduleIdRequestDto = new ModuleIdRequestDto { ModuleId = 15 };
+
             _moduleMock.Setup(s => s.GetModuleContentAsync(15))
                 .ReturnsAsync((ModuleContentResponseDto?)null);
 
-            var result = await _controller.GetContent(15);
+            var result = await _controller.GetContent(moduleIdRequestDto);
 
             Assert.IsType<NotFoundResult>(result);
         }
@@ -99,10 +109,12 @@ namespace LMS.Tests.CourseService
                 .With(d => d.CourseId, 50)
                 .Create();
 
+            var moduleIdRequestDto = new ModuleIdRequestDto { ModuleId = 3 };
+
             _moduleMock.Setup(s => s.GetModuleAndCourseIdAsync(3))
                 .ReturnsAsync(dto);
 
-            var result = await _controller.GetCourseId(3) as OkObjectResult;
+            var result = await _controller.GetCourseId(moduleIdRequestDto) as OkObjectResult;
 
             Assert.NotNull(result);
             Assert.Equal(dto, result.Value);
@@ -111,10 +123,12 @@ namespace LMS.Tests.CourseService
         [Fact]
         public async Task GetCourseId_ShouldReturnNotFound_WhenMissing()
         {
+            var moduleIdRequestDto = new ModuleIdRequestDto { ModuleId = 99 };
+
             _moduleMock.Setup(s => s.GetModuleAndCourseIdAsync(99))
                 .ReturnsAsync((ModuleAndCourseIdDTO?)null);
 
-            var result = await _controller.GetCourseId(99);
+            var result = await _controller.GetCourseId(moduleIdRequestDto);
 
             var nf = Assert.IsType<NotFoundObjectResult>(result);
             Assert.Contains("not found", nf.Value!.ToString(), StringComparison.OrdinalIgnoreCase);

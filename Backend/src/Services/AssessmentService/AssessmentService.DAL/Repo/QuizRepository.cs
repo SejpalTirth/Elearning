@@ -28,12 +28,12 @@ namespace AssessmentService.DAL.Repo
                .FirstOrDefaultAsync(q => q.ModuleId == moduleId);
         }
 
-        public async Task<Quiz?> GetByIdWithDetailsAsync(int quizId)
+        public async Task<Quiz?> GetByIdWithDetailsAsync(int id)
         {
             return await _db.Quizzes
                 .Include(q => q.Questions)
                 .ThenInclude(a => a.Answers)
-                .FirstOrDefaultAsync(q => q.Id == quizId);
+                .FirstOrDefaultAsync(q => q.Id == id);
         }
 
         public async Task AddAsync(Quiz quiz)

@@ -76,11 +76,8 @@ builder.Services.AddAutoMapper(typeof(UserProfile));
 // =======================
 // FluentValidation
 // =======================
-builder.Services.AddControllers()
-    .AddFluentValidation(fv =>
-    {
-        fv.RegisterValidatorsFromAssemblyContaining<CompleteProfileDtoValidator>();
-    });
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddControllers();
 
 // =======================
 // JWT AUTHENTICATION (JWE – SAME AS GATEWAY)

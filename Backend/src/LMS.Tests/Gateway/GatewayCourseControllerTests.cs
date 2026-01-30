@@ -1,4 +1,5 @@
 ﻿using AutoFixture;
+using Gateway.Contracts.Course;
 using Gateway.Controllers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -12,48 +13,36 @@ namespace LMS.Tests.Gateway
 {
     public class GatewayCourseControllerTests
     {
-        private readonly Fixture _fixture;
-
         private readonly Mock<IHttpClientFactory> _factoryMock;
         private readonly Mock<HttpMessageHandler> _handlerMock;
         private readonly HttpClient _client;
 
         public GatewayCourseControllerTests()
         {
-            _fixture = new Fixture();
-            _fixture.Behaviors
-                .OfType<ThrowingRecursionBehavior>()
-                .ToList()
-                .ForEach(b => _fixture.Behaviors.Remove(b));
-            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
-
             _handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
 
             _client = new HttpClient(_handlerMock.Object)
             {
-                BaseAddress = new Uri("http://fake-course-service/")
+                BaseAddress = new Uri("http://fake-course/")
             };
 
             _factoryMock = new Mock<IHttpClientFactory>();
             _factoryMock.Setup(f => f.CreateClient("CourseService"))
-                        .Returns(_client);
+                .Returns(_client);
         }
 
-        private GatewayCourseController CreateController(HttpContext? ctx = null)
+        private GatewayCourseController CreateController()
         {
             return new GatewayCourseController(_factoryMock.Object)
             {
                 ControllerContext = new ControllerContext
                 {
-                    HttpContext = ctx ?? new DefaultHttpContext()
+                    HttpContext = new DefaultHttpContext()
                 }
             };
         }
 
-        // -------------------------------------------------------------------
-        // Utilities for Response Setup
-        // -------------------------------------------------------------------
-        private void SetupJsonResponse(string json, HttpStatusCode status = HttpStatusCode.OK)
+        private void SetupJsonResponse(string json)
         {
             _handlerMock.Protected()
                 .Setup<Task<HttpResponseMessage>>(
@@ -62,403 +51,238 @@ namespace LMS.Tests.Gateway
                     ItExpr.IsAny<CancellationToken>())
                 .ReturnsAsync(new HttpResponseMessage
                 {
-                    StatusCode = status,
+                    StatusCode = HttpStatusCode.OK,
                     Content = new StringContent(json, Encoding.UTF8, "application/json")
                 });
         }
 
-        private void SetupTextResponse(string text, HttpStatusCode status = HttpStatusCode.BadRequest)
-        {
-            _handlerMock.Protected()
-                .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.IsAny<HttpRequestMessage>(),
-                    ItExpr.IsAny<CancellationToken>())
-                .ReturnsAsync(new HttpResponseMessage
-                {
-                    StatusCode = status,
-                    Content = new StringContent(text)
-                });
-        }
+        // ---------------- COURSES ----------------
 
-        // -------------------------------------------------------------------
-        // GET ALL
-        // -------------------------------------------------------------------
         [Fact]
-        public async Task GetAll_ShouldForwardTo_CourseService()
+        public async Task GetAll_ShouldForwardPost_ToCoursesAll()
         {
             SetupJsonResponse("[{\"id\":1}]");
 
             var controller = CreateController();
-
             var result = await controller.GetAll();
-            var content = Assert.IsType<ContentResult>(result);
 
+            var content = Assert.IsType<ContentResult>(result);
             Assert.Equal("[{\"id\":1}]", content.Content);
-            Assert.Equal("application/json", content.ContentType);
+
+            VerifyPost("api/courses/all");
         }
 
-        // -------------------------------------------------------------------
-        // GET by ID
-        // -------------------------------------------------------------------
         [Fact]
-        public async Task GetById_ShouldForwardCorrectUrl()
+        public async Task GetById_ShouldForwardPost_ToById()
         {
             SetupJsonResponse("{\"id\":5}");
 
             var controller = CreateController();
+            var result = await controller.GetById(new CourseIdRequest { CourseId = 5 });
 
-            var result = await controller.GetById(5);
-            var content = Assert.IsType<ContentResult>(result);
 
-            Assert.Equal("{\"id\":5}", content.Content);
-
-            _handlerMock.Protected()
-                .Verify("SendAsync",
-                    Times.Once(),
-                    ItExpr.Is<HttpRequestMessage>(req =>
-                        req.Method == HttpMethod.Get &&
-                        req.RequestUri!.ToString().EndsWith("api/courses/5")),
-                    ItExpr.IsAny<CancellationToken>());
+            AssertContent(result, "{\"id\":5}");
+            VerifyPost("api/courses/by-id");
         }
 
-        // -------------------------------------------------------------------
-        // CREATE
-        // -------------------------------------------------------------------
         [Fact]
-        public async Task Create_ShouldSendPost_WithJsonBody()
+        public async Task Create_ShouldForwardPost_ToCreate()
         {
-            SetupJsonResponse("{\"ok\":true}");
+            SetupJsonResponse("{\"created\":true}");
 
             var controller = CreateController();
-            var dto = new { title = "New Course" };
+            var result = await controller.Create(new Course
+            {
+                Title = "New Course"
+            });
 
-            var result = await controller.Create(dto);
-            var content = Assert.IsType<ContentResult>(result);
 
-            Assert.Equal("{\"ok\":true}", content.Content);
-
-            _handlerMock.Protected()
-                .Verify("SendAsync",
-                    Times.Once(),
-                    ItExpr.Is<HttpRequestMessage>(req =>
-                        req.Method == HttpMethod.Post &&
-                        req.RequestUri!.ToString().EndsWith("api/courses") &&
-                        req.Content != null),
-                    ItExpr.IsAny<CancellationToken>());
+            AssertContent(result, "{\"created\":true}");
+            VerifyPost("api/courses/create");
         }
 
-        // -------------------------------------------------------------------
-        // UPDATE
-        // -------------------------------------------------------------------
         [Fact]
-        public async Task Update_ShouldSendPut_ToCorrectUrl()
+        public async Task Update_ShouldForwardPost_ToUpdate()
         {
             SetupJsonResponse("{\"updated\":true}");
 
             var controller = CreateController();
-            var dto = new { title = "updated" };
 
-            var result = await controller.Update(10, dto);
+            var fixture = new Fixture();
+
+            var request = fixture.Create<UpdateCourseRequest>();
+
+            var result = await controller.Update(request);
+
             var content = Assert.IsType<ContentResult>(result);
-
             Assert.Equal("{\"updated\":true}", content.Content);
 
-            _handlerMock.Protected()
-                .Verify("SendAsync",
-                    Times.Once(),
-                    ItExpr.Is<HttpRequestMessage>(req =>
-                        req.Method == HttpMethod.Put &&
-                        req.RequestUri!.ToString().EndsWith("api/courses/10")),
-                    ItExpr.IsAny<CancellationToken>());
+            VerifyPost("api/courses/update");
         }
 
-        // -------------------------------------------------------------------
-        // DELETE
-        // -------------------------------------------------------------------
         [Fact]
-        public async Task Delete_ShouldCallCorrectUrl()
+        public async Task Delete_ShouldForwardPost_ToDelete()
         {
             SetupJsonResponse("{\"deleted\":true}");
 
             var controller = CreateController();
+            var result = await controller.Delete(new CourseIdRequest { CourseId = 1 });
 
-            var result = await controller.Delete(7);
-            var content = Assert.IsType<ContentResult>(result);
-
-            Assert.Equal("{\"deleted\":true}", content.Content);
-
-            _handlerMock.Protected()
-                .Verify("SendAsync",
-                    Times.Once(),
-                    ItExpr.Is<HttpRequestMessage>(req =>
-                        req.Method == HttpMethod.Delete &&
-                        req.RequestUri!.ToString().EndsWith("api/courses/7")),
-                    ItExpr.IsAny<CancellationToken>());
+            AssertContent(result, "{\"deleted\":true}");
+            VerifyPost("api/courses/delete");
         }
 
-        // -------------------------------------------------------------------
-        // NON-JSON RESPONSE WRAPPING
-        // -------------------------------------------------------------------
+        // ---------------- INSTRUCTOR ----------------
+
         [Fact]
-        public async Task Forward_ShouldWrapNonJson_InMessageField()
+        public async Task GetByInstructor_ShouldForwardPost()
         {
-            SetupTextResponse("Course not found", HttpStatusCode.NotFound);
+            SetupJsonResponse("[{\"id\":2}]");
 
             var controller = CreateController();
+            var result = await controller.GetByInstructor();
 
-            var result = await controller.GetById(999);
-            var bad = Assert.IsType<ObjectResult>(result);
-
-            var value = bad.Value!;
-            var messageProp = value.GetType().GetProperty("message")!;
-            var message = messageProp.GetValue(value) as string;
-
-            Assert.Equal("Course not found", message);
-            Assert.Equal(404, bad.StatusCode);
+            AssertContent(result, "[{\"id\":2}]");
+            VerifyPost("api/courses/instructor");
         }
 
-        // -------------------------------------------------------------------
-        // AUTH HEADER FORWARDING
-        // -------------------------------------------------------------------
         [Fact]
-        public async Task Forward_ShouldIncludeAuthorizationHeader()
+        public async Task GetUnfinishedCourses_ShouldForwardPost()
         {
-            SetupJsonResponse("{\"ok\":true}");
-
-            var ctx = new DefaultHttpContext();
-            ctx.Request.Headers.Authorization = "Bearer test-token";
-
-            var controller = CreateController(ctx);
-
-            await controller.GetAll();
-
-            _handlerMock.Protected()
-                .Verify("SendAsync",
-                    Times.Once(),
-                    ItExpr.Is<HttpRequestMessage>(req =>
-                        req.Headers.Authorization!.ToString() == "Bearer test-token"),
-                    ItExpr.IsAny<CancellationToken>());
-        }
-
-        // -------------------------------------------------------------------
-        // GET BY INSTRUCTOR
-        // -------------------------------------------------------------------
-        [Fact]
-        public async Task GetByInstructor_ShouldForwardCorrectUrl()
-        {
-            SetupJsonResponse("[{\"id\":1}]");
+            SetupJsonResponse("[{\"id\":3}]");
 
             var controller = CreateController();
-            var instructorId = Guid.NewGuid();
+            var result = await controller.GetUnfinishedCourses();
 
-            var result = await controller.GetByInstructor(instructorId);
-            var content = Assert.IsType<ContentResult>(result);
-
-            Assert.Equal("application/json", content.ContentType);
-
-            _handlerMock.Protected()
-                .Verify("SendAsync",
-                    Times.Once(),
-                    ItExpr.Is<HttpRequestMessage>(req =>
-                        req.Method == HttpMethod.Get &&
-                        req.RequestUri!.ToString().EndsWith($"api/courses/instructor/{instructorId}")),
-                    ItExpr.IsAny<CancellationToken>());
+            AssertContent(result, "[{\"id\":3}]");
+            VerifyPost("api/courses/unfinished");
         }
 
-        // -------------------------------------------------------------------
-        // GET UNFINISHED COURSE
-        // -------------------------------------------------------------------
         [Fact]
-        public async Task GetUnfinishedCourse_ShouldForwardCorrectUrl()
-        {
-            SetupJsonResponse("{\"id\":3}");
-
-            var controller = CreateController();
-            var instructorId = Guid.NewGuid();
-
-            var result = await controller.GetUnfinishedCourse(instructorId);
-            var content = Assert.IsType<ContentResult>(result);
-
-            Assert.Equal("{\"id\":3}", content.Content);
-
-            _handlerMock.Protected()
-                .Verify("SendAsync",
-                    Times.Once(),
-                    ItExpr.Is<HttpRequestMessage>(req =>
-                        req.Method == HttpMethod.Get &&
-                        req.RequestUri!.ToString().EndsWith($"api/courses/unfinished/{instructorId}")),
-                    ItExpr.IsAny<CancellationToken>());
-        }
-
-        // -------------------------------------------------------------------
-        // CONTINUE COURSE
-        // -------------------------------------------------------------------
-        [Fact]
-        public async Task Continue_ShouldForwardPost_ToCorrectUrl()
+        public async Task Continue_ShouldForwardPost()
         {
             SetupJsonResponse("{\"ok\":true}");
 
             var controller = CreateController();
+            var result = await controller.Continue(new ContinueCourseRequest { CourseId = 10 });
 
-            var result = await controller.Continue(15);
-            var content = Assert.IsType<ContentResult>(result);
-
-            Assert.Equal("{\"ok\":true}", content.Content);
-
-            _handlerMock.Protected()
-                .Verify("SendAsync",
-                    Times.Once(),
-                    ItExpr.Is<HttpRequestMessage>(req =>
-                        req.Method == HttpMethod.Post &&
-                        req.RequestUri!.ToString().EndsWith("api/courses/continue/15")),
-                    ItExpr.IsAny<CancellationToken>());
+            AssertContent(result, "{\"ok\":true}");
+            VerifyPost("api/courses/continue");
         }
 
-        // -------------------------------------------------------------------
-        // ENROLL
-        // -------------------------------------------------------------------
+        // ---------------- ENROLLMENT ----------------
+
         [Fact]
-        public async Task Enroll_ShouldPostToEnrollEndpoint()
+        public async Task Enroll_ShouldForwardPost()
         {
             SetupJsonResponse("{\"enrolled\":true}");
 
             var controller = CreateController();
-            var dto = new { courseId = 1, userId = "U1" };
+            var result = await controller.Enroll(new EnrollRequest
+            {
+                CourseId = 1,
+            });
 
-            var result = await controller.Enroll(dto);
-            var content = Assert.IsType<ContentResult>(result);
 
-            Assert.Equal("{\"enrolled\":true}", content.Content);
-
-            _handlerMock.Protected()
-                .Verify("SendAsync",
-                    Times.Once(),
-                    ItExpr.Is<HttpRequestMessage>(req =>
-                        req.Method == HttpMethod.Post &&
-                        req.RequestUri!.ToString().EndsWith("api/courses/enroll") &&
-                        req.Content != null),
-                    ItExpr.IsAny<CancellationToken>());
+            AssertContent(result, "{\"enrolled\":true}");
+            VerifyPost("api/courses/enroll");
         }
 
-        // -------------------------------------------------------------------
-        // GET ENROLLED COURSES
-        // -------------------------------------------------------------------
         [Fact]
-        public async Task GetEnrolled_ShouldCallEnrolledEndpoint()
+        public async Task GetEnrolled_ShouldForwardPost()
         {
             SetupJsonResponse("[{\"id\":1}]");
 
             var controller = CreateController();
-            var userId = "user-123";
+            var result = await controller.GetEnrolled();
 
-            var result = await controller.GetEnrolled(userId);
-            var content = Assert.IsType<ContentResult>(result);
-
-            Assert.Equal("[{\"id\":1}]", content.Content);
-
-            _handlerMock.Protected()
-                .Verify("SendAsync",
-                    Times.Once(),
-                    ItExpr.Is<HttpRequestMessage>(req =>
-                        req.Method == HttpMethod.Get &&
-                        req.RequestUri!.ToString().EndsWith($"api/courses/enrolled/{userId}")),
-                    ItExpr.IsAny<CancellationToken>());
+            AssertContent(result, "[{\"id\":1}]");
+            VerifyPost("api/courses/enrolled");
         }
 
-        // -------------------------------------------------------------------
-        // GET MODULES FOR COURSE
-        // -------------------------------------------------------------------
+        // ---------------- MODULES ----------------
+
         [Fact]
-        public async Task GetModules_ShouldCallCorrectUrl()
+        public async Task GetModules_ShouldForwardPost()
         {
             SetupJsonResponse("[{\"id\":10}]");
 
             var controller = CreateController();
+            var result = await controller.GetModules(new CourseIdRequest { CourseId = 10 });
 
-            var result = await controller.GetModules(20);
-            var content = Assert.IsType<ContentResult>(result);
-
-            Assert.Equal("[{\"id\":10}]", content.Content);
-
-            _handlerMock.Protected()
-                .Verify("SendAsync",
-                    Times.Once(),
-                    ItExpr.Is<HttpRequestMessage>(req =>
-                        req.Method == HttpMethod.Get &&
-                        req.RequestUri!.ToString().EndsWith("api/courses/20/modules")),
-                    ItExpr.IsAny<CancellationToken>());
+            AssertContent(result, "[{\"id\":10}]");
+            VerifyPost("api/modules/by-course");
         }
 
-        // -------------------------------------------------------------------
-        // GET SINGLE MODULE
-        // -------------------------------------------------------------------
         [Fact]
-        public async Task GetModule_ShouldForwardToModulesController()
+        public async Task GetModule_ShouldForwardPost()
         {
             SetupJsonResponse("{\"id\":9}");
 
             var controller = CreateController();
+            var result = await controller.GetModule(new ModuleIdRequest { ModuleId = 9 });
 
-            var result = await controller.GetModule(9);
-            var content = Assert.IsType<ContentResult>(result);
-
-            Assert.Equal("{\"id\":9}", content.Content);
-
-            _handlerMock.Protected()
-                .Verify("SendAsync",
-                    Times.Once(),
-                    ItExpr.Is<HttpRequestMessage>(req =>
-                        req.Method == HttpMethod.Get &&
-                        req.RequestUri!.ToString().EndsWith("api/modules/9")),
-                    ItExpr.IsAny<CancellationToken>());
+            AssertContent(result, "{\"id\":9}");
+            VerifyPost("api/modules/content");
         }
 
-        // -------------------------------------------------------------------
-        // GET CATEGORIES
-        // -------------------------------------------------------------------
+        // ---------------- CATEGORIES ----------------
+
         [Fact]
-        public async Task GetCategories_ShouldCallCategoriesEndpoint()
+        public async Task GetCategories_ShouldForwardPost()
         {
             SetupJsonResponse("[{\"id\":1,\"name\":\"Backend\"}]");
 
             var controller = CreateController();
-
             var result = await controller.GetCategories();
-            var content = Assert.IsType<ContentResult>(result);
 
-            Assert.Equal("[{\"id\":1,\"name\":\"Backend\"}]", content.Content);
-
-            _handlerMock.Protected()
-                .Verify("SendAsync",
-                    Times.Once(),
-                    ItExpr.Is<HttpRequestMessage>(req =>
-                        req.Method == HttpMethod.Get &&
-                        req.RequestUri!.ToString().EndsWith("api/categories")),
-                    ItExpr.IsAny<CancellationToken>());
+            AssertContent(result, "[{\"id\":1,\"name\":\"Backend\"}]");
+            VerifyPost("api/categories");
         }
 
-        // -------------------------------------------------------------------
-        // PUBLISH COURSE
-        // -------------------------------------------------------------------
+        // ---------------- PUBLISH / RESTORE ----------------
+
         [Fact]
-        public async Task PublishCourse_ShouldCallPublishEndpoint()
+        public async Task PublishCourse_ShouldForwardPost()
         {
             SetupJsonResponse("{\"published\":true}");
 
             var controller = CreateController();
+            var result = await controller.PublishCourse(new CourseIdRequest { CourseId = 88 });
 
-            var result = await controller.PublishCourse(88);
+            AssertContent(result, "{\"published\":true}");
+            VerifyPost("api/courses/publish");
+        }
+
+        [Fact]
+        public async Task Restore_ShouldForwardPost()
+        {
+            SetupJsonResponse("{\"restored\":true}");
+
+            var controller = CreateController();
+            var result = await controller.Restore(new CourseIdRequest { CourseId = 1 });
+
+            AssertContent(result, "{\"restored\":true}");
+            VerifyPost("api/courses/restore");
+        }
+
+        // ---------------- Helpers ----------------
+
+        private void AssertContent(IActionResult result, string expected)
+        {
             var content = Assert.IsType<ContentResult>(result);
+            Assert.Equal(expected, content.Content);
+        }
 
-            Assert.Equal("{\"published\":true}", content.Content);
-
+        private void VerifyPost(string endsWith)
+        {
             _handlerMock.Protected()
-                .Verify("SendAsync",
+                .Verify(
+                    "SendAsync",
                     Times.Once(),
                     ItExpr.Is<HttpRequestMessage>(req =>
                         req.Method == HttpMethod.Post &&
-                        req.RequestUri!.ToString().EndsWith("api/courses/88/publish")),
+                        req.RequestUri!.ToString().EndsWith(endsWith)),
                     ItExpr.IsAny<CancellationToken>());
         }
     }

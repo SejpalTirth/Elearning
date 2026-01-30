@@ -18,8 +18,14 @@ export const authApiSlice = createApi({
           const res = await authApi.getApiGatewayAuthMe();
           return { data: res.data };
         } catch (error) {
-          return { error };
-        }
+            return {
+              error: {
+                status: error.response?.status,
+                data: error.response?.data,
+              },
+            };
+          }
+
       },
       providesTags: ['Auth'],
     }),
@@ -38,8 +44,14 @@ export const authApiSlice = createApi({
 
           return { data: res.data };
         } catch (error) {
-          return { error };
-        }
+            return {
+              error: {
+                status: error.response?.status,
+                data: error.response?.data,
+              },
+            };
+          }
+
       },
       invalidatesTags: ['Auth'],
     }),
@@ -51,8 +63,14 @@ export const authApiSlice = createApi({
           await authApi.getApiGatewayAuthLogout();
           return { data: true };
         } catch (error) {
-          return { error };
-        }
+            return {
+              error: {
+                status: error.response?.status,
+                data: error.response?.data,
+              },
+            };
+          }
+
       },
       invalidatesTags: ['Auth'],
     }),
@@ -65,8 +83,14 @@ export const authApiSlice = createApi({
           await authApi.postApiGatewayAuthRefresh();
           return { data: true };
         } catch (error) {
-          return { error };
-        }
+            return {
+              error: {
+                status: error.response?.status,
+                data: error.response?.data,
+              },
+            };
+          }
+
       },
     }),
 

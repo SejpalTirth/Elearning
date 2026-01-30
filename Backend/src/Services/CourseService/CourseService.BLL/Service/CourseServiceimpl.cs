@@ -19,7 +19,6 @@ namespace CourseService.BLL.Service
         private readonly IModuleRepository _moduleRepo;
         private readonly IHttpClientFactory _httpFactory;
         private readonly IMapper _mapper;
-        private readonly IUserContextAccessor _userContext;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
         public CourseServiceimpl(
@@ -36,7 +35,6 @@ namespace CourseService.BLL.Service
             _moduleRepo = moduleRepo;
             _httpFactory = httpFactory;
             _mapper = mapper;
-            _userContext = userContext;
             _httpContextAccessor = httpContextAccessor;
         }
 

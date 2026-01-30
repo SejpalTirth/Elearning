@@ -4,6 +4,7 @@ using GatewayService.BLL.Interface;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
@@ -38,7 +39,13 @@ namespace LMS.Tests.Gateway
             ClaimsPrincipal? externalUser = null,
             bool externalSucceeded = true)
         {
-            var controller = new GatewayAuthController(_authMock.Object, _logMock.Object);
+            var configMock = new Mock<IConfiguration>();
+
+            var controller = new GatewayAuthController(
+                _authMock.Object,
+                _logMock.Object,
+                configMock.Object
+            );
 
             // ----------------- HTTP CONTEXT + DI -----------------
             var ctx = new DefaultHttpContext();

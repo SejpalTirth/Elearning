@@ -3,7 +3,7 @@
     public class TemplateRequestDTO
     {
         public Guid UserId { get; set; }
-        public string TemplateName { get; set; }
-        public object Model { get; set; }
+        public required string TemplateName { get; set; }
+        public object? Model { get; set; }
     }
 }

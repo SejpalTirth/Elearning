@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using GatewayService.DAL.Models;
+﻿using GatewayService.DAL.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace GatewayService.DAL.Data;

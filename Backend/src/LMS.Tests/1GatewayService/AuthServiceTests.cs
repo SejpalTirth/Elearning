@@ -1,4 +1,5 @@
 ﻿using AutoFixture;
+using GatewayService.BLL.Security;
 using GatewayService.DAL.Models;
 using GatewayService.DAL.Repo;
 using Microsoft.Extensions.Configuration;
@@ -15,6 +16,9 @@ namespace LMS.Tests.GatewayService
         private readonly Mock<IConfiguration> _config;
         private readonly AuthService _service;
         private readonly Fixture _fixture;
+        private readonly Mock<IPasswordDecryptor> _decryptor;
+        private readonly Mock<IPasswordHasher> _hasher;
+
 
         public AuthServiceTests()
         {
@@ -29,6 +33,8 @@ namespace LMS.Tests.GatewayService
             _userRepo = new Mock<IUserRepository>();
             _tokenRepo = new Mock<IRefreshTokenRepository>();
             _config = new Mock<IConfiguration>();
+            _decryptor = new Mock<IPasswordDecryptor>();
+            _hasher = new Mock<IPasswordHasher>();
 
             // JWT config
             _config.Setup(c => c["Jwt:Key"]).Returns("ThisIsASuperSecretKeyForJwtToken12345");
@@ -41,7 +47,13 @@ namespace LMS.Tests.GatewayService
             _config.Setup(c => c["SpecialAccounts:AdminEmail"])
                    .Returns("tirths331@gmail.com");
 
-            _service = new AuthService(_userRepo.Object, _tokenRepo.Object, _config.Object);
+            _service = new AuthService(
+                _userRepo.Object,
+                _tokenRepo.Object,
+                _config.Object,
+                _decryptor.Object,
+                _hasher.Object
+            );
         }
 
         protected override void ConfigureGatewayDependencies(IServiceCollection services) { }

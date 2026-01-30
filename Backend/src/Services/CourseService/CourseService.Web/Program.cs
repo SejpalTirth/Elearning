@@ -93,11 +93,8 @@ builder.Services.AddHttpClient("NotificationService", client =>
 });
 
 // Fluent Validation
-builder.Services.AddControllers()
-    .AddFluentValidation(fv =>
-    {
-        fv.RegisterValidatorsFromAssemblyContaining<CourseDtoValidator>();
-    });
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddControllers();
 
 // AutoMapper
 builder.Services.AddAutoMapper(typeof(CourseProfile));

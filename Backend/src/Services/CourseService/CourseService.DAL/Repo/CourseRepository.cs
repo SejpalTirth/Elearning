@@ -48,6 +48,7 @@ namespace CourseService.DAL.Repo
         public async Task UpdateAsync(Course course)
         {
             _db.Courses.Update(course);
+            await _db.SaveChangesAsync();
         }
 
         // -------------------- EXISTS CHECK --------------------
@@ -107,11 +108,6 @@ namespace CourseService.DAL.Repo
         public void RemoveModule(Module module)
         {
             _db.Modules.Remove(module);
-        }
-        public async Task RestoreAsync(Course course)
-        {
-            _db.Courses.Update(course);
-            await _db.SaveChangesAsync();
         }
     }
 }

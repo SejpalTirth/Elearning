@@ -257,7 +257,6 @@ public class AuthService : IAuthService
             return null;
 
         var decrypted = _decryptor.Decrypt(encryptedPassword);
-        Console.WriteLine(decrypted);
 
         if (!_hasher.Verify(decrypted, user.PasswordHash))
             return null;

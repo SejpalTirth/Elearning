@@ -1,7 +1,6 @@
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { environment } from '../Environment/environment.js'
-import { refreshSession } from '../services/authService';
 
 const axiosInstance = axios.create({
   baseURL: environment.baseurl,
@@ -29,10 +28,11 @@ axiosInstance.interceptors.response.use(
     ) {
       originalRequest._retry = true;
 
-      const refreshed = await refreshSession();
-
-      if (refreshed) {
+      try {
+        await axiosInstance.post('/api/GatewayAuth/refresh');
         return axiosInstance.request(originalRequest);
+      } catch {
+        return Promise.reject(error);
       }
     }
 

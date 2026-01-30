@@ -2,12 +2,12 @@ import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
 import Layout from './components/Layout/Layout';
-import { useGetMeQuery } from './services/authapislice';
 import { Loader } from './components/ui/Loader';
 
 import { GlobalLoader } from './components/ui/GlobalLoader';
 import { GlobalToasts } from './components/ui/GlobalToasts';
 import { ThemeInit } from './components/ui/ThemeInit';
+
 
 import Home from './pages/home';
 import Login from './pages/auth/login';
@@ -28,20 +28,17 @@ import AddQuiz from './pages/assessment/AddQuiz';
 import ManageUsers from './pages/Admin/ManageUsers';
 import ManageCourses from './pages/Admin/ManageCourses';
 
+/* ---------------------------------------
+   PROTECTED ROUTE LAYOUT (DUMB + SAFE)
+--------------------------------------- */
 const ProtectedLayout = () => {
-  const { authChecked, isAuthenticated, allowMe } = useSelector(
-    (state) => state.auth
-  );
+  const { authChecked, status } = useSelector((state) => state.auth);
 
-  const { isFetching } = useGetMeQuery(undefined, {
-    skip: authChecked || !allowMe,
-  });
-
-  if (!authChecked || isFetching) {
+  if (!authChecked) {
     return <Loader />;
   }
 
-  if (!isAuthenticated) {
+  if (status !== 'authenticated') {
     return <Navigate to="/login" replace />;
   }
 
@@ -68,16 +65,31 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/courses" element={<BrowseCourses />} />
           <Route path="/courses/:id" element={<CourseDetails />} />
-          <Route path="/courses/:courseId/modules/:moduleId" element={<ModuleDetails />}/>
-          <Route path="/instructor/create-course" element={<CreateCourse />}/>
-          <Route path="/instructor/courses/:courseId/edit" element={<EditCourse />} />
-          <Route path="/my-learning" element={<MyLearningPage/>}/>
-          <Route path="/courses/:CourseId/modules/:ModuleId/quiz" element={<QuizPage/>}/>
-          <Route path="/assessment/:CourseId/:ModuleId/result/:submissionId" element={<QuizResult/>}/>
-          <Route path="/instructor/pending" element={<Pending/>}/>
-          <Route path="/assessment/add-quiz/:courseId" element={<AddQuiz/>}/>
-          <Route path="/admin/users" element={<ManageUsers/>}/>
-          <Route path="/admin/courses" element={<ManageCourses/>}/>
+          <Route
+            path="/courses/:courseId/modules/:moduleId"
+            element={<ModuleDetails />}
+          />
+          <Route path="/instructor/create-course" element={<CreateCourse />} />
+          <Route
+            path="/instructor/courses/:courseId/edit"
+            element={<EditCourse />}
+          />
+          <Route path="/my-learning" element={<MyLearningPage />} />
+          <Route
+            path="/courses/:CourseId/modules/:ModuleId/quiz"
+            element={<QuizPage />}
+          />
+          <Route
+            path="/assessment/:CourseId/:ModuleId/result/:submissionId"
+            element={<QuizResult />}
+          />
+          <Route path="/instructor/pending" element={<Pending />} />
+          <Route
+            path="/assessment/add-quiz/:courseId"
+            element={<AddQuiz />}
+          />
+          <Route path="/admin/users" element={<ManageUsers />} />
+          <Route path="/admin/courses" element={<ManageCourses />} />
         </Route>
 
         {/* FALLBACK */}

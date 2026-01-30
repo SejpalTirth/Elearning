@@ -6,7 +6,7 @@ import {
   useUpdateCourseMutation,
   useGetCategoriesQuery,
 } from '../../services/CourseApiSlice';
-import { showToast } from '../../features/ui/toastSlice'; // Fixed casing to match your project
+import { showToast } from '../../features/ui/toastSlice';
 import CategorySelect from './components/CategorySelect';
 import ModuleEditor from './components/ModuleEditor';
 import { ArrowRight } from 'lucide-react';
@@ -36,7 +36,6 @@ const EditCourse = () => {
     setTitle(course.title ?? '');
     setDescription(course.description ?? '');
     setCategoryId(String(course.categoryId ?? ''));
-    // Keep the IDs from the backend so the update knows which modules are which
     setModules(
       (course.modules ?? []).map((m) => ({
         id: m.id, 
@@ -61,7 +60,6 @@ const EditCourse = () => {
     if (!validate()) return;
 
     try {
-      // MATCHING SWAGGER: { courseId: int, course: { ... } }
       await updateCourse({
         courseId: Number(courseId),
         course: {
@@ -69,7 +67,7 @@ const EditCourse = () => {
           description,
           categoryId: Number(categoryId),
           modules: modules.map((m) => ({
-            id: m.id ?? 0, // Backend expects an ID (0 for new modules)
+            id: m.id ?? 0,
             title: m.title,
             content: m.content,
           })),
@@ -77,7 +75,7 @@ const EditCourse = () => {
       }).unwrap();
 
       dispatch(showToast({ message: 'Course updated successfully', type: 'success' }));
-      navigate('/instructor/pending'); // Redirecting to pending or dashboard
+      navigate('/instructor/pending');
     } catch (err) {
       console.error("Update Error:", err);
       dispatch(showToast({ message: 'Error updating course', type: 'error' }));

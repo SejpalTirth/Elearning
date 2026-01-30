@@ -2,7 +2,6 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { useLogoutMutation } from '../../services/authapislice';
 import { resetAuth } from '../../features/auth/AuthSlice';
-import { authApiSlice } from '../../services/authapislice';
 import { toggleTheme } from '../../features/ui/themeSlice'; 
 import { showToast } from '../../features/ui/toastSlice';
 import { BookOpen } from 'lucide-react';
@@ -16,17 +15,28 @@ const Header = () => {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    try {
-      await logout().unwrap();
-      dispatch(showToast({ message: "Logged out successfully", type: "info" }));
-    } catch {
-      // intentionally ignored
-    } finally {
-      dispatch(authApiSlice.util.resetApiState());
-      dispatch(resetAuth());
-      navigate('/login', { replace: true });
-    }
-  };
+  try {
+    await logout().unwrap();
+    dispatch(
+      showToast({
+        message: 'Logged out successfully',
+        type: 'info',
+      })
+    );
+  } catch {
+    // intentionally ignored
+  } finally {
+    // 🔒 lock auth state
+    dispatch(resetAuth());
+
+    // ❌ DO NOT resetApiState
+    // dispatch(authApiSlice.util.resetApiState());
+
+    navigate('/login', { replace: true });
+  }
+};
+
+
 
   return (
     <header

@@ -6,7 +6,7 @@ namespace Gateway.Contracts.Notification
     {
         [Required(ErrorMessage = "UserId is required")]
         public Guid UserId { get; set; }
-        public string Subject { get; set; }
-        public string Body { get; set; }
+        public required string Subject { get; set; }
+        public required string Body { get; set; }
     }
 }

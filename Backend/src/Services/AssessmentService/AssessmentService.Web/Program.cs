@@ -91,11 +91,8 @@ builder.Services.AddScoped<IAssessmentService, AssessmentServiceImpl>();
 // =======================
 // FluentValidation
 // =======================
-builder.Services.AddControllers()
-    .AddFluentValidation(fv =>
-    {
-        fv.RegisterValidatorsFromAssemblyContaining<CreateQuizDtoValidator>();
-    });
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddControllers();
 
 // =======================
 // AutoMapper

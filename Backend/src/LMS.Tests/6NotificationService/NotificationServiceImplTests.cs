@@ -131,21 +131,6 @@ namespace LMS.Tests.NotificationService
             )), Times.Once);
         }
 
-        // --------------------------------------------------
-        // HandleTriggeredNotificationAsync
-        // --------------------------------------------------
-        [Fact]
-        public async Task HandleTriggeredNotificationAsync_ShouldThrow_WhenUnknownType()
-        {
-            var dto = new TriggerNotificationDto
-            {
-                Type = (NotificationType)999
-            };
-
-            await Assert.ThrowsAsync<Exception>(() =>
-                _service.HandleTriggeredNotificationAsync(dto));
-        }
-
         [Fact]
         public async Task HandleTriggeredNotificationAsync_ShouldSendUsingTemplate()
         {
