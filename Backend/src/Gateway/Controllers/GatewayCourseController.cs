@@ -11,6 +11,7 @@ namespace Gateway.Controllers
     public class GatewayCourseController : BaseGatewayController
     {
         private const string BASE = "api/courses";
+        private const string gateway_error_message = "Gateway error";
 
         public GatewayCourseController(IHttpClientFactory factory)
             : base(factory.CreateClient("CourseService"))
@@ -39,7 +40,7 @@ namespace Gateway.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Gateway error", details = ex.Message });
+                return StatusCode(500, new { message = gateway_error_message, details = ex.Message });
             }
         }
 
@@ -66,7 +67,7 @@ namespace Gateway.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Gateway error", details = ex.Message });
+                return StatusCode(500, new { message = "gateway_error_message", details = ex.Message });
             }
         }
 
@@ -105,7 +106,7 @@ namespace Gateway.Controllers
             {
                 return StatusCode(500, new
                 {
-                    message = "Gateway error",
+                    message = gateway_error_message,
                     details = ex.Message
                 });
             }
@@ -133,7 +134,7 @@ namespace Gateway.Controllers
             {
                 return StatusCode(500, new
                 {
-                    message = "Gateway error",
+                    message = gateway_error_message,
                     details = ex.Message
                 });
             }
@@ -162,7 +163,7 @@ namespace Gateway.Controllers
             {
                 return StatusCode(500, new
                 {
-                    message = "Gateway error",
+                    message = gateway_error_message,
                     details = ex.Message
                 });
             }
@@ -191,7 +192,7 @@ namespace Gateway.Controllers
             {
                 return StatusCode(500, new
                 {
-                    message = "Gateway error",
+                    message = gateway_error_message,
                     details = ex.Message
                 });
             }
@@ -217,7 +218,7 @@ namespace Gateway.Controllers
             {
                 return StatusCode(500, new
                 {
-                    message = "Gateway error",
+                    message = gateway_error_message,
                     details = ex.Message
                 });
             }
@@ -244,7 +245,7 @@ namespace Gateway.Controllers
             {
                 return StatusCode(500, new
                 {
-                    message = "Gateway error",
+                    message = gateway_error_message,
                     details = ex.Message
                 });
             }
@@ -271,7 +272,7 @@ namespace Gateway.Controllers
             {
                 return StatusCode(500, new
                 {
-                    message = "Gateway error",
+                    message = gateway_error_message,
                     details = ex.Message
                 });
             }
@@ -300,7 +301,7 @@ namespace Gateway.Controllers
             {
                 return StatusCode(500, new
                 {
-                    message = "Gateway error",
+                    message = gateway_error_message,
                     details = ex.Message
                 });
             }
@@ -330,7 +331,7 @@ namespace Gateway.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Gateway error", details = ex.Message });
+                return StatusCode(500, new { message = gateway_error_message, details = ex.Message });
             }
         }
 
@@ -354,7 +355,7 @@ namespace Gateway.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Gateway error", details = ex.Message });
+                return StatusCode(500, new { message = gateway_error_message, details = ex.Message });
             }
         }
 
@@ -380,7 +381,7 @@ namespace Gateway.Controllers
             {
                 return StatusCode(500, new
                 {
-                    message = "Gateway error",
+                    message = gateway_error_message,
                     details = ex.Message
                 });
             }
@@ -409,7 +410,7 @@ namespace Gateway.Controllers
             {
                 return StatusCode(500, new
                 {
-                    message = "Gateway error",
+                    message = gateway_error_message,
                     details = ex.Message
                 });
             }
@@ -435,7 +436,7 @@ namespace Gateway.Controllers
             {
                 return StatusCode(500, new
                 {
-                    message = "Gateway error",
+                    message = gateway_error_message,
                     details = ex.Message
                 });
             }

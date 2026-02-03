@@ -1,0 +1,122 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "newProjectRoot": "libs",
+  "projects": {
+    "elearning": {
+      "projectType": "application",
+      "schematics": {},
+      "root": "elearning",
+      "sourceRoot": "elearning/src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "elearning/src/main.ts",
+            "polyfills": [
+              "zone.js"
+            ],
+            "tsConfig": "elearning/tsconfig.app.json",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "elearning/public"
+              }
+            ],
+            "styles": [
+              "elearning/src/styles.css"
+            ]
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kB",
+                  "maximumError": "1MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "4kB",
+                  "maximumError": "8kB"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "configurations": {
+            "production": {
+              "buildTarget": "elearning:build:production"
+            },
+            "development": {
+              "buildTarget": "elearning:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular/build:extract-i18n"
+        },
+        "test": {
+          "builder": "@angular/build:karma",
+          "options": {
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ],
+            "tsConfig": "elearning/tsconfig.spec.json",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "elearning/public"
+              }
+            ],
+            "styles": [
+              "elearning/src/styles.css"
+            ]
+          }
+        }
+      }
+    },
+    "api": {
+      "projectType": "library",
+      "root": "libs/api",
+      "sourceRoot": "libs/api/src",
+      "prefix": "lib",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:ng-packagr",
+          "configurations": {
+            "production": {
+              "tsConfig": "libs/api/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "libs/api/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "test": {
+          "builder": "@angular/build:karma",
+          "options": {
+            "tsConfig": "libs/api/tsconfig.spec.json",
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

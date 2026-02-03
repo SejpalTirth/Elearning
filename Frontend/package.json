@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "generate:api": "openapi-generator-cli generate -i swagger.json -c openapi-config.json",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "concurrently -n shell,admin,instructor,student -c blue,red,green,yellow \"pnpm ng serve shell-app\" \"pnpm ng serve admin-app --port 4300 --open false\" \"pnpm ng serve instructor-app --port 4400 --open false\" \"pnpm ng serve student-app --port 4500 --open false\""
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
@@ -14,6 +13,14 @@
   "packageManager": "pnpm@10.26.2",
   "devDependencies": {
     "@openapitools/openapi-generator-cli": "^2.26.0",
-    "concurrently": "^9.2.1"
+    "@orval/core": "^8.2.0",
+    "@types/crypto-js": "^4.2.2",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "orval": "^8.2.0"
+  },
+  "dependencies": {
+    "@angular/cdk": "^21.1.2",
+    "crypto-js": "^4.2.0"
   }
 }

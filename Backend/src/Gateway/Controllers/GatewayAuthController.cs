@@ -78,7 +78,7 @@ public class GatewayAuthController : ControllerBase
     [HttpGet("external-response")]
     public async Task<IActionResult> ExternalResponse([FromQuery] string? returnUrl)
     {
-        returnUrl = "http://localhost:4200/gateway/auth/callback";
+        returnUrl = "http://localhost:4200/auth/callback";
 
         var external = await HttpContext.AuthenticateAsync("External");
 
