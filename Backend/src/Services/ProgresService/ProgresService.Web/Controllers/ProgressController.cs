@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using ProgresService.BLL.DTOs;
+using DTOs._5ProgresService;
 using ProgresService.BLL.Interface;
 using ProgresService.BLL.UserContext;
 
@@ -30,6 +30,7 @@ namespace ProgressService.Web.Controllers
         // ---------------- USER PROGRESS ----------------
 
         [HttpPost("user")]
+        [ProducesResponseType(typeof(List<ProgresDto>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetUserProgress()
         {
             var userId = _userContext.Current?.UserId;
@@ -44,6 +45,7 @@ namespace ProgressService.Web.Controllers
         // ---------------- COMPLETE MODULE ----------------
 
         [HttpPost("complete-module")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> CompleteModule(
             [FromBody] ModuleCompleteRequest request)
         {

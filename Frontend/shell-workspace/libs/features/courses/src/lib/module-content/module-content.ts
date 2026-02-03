@@ -3,10 +3,10 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Subscription, forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { CourseFacade, AssessmentFacade } from '@frontend/core';
 import { AuthStateService } from '@frontend/auth';
 import { LoadingService } from '@frontend/ui';
 import { ToastService } from '@frontend/ui';
+import { AssessmentGatewayService, GatewayCourseService } from '@frontend/api';
 
 @Component({
   selector: 'app-module-content',
@@ -25,12 +25,12 @@ export class ModuleContentComponent implements OnInit, OnDestroy {
   private authSub?: Subscription;
 
   private readonly route = inject(ActivatedRoute);
-  private readonly api = inject(CourseFacade);
-  private readonly assessmentApi = inject(AssessmentFacade);
   private readonly authState = inject(AuthStateService);
   private readonly router = inject(Router);
   private readonly loading = inject(LoadingService);
   private readonly toast = inject(ToastService);
+  private readonly courseapi = inject(GatewayCourseService);
+  private readonly assessmentapi = inject(AssessmentGatewayService)
 
   ngOnInit(): void {
     this.moduleId = Number(this.route.snapshot.paramMap.get('moduleId'));
@@ -51,9 +51,9 @@ export class ModuleContentComponent implements OnInit, OnDestroy {
     this.loading.show();
 
     forkJoin({
-      module: this.api.getCourseModule({moduleId: this.moduleId})
+      module: this.courseapi.postApiCourseModule({moduleId: this.moduleId})
         .pipe(catchError(() => of(null))),
-      quiz: this.assessmentApi.getQuizForModule({moduleId: this.moduleId})
+      quiz: this.assessmentapi.postApiAssessmentQuizModule({moduleId: this.moduleId})
         .pipe(catchError(() => of(null)))
     }).subscribe(({ module, quiz }) => {
       this.module = module;

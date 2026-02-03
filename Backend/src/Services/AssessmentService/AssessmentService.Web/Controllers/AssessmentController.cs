@@ -1,4 +1,4 @@
-﻿using AssessmentService.BLL.DTOs;
+﻿using DTOs._4AssessmentService;
 using AssessmentService.BLL.Interfaces;
 using AssessmentService.BLL.UserContext;
 using Microsoft.AspNetCore.Authorization;
@@ -37,24 +37,31 @@ namespace AssessmentService.Web.Controllers
         // ================== Instructor ==================
 
         [HttpPost("quiz")]
-        public async Task<IActionResult> CreateQuiz(
+        [ProducesResponseType(typeof(CreateQuizResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<CreateQuizResponseDto>> CreateQuiz(
             [FromBody] CreateQuizDto dto)
         {
             var result = await _assessmentService.CreateQuizAsync(dto);
             return Ok(result);
         }
 
+
         [HttpPost("quiz/questions")]
-        public async Task<IActionResult> AddQuestion(
-            [FromBody] AddQuestionDto dto)
+        [ProducesResponseType(typeof(AddQuestionResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<AddQuestionResponseDto>> AddQuestion(
+    [FromBody] AddQuestionDto dto)
         {
             var result = await _assessmentService.AddQuestionAsync(dto);
             return Ok(result);
         }
 
+
         // ================== Student ==================
         [HttpPost("quiz/module")]
-        public async Task<IActionResult> GetQuizForModule(
+        [ProducesResponseType(typeof(QuizForModuleDto), StatusCodes.Status200OK)]
+        public async Task<ActionResult<QuizForModuleDto>> GetQuizForModule(
             [FromBody] GetQuizForModuleDto dto)
         {
             var userId = _userContext.Current?.UserId;
@@ -70,6 +77,7 @@ namespace AssessmentService.Web.Controllers
 
 
         [HttpPost("quiz/submit")]
+        [ProducesResponseType(typeof(QuizResultDto), StatusCodes.Status200OK)]
         public async Task<IActionResult> SubmitQuiz(
             [FromBody] SubmitQuizDto dto)
         {
@@ -78,6 +86,8 @@ namespace AssessmentService.Web.Controllers
         }
 
         [HttpPost("quiz/result")]
+        [ProducesResponseType(typeof(QuizResultDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetSubmissionResult(
             [FromBody] SubmissionResultRequestDto dto)
         {
@@ -90,8 +100,9 @@ namespace AssessmentService.Web.Controllers
         }
 
         [HttpPost("course/quiz-status")]
-        public async Task<IActionResult> GetQuizStatus(
-            [FromBody] CourseQuizStatusDto dto)
+        [ProducesResponseType(typeof(CourseQuizStatusResponseDto), StatusCodes.Status200OK)]
+        public async Task<ActionResult<CourseQuizStatusResponseDto>> GetQuizStatus(
+    [FromBody] CourseQuizStatusDto dto)
         {
             var result = await _assessmentService
                 .GetQuizStatusForCourseAsync(dto.CourseId);
@@ -100,7 +111,8 @@ namespace AssessmentService.Web.Controllers
         }
 
         [HttpPost("course/unquizzed-modules")]
-        public async Task<IActionResult> GetUnquizzedModules(
+        [ProducesResponseType(typeof(List<int>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<List<int>>> GetUnquizzedModules(
             [FromBody] GetUnquizzedModulesDto dto)
         {
             var result = await _assessmentService

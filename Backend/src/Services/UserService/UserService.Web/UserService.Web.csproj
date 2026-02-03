@@ -1,10 +1,17 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Validators\**" />
+    <Content Remove="Validators\**" />
+    <EmbeddedResource Remove="Validators\**" />
+    <None Remove="Validators\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="12.0.1" />
@@ -26,12 +33,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Validators\" />
+    <ProjectReference Include="..\..\..\DTOs\DTOs\DTOs.csproj">
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\UserService.BLL\UserService.BLL.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\UserService.BLL\UserService.BLL.csproj" />
-    <ProjectReference Include="..\UserService.DAL\UserService.DAL.csproj" />
+    <Reference Include="DTOs">
+      <HintPath>..\..\..\DTOs\DTOs\bin\Debug\net8.0\DTOs.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

@@ -2,6 +2,7 @@
 using CourseService.BLL.DTOs;
 using CourseService.BLL.Interface;
 using CourseService.Web.Controllers;
+using DTOs._2CourseService;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 
@@ -51,7 +52,7 @@ namespace LMS.Tests.CourseService
             _moduleMock.Setup(s => s.GetModulesByCourseAsync(5))
                 .ReturnsAsync(new List<ModuleSummaryDto>());
 
-            var result = await _controller.GetByCourse(5) as OkObjectResult;
+            var result = await _controller.GetByCourse(CourseIdRequestDto { 5 }) as OkObjectResult;
 
             Assert.NotNull(result);
             var list = Assert.IsType<List<ModuleSummaryDto>>(result.Value);

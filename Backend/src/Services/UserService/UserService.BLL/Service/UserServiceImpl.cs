@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using UserService.BLL.DTOs;
+using DTOs._3UserService;
 using UserService.BLL.Interface;
 using UserService.DAL.Models;
 using UserService.DAL.Repo;
@@ -94,16 +94,6 @@ public class UserServiceImpl : IUserService
         return _mapper.Map<UserDto>(user);
     }
 
-    public async Task<bool> Delete(Guid id)
-    {
-        var user = await _repo.GetByIdAsync(id);
-        if (user == null) return false;
-
-        await _repo.DeleteAsync(user);
-        await _repo.SaveAsync();
-
-        return true;
-    }
     public async Task<bool> CompleteProfileAsync(CompleteProfileDto dto)
     {
         if (dto == null || string.IsNullOrWhiteSpace(dto.UserId))

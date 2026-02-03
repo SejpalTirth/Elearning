@@ -3,8 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { AuthService, AuthStateService } from '@frontend/auth';
-import { UserFacade } from '@frontend/core'
 import { ToastService } from '@frontend/ui'
+import { GatewayUsersService } from '@frontend/api';
 
 @Component({
   selector: 'app-manage-users',
@@ -25,10 +25,10 @@ export class ManageUsersComponent implements OnInit {
   selectedUser: any = null;
   selectedRoleId: number | null = null;
 
-  private readonly userApi = inject(UserFacade);
   private readonly toast = inject(ToastService);
   private readonly authstate = inject(AuthStateService);
   private readonly auth = inject(AuthService);
+  private readonly userapi = inject(GatewayUsersService);
 
   private authSub?: Subscription;
 
@@ -48,7 +48,7 @@ export class ManageUsersComponent implements OnInit {
   loadUsers(): void {
     this.loading = true;
 
-    this.userApi.getAllUsers().subscribe({
+    this.userapi.postApiUsersAll().subscribe({
       next: (res) => {
         this.users = res;
         this.loading = false;
@@ -61,7 +61,7 @@ export class ManageUsersComponent implements OnInit {
   }
 
   loadRoles(): void {
-    this.userApi.getAllRoles().subscribe({
+    this.userapi.postApiUsersRolesAll().subscribe({
       next: (res) => this.roles = res,
       error: () => this.toast.showError('Failed to load roles')
     });
@@ -100,7 +100,7 @@ export class ManageUsersComponent implements OnInit {
 
     this.updating = true;
 
-    this.userApi.updateUserRole({
+    this.userapi.postApiUsersRolesUpdate({
       userId: this.selectedUser.id,
       roleId: this.selectedRoleId
     }).subscribe({

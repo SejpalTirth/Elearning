@@ -1,9 +1,9 @@
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { CourseFacade, ProgressService } from '@frontend/core';
 import { AuthStateService } from '@frontend/auth';
 import { combineLatest, Subscription } from 'rxjs';
+import { GatewayCourseService, ProgressGatewayService } from '@frontend/api';
 
 @Component({
   selector: 'app-modules-list',
@@ -19,10 +19,10 @@ export class ModulesListComponent implements OnInit, OnDestroy {
   loading = true;
 
   private readonly route = inject(ActivatedRoute);
-  private readonly api = inject(CourseFacade);
-  private readonly progressService = inject(ProgressService);
+  private readonly progressService = inject(ProgressGatewayService);
   private readonly authState = inject(AuthStateService);
   private readonly router = inject(Router);
+  private readonly courseapi = inject(GatewayCourseService);
 
   private sub?: Subscription;
 
@@ -36,7 +36,7 @@ export class ModulesListComponent implements OnInit, OnDestroy {
         return;
       }
 
-      this.progressService.loadUserProgress().subscribe();
+      this.progressService.postApiProgressUser().subscribe();
 
       this.bindModulesWithProgress();
       
@@ -48,32 +48,31 @@ export class ModulesListComponent implements OnInit, OnDestroy {
   }
 
   private bindModulesWithProgress(): void {
-
   this.loading = true;
 
   this.sub = combineLatest([
-    this.api.getCourseModules({courseId: this.courseId}),
-    this.progressService.progress$
+    this.courseapi.postApiCourseModules({ courseId: this.courseId }),
+    this.progressService.postApiProgressUser()
   ]).subscribe({
     next: ([modules, progress]) => {
-      this.modules = modules.map((m: any) => {
-    const match = progress.find(
-      p => p.courseId === this.courseId && p.moduleId === m.id
-    );
+      this.modules = modules.map(m => {
+        const match = progress.find(
+          p => p.courseId === this.courseId && p.moduleId === m.id
+        );
 
-    return {
-      ...m,
-      progressPercent: match?.progressPercent ?? 0,
-      isCompleted: match?.isCompleted === true
-    };
-  });
-
+        return {
+          ...m,
+          progressPercent: match?.progressPercent ?? 0,
+          isCompleted: match?.isCompleted === true
+        };
+      });
 
       this.loading = false;
     },
-    error: () => this.loading = false
+    error: () => (this.loading = false)
   });
 }
+
 
 
   openModule(moduleId: number): void {

@@ -1,14 +1,12 @@
 ﻿using AutoMapper;
-using CourseService.BLL.DTOs;
 using CourseService.BLL.Interface;
 using CourseService.BLL.UserContext;
 using CourseService.DAL.Models;
 using CourseService.DAL.Repo;
+using DTOs._2CourseService;
 using Microsoft.AspNetCore.Http;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Runtime.CompilerServices;
 
 namespace CourseService.BLL.Service
 {
@@ -125,7 +123,6 @@ namespace CourseService.BLL.Service
 
             await _repo.SaveChangesAsync();
 
-            // quiz logic unchanged
             await HandlePublishStateAsync(course);
 
             return course;

@@ -71,7 +71,7 @@ builder.Services.AddDbContext<UserContext>(options =>
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserServiceImpl>();
 
-builder.Services.AddAutoMapper(typeof(UserProfile));
+builder.Services.AddAutoMapper(typeof(UserProfile).Assembly);
 
 // =======================
 // FluentValidation

@@ -1,5 +1,5 @@
 ﻿using AutoFixture;
-using GatewayService.BLL.DTOs;
+using DTOs._1GatewayService;
 using GatewayService.BLL.Interface;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;

@@ -1,7 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { AssessmentFacade } from '@frontend/core';
 import { AssessmentGatewayService } from '@frontend/api';
 
 @Component({
@@ -19,8 +18,8 @@ export class QuizResultComponent implements OnInit {
   loading = true;
 
   private readonly route = inject(ActivatedRoute);
-  private readonly api = inject(AssessmentFacade);
   private readonly router = inject(Router);
+  private readonly assessmentapi = inject(AssessmentGatewayService);
 
   ngOnInit(): void {
     this.submissionId = this.route.snapshot.paramMap.get('submissionId') || '';
@@ -31,7 +30,7 @@ export class QuizResultComponent implements OnInit {
   }
 
   loadResult(): void {
-    this.api.getQuizResult({submissionId: this.submissionId}).subscribe({
+    this.assessmentapi.postApiAssessmentQuizResult({submissionId: this.submissionId}).subscribe({
       next: (res) => {
         this.result = res;
         this.loading = false;

@@ -3,7 +3,7 @@ using AutoFixture.AutoMoq;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Moq;
-using UserService.BLL.DTOs;
+using DTOs._3UserService;
 using UserService.DAL.Models;
 using UserService.DAL.Repo;
 

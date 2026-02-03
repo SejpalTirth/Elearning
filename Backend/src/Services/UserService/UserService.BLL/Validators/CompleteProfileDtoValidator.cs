@@ -1,5 +1,5 @@
 ﻿using FluentValidation;
-using UserService.BLL.DTOs;
+using DTOs._3UserService;
 
 namespace UserService.BLL.Validators
 {

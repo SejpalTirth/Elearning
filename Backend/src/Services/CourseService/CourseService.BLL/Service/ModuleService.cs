@@ -1,6 +1,6 @@
-﻿using CourseService.BLL.DTOs;
-using CourseService.BLL.Interface;
+﻿using CourseService.BLL.Interface;
 using CourseService.DAL.Repo;
+using DTOs._2CourseService;
 using System.Net.Http.Json;
 
 namespace CourseService.BLL.Service
@@ -57,7 +57,6 @@ namespace CourseService.BLL.Service
             var module = await _moduleRepo.GetByIdAsync(moduleId);
             if (module == null) return null;
 
-            // Ask Assessment Service for the quiz that belongs to this module
             int quizId = await FetchQuizIdForModule(moduleId);
 
             return new ModuleContentResponseDto

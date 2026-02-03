@@ -1,5 +1,5 @@
-﻿using NotificationService.BLL.DTOs;
-using NotificationService.BLL.Models;
+﻿using DTOs._6NotificationService;
+using DTOs._6NotificationService;
 
 namespace NotificationService.BLL.Interface
 {

@@ -28,6 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DTOs\DTOs\DTOs.csproj" />
     <ProjectReference Include="..\Services\GatewayService\GatewayService.BLL\GatewayService.BLL.csproj" />
   </ItemGroup>
 

@@ -10,7 +10,7 @@ public partial class Quiz
 
     public int? TimeLimitMinutes { get; set; }
 
-    public int? ModuleId { get; set; }
+    public int ModuleId { get; set; }
 
     public virtual ICollection<Question> Questions { get; set; } = new List<Question>();
 

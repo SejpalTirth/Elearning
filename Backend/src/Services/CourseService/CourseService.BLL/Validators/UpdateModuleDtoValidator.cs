@@ -1,4 +1,4 @@
-﻿using CourseService.BLL.DTOs;
+﻿using DTOs._2CourseService;
 using FluentValidation;
 
 namespace CourseService.BLL.Validators

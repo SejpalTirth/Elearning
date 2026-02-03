@@ -1,4 +1,5 @@
-﻿using Gateway.Contracts.Course;
+﻿using DTOs._2CourseService;
+using Gateway.Contracts.Course;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,79 +21,424 @@ namespace Gateway.Controllers
 
         [AllowAnonymous]
         [HttpPost("all")]
-        public Task<IActionResult> GetAll() =>
-            ForwardPost($"{BASE}/all", new { });
+        [ProducesResponseType(typeof(IEnumerable<CourseResponseDto>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<CourseResponseDto>>> GetAll()
+        {
+            try
+            {
+                var result = await ForwardPost($"{BASE}/all", new { });
 
+                if (result == null) return NotFound("Courses not found");
+
+                if (result is OkObjectResult ok)
+                {
+                    return Ok(ok.Value);
+                }
+
+                return result as ActionResult;
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Gateway error", details = ex.Message });
+            }
+        }
+
+        [AllowAnonymous]
         [HttpPost("by-id")]
-        public Task<IActionResult> GetById([FromBody] CourseIdRequest request) =>
-            ForwardPost($"{BASE}/by-id", request);
+        [ProducesResponseType(typeof(CourseResponseDto), StatusCodes.Status200OK)]
+        public async Task<ActionResult<CourseResponseDto>> GetById([FromBody] CourseIdRequest request)
+        {
+            try
+            {
+                var result = await ForwardPost($"{BASE}/by-id", request);
+
+                if (result == null)
+                {
+                    return NotFound("Course not found");
+                }
+
+                if (result is OkObjectResult ok)
+                {
+                    return Ok(ok.Value);
+                }
+
+                return result as ActionResult;
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Gateway error", details = ex.Message });
+            }
+        }
 
         [HttpPost("create")]
-        public Task<IActionResult> Create([FromBody] Course dto) =>
-            ForwardPost($"{BASE}/create", dto);
+        [ProducesResponseType(typeof(Course), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<Course>> Create(
+            [FromBody] CourseCreateRequest dto)
+        {
+            try
+            {
+                var result = await ForwardPost($"{BASE}/create", dto);
+
+                if (result == null)
+                {
+                    return StatusCode(500, new { message = "Course creation failed" });
+                }
+
+                if (result is CreatedResult created)
+                {
+                    return Created(
+                        created.Location ?? string.Empty,
+                        created.Value
+                    );
+                }
+
+                if (result is OkObjectResult ok)
+                {
+                    return Ok(ok.Value);
+                }
+
+                return result as ActionResult;
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Gateway error",
+                    details = ex.Message
+                });
+            }
+        }
+
 
         [HttpPost("update")]
-        public Task<IActionResult> Update([FromBody] UpdateCourseRequest request) =>
-            ForwardPost($"{BASE}/update", request);
+        [ProducesResponseType(typeof(Course), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<Course>> Update(
+            [FromBody] UpdateCourseRequest request)
+        {
+            try
+            {
+                var result = await ForwardPost($"{BASE}/update", request);
+
+                if (result is OkObjectResult ok)
+                {
+                    return Ok(ok.Value);
+                }
+                return result as ActionResult;
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Gateway error",
+                    details = ex.Message
+                });
+            }
+        }
+
 
         [HttpPost("delete")]
-        public Task<IActionResult> Delete([FromBody] CourseIdRequest request) =>
-            ForwardPost($"{BASE}/delete", request);
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> Delete(
+    [FromBody] CourseIdRequest request)
+        {
+            try
+            {
+                var result = await ForwardPost($"{BASE}/delete", request);
+
+                if (result is NoContentResult)
+                {
+                    return NoContent();
+                }
+
+                return result as IActionResult;
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Gateway error",
+                    details = ex.Message
+                });
+            }
+        }
 
         // ------------------- INSTRUCTOR -------------------
 
         [HttpPost("instructor")]
-        public Task<IActionResult> GetByInstructor() =>
-            ForwardPost($"{BASE}/instructor", new { });
+        [ProducesResponseType(typeof(IEnumerable<Course>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<Course>> GetByInstructor()
+        {
+            try
+            {
+                var result = await ForwardPost($"{BASE}/instructor", new { });
+
+                if (result is OkObjectResult ok)
+                {
+                    return Ok(ok.Value);
+                }
+                return result as ActionResult;
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Gateway error",
+                    details = ex.Message
+                });
+            }
+        }
 
         [HttpPost("unfinished")]
-        public Task<IActionResult> GetUnfinishedCourses() =>
-            ForwardPost($"{BASE}/unfinished", new { });
+        [ProducesResponseType(typeof(IEnumerable<Course>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<Course>> GetUnfinishedCourses()
+        {
+            try
+            {
+                var result = await ForwardPost($"{BASE}/unfinished", new { });
+
+                if (result is OkObjectResult ok)
+                {
+                    return Ok(ok.Value);
+                }
+                return result as ActionResult;
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Gateway error",
+                    details = ex.Message
+                });
+            }
+        }
 
         [HttpPost("continue")]
-        public Task<IActionResult> Continue(
-            [FromBody] ContinueCourseRequest request) =>
-            ForwardPost($"{BASE}/continue", request);
+        [ProducesResponseType(typeof(IEnumerable<Course>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<Course>> Continue(
+            [FromBody] ContinueCourseRequest request)
+        {
+            try
+            {
+                var result = await ForwardPost($"{BASE}/continue", new { });
+
+                if (result is OkObjectResult ok)
+                {
+                    return Ok(ok.Value);
+                }
+                return result as ActionResult;
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Gateway error",
+                    details = ex.Message
+                });
+            }
+        }
 
         // ------------------- ENROLLMENT -------------------
 
         [HttpPost("enroll")]
-        public Task<IActionResult> Enroll([FromBody] EnrollRequest dto) =>
-            ForwardPost($"{BASE}/enroll", dto);
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> Enroll([FromBody] EnrollRequest dto)
+        {
+            try
+            {
+                var result = await ForwardPost($"{BASE}/enroll", dto);
+                if (result is OkObjectResult ok)
+                {
+                    return Ok(ok.Value);
+                }
+                return result as IActionResult;
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Gateway error",
+                    details = ex.Message
+                });
+            }
+        }
 
+        [AllowAnonymous]
         [HttpPost("enrolled")]
-        public Task<IActionResult> GetEnrolled() =>
-            ForwardPost($"{BASE}/enrolled", new { });
+        [ProducesResponseType(typeof(IEnumerable<EnrolledCourseResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<IEnumerable<EnrolledCourseResponseDto>>> GetEnrolled()
+        {
+            try
+            {
+                var result = await ForwardPost($"{BASE}/enrolled", new { });
+
+                if (result is OkObjectResult ok)
+                {
+                    return Ok(ok.Value);
+                }
+
+                return result as ActionResult;
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Gateway error",
+                    details = ex.Message
+                });
+            }
+        }
+
+
 
         // ------------------- MODULES -------------------
 
         [HttpPost("modules")]
-        public Task<IActionResult> GetModules(
-            [FromBody] CourseIdRequest request) =>
-            ForwardPost("api/modules/by-course", request);
+        [ProducesResponseType(typeof(IEnumerable<ModuleSummaryDto>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetModules(
+            [FromBody] CourseIdRequest request)
+        {
+            try
+            {
+                var result = await ForwardPost("api/modules/by-course",request);
+
+                if (result == null) return NotFound("Modules not found");
+
+                if (result is OkObjectResult ok)
+                {
+                    return Ok(ok.Value);
+                }
+
+                return result as ActionResult;
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Gateway error", details = ex.Message });
+            }
+        }
 
         [HttpPost("module")]
-        public Task<IActionResult> GetModule(
-            [FromBody] ModuleIdRequest request) =>
-            ForwardPost("api/modules/content", request);
+        [ProducesResponseType(typeof(ModuleContentResponseDto), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetModule(
+            [FromBody] ModuleIdRequest request)
+        {
+            try
+            {
+                var result = await ForwardPost("api/modules/content", request);
+
+                if (result == null) return NotFound("Module not found");
+
+                if (result is OkObjectResult ok)
+                {
+                    return Ok(ok.Value);
+                }
+
+                return result as ActionResult;
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Gateway error", details = ex.Message });
+            }
+        }
 
         // ------------------- CATEGORIES -------------------
 
         [AllowAnonymous]
         [HttpPost("categories")]
-        public Task<IActionResult> GetCategories() =>
-            ForwardPost("api/categories", new { });
+        [ProducesResponseType(typeof(IEnumerable<CategoryResponseDto>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<CategoryResponseDto>>> GetCategories()
+        {
+            try
+            {
+                var result = await ForwardPost("api/categories", new { });
+
+                if (result is OkObjectResult ok)
+                {
+                    return Ok(ok.Value);
+                }
+
+                return result as ActionResult;
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Gateway error",
+                    details = ex.Message
+                });
+            }
+        }
 
         // ------------------- PUBLISH / RESTORE -------------------
 
         [HttpPost("publish")]
-        public Task<IActionResult> PublishCourse(
-            [FromBody] CourseIdRequest request) =>
-            ForwardPost($"{BASE}/publish", request);
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> PublishCourse(
+            [FromBody] CourseIdRequest request)
+        {
+            try
+            {
+                var result = await ForwardPost($"{BASE}/publish", request);
+                if (result is OkObjectResult ok)
+                {
+                    return Ok(ok.Value);
+                }
+                return result as IActionResult;
+
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Gateway error",
+                    details = ex.Message
+                });
+            }
+        }
 
         [HttpPost("restore")]
-        public Task<IActionResult> Restore(
-            [FromBody] CourseIdRequest request) =>
-            ForwardPost($"{BASE}/restore", request);
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> Restore(
+            [FromBody] CourseIdRequest request)
+        {
+            try
+            {
+                var result = await ForwardPost($"{BASE}/restore", request);
+                if (result is OkObjectResult ok)
+                {
+                    return Ok(ok.Value);
+                }
+                return result as IActionResult;
+            }
+            catch(Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Gateway error",
+                    details = ex.Message
+                });
+            }
+        }
     }
 }

@@ -1,6 +1,6 @@
 using AutoFixture;
 using System.Text.Json;
-using AssessmentService.BLL.DTOs;
+using DTOs._4AssessmentService;
 using AssessmentService.BLL.Services;
 using AssessmentService.DAL.Models;
 using AssessmentService.DAL.Repo;

@@ -1,5 +1,5 @@
 ﻿using FluentValidation;
-using ProgresService.BLL.DTOs;
+using DTOs._5ProgresService;
 
 namespace ProgressService.BLL.Validators
 {

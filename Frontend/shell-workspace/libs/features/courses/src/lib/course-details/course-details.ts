@@ -1,7 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { CourseFacade } from '@frontend/core';
 import { CommonModule } from '@angular/common';
+import { GatewayCourseService } from '@frontend/api';
 
 @Component({
   selector: 'app-course-details',
@@ -20,8 +20,8 @@ export class CourseDetailsComponent implements OnInit {
   btnLoading = false;
 
   private readonly route = inject(ActivatedRoute);
-  private readonly courseApi = inject(CourseFacade);
   private readonly router = inject(Router);
+  private readonly courseapi = inject(GatewayCourseService);
 
   ngOnInit(): void {
     this.courseId = Number(this.route.snapshot.paramMap.get('id'));
@@ -33,13 +33,13 @@ export class CourseDetailsComponent implements OnInit {
   // DATA
   // -----------------------------
   loadCourse(): void {
-    this.courseApi.getCourseById({courseId: this.courseId}).subscribe({
+    this.courseapi.postApiCourseById({courseId: this.courseId}).subscribe({
       next: res => this.course = res
     });
   }
 
   checkEnrollment(): void {
-    this.courseApi.getEnrolledCourses().subscribe({
+    this.courseapi.postApiCourseEnrolled().subscribe({
       next: courses => {
         this.isEnrolled = courses.some(
           (c: { id: number }) => c.id === this.courseId
@@ -63,7 +63,7 @@ export class CourseDetailsComponent implements OnInit {
     this.isLoading = true;
     this.btnLoading = true;
 
-    this.courseApi.enroll({courseId: this.courseId}).subscribe({
+    this.courseapi.postApiCourseEnroll({courseId: this.courseId}).subscribe({
       next: () => {
         this.isEnrolled = true;
 

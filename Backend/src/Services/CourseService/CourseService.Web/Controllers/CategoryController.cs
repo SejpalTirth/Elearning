@@ -1,4 +1,5 @@
 ﻿using CourseService.DAL.Models;
+using DTOs._2CourseService;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,13 +17,14 @@ namespace CourseService.Web.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> GetAll()
+        [ProducesResponseType(typeof(IEnumerable<CategoryResponseDto>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<CategoryResponseDto>>> GetAll()
         {
             var categories = await _context.Categories
-                .Select(c => new
+                .Select(c => new CategoryResponseDto
                 {
-                    c.Id,
-                    c.Name
+                    Id = c.Id,
+                    Name = c.Name
                 })
                 .ToListAsync();
 

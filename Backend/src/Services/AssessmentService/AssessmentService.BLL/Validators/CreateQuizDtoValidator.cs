@@ -1,4 +1,4 @@
-﻿using AssessmentService.BLL.DTOs;
+﻿using DTOs._4AssessmentService;
 using FluentValidation;
 
 namespace AssessmentService.BLL.Validators

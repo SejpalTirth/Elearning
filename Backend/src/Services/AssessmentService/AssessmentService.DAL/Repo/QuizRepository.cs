@@ -54,8 +54,8 @@ namespace AssessmentService.DAL.Repo
         public async Task<List<int>> GetModuleIdsWithQuizAsync(List<int> moduleIds)
         {
             return await _db.Quizzes
-                .Where(q => moduleIds.Contains(q.ModuleId.Value))
-                .Select(q => q.ModuleId.Value)
+                .Where(q => moduleIds.Contains(q.ModuleId))
+                .Select(q => q.ModuleId)
                 .ToListAsync();
         }
     }

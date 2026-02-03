@@ -29,6 +29,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\DTOs\DTOs\DTOs.csproj" />
     <ProjectReference Include="..\ProgresService.DAL\ProgresService.DAL.csproj" />
   </ItemGroup>
 

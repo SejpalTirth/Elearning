@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using AssessmentService.BLL.DTOs;
+using DTOs._4AssessmentService;
 using AssessmentService.DAL.Models;
 
 public class AssessmentProfile : Profile

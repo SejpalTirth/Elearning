@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Moq;
-using UserService.BLL.DTOs;
+using DTOs._3UserService;
 using UserService.BLL.Interface;
 using UserService.BLL.UserContext;
 using UserService.DAL.Models;

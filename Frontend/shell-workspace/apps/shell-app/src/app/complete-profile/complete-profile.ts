@@ -2,8 +2,8 @@ import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { UserFacade } from '@frontend/core';
 import { ToastService } from '@frontend/ui';
+import { GatewayUsersService } from '@frontend/api';
 
 @Component({
   selector: 'app-complete-profile',
@@ -20,9 +20,9 @@ export class CompleteProfileComponent implements OnInit {
   loading = false;
 
   private readonly route = inject(ActivatedRoute);
-  private readonly userApi = inject(UserFacade);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly userapi = inject(GatewayUsersService);
 
   ngOnInit(): void {
     this.userId = this.route.snapshot.queryParamMap.get('userId');
@@ -55,7 +55,7 @@ export class CompleteProfileComponent implements OnInit {
     role
   };
 
-  this.userApi.completeProfile(payload).subscribe({
+  this.userapi.postApiUsersCompleteProfile(payload).subscribe({
     next: () => {
       this.toast.showInfo('Profile completed successfully! Please login again.')
       this.router.navigate(['/']);

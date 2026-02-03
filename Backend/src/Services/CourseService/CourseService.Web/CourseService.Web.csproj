@@ -16,6 +16,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\..\..\DTOs\DTOs\DTOs.csproj" />
 		<ProjectReference Include="..\CourseService.BLL\CourseService.BLL.csproj" />
 	</ItemGroup>
 

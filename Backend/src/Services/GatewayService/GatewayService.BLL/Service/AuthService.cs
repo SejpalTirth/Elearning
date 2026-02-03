@@ -1,4 +1,4 @@
-﻿using GatewayService.BLL.DTOs;
+﻿using DTOs._1GatewayService;
 using GatewayService.BLL.Interface;
 using GatewayService.BLL.Security;
 using GatewayService.DAL.Models;

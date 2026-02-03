@@ -1,9 +1,9 @@
 ﻿using AutoFixture;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
-using NotificationService.BLL.DTOs;
+using DTOs._6NotificationService;
 using NotificationService.BLL.Interface;
-using NotificationService.BLL.Models;
+using DTOs._6NotificationService;
 using NotificationService.Web.Controllers;
 
 namespace LMS.Tests.NotificationService

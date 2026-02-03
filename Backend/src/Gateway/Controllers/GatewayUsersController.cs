@@ -1,4 +1,5 @@
-﻿using Gateway.Contracts.Users;
+﻿using DTOs._3UserService;
+using Gateway.Contracts.Users;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,21 +21,62 @@ namespace Gateway.Controllers
         // ------------------- USERS -------------------
 
         [HttpPost("all")]
-        public Task<IActionResult> GetAllUsers() =>
-            ForwardPost($"{BASE_USERS}/all", new { });
+        [ProducesResponseType(typeof(List<UserDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<List<UserDto>>> GetAllUsers()
+        {
+            try
+            {
+                var result = await ForwardPost($"{BASE_USERS}/all", new { });
+                if(result is ObjectResult objectResult &&
+                    objectResult.Value is List<UserDto> users)
+                {
+                    return Ok(users);
+                }
+                return result as ActionResult;
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Gateway error",
+                    details = ex.Message
+                });
+            }
+        }
 
         [HttpPost("by-id")]
-        public Task<IActionResult> GetUser(
-            [FromBody] UserIdRequest request) =>
-            ForwardPost($"{BASE_USERS}/by-id", request);
-
-        [HttpPost("delete")]
-        public Task<IActionResult> DeleteUser(
-            [FromBody] UserIdRequest request) =>
-            ForwardPost($"{BASE_USERS}/delete", request);
+        [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<UserDto>> GetUser(
+            [FromBody] UserIdRequest request)
+        {
+            try
+            {
+                var result = await ForwardPost($"{BASE_USERS}/by-id", request);
+                if(result is OkObjectResult ok)
+                {
+                    return Ok(ok.Value);
+                }
+                return result as ActionResult;
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Gateway error",
+                    details = ex.Message
+                });
+            }
+        }
 
         [AllowAnonymous]
         [HttpPost("complete-profile")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public Task<IActionResult> CompleteProfile(
             [FromBody] CompleteProfileRequest dto) =>
             ForwardPost($"{BASE_USERS}/complete-profile", dto);
@@ -42,15 +84,30 @@ namespace Gateway.Controllers
         // ------------------- ROLES -------------------
 
         [HttpPost("roles/all")]
-        public Task<IActionResult> GetAllRoles() =>
-            ForwardPost($"{BASE_ROLES}/all", new { });
+        [ProducesResponseType(typeof(List<Roleresponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<List<Roleresponse>>> GetAllRoles()
+        {
+            try
+            {
+                var result = await ForwardPost($"{BASE_ROLES}/all", new { });
 
-        [HttpPost("roles/user")]
-        public Task<IActionResult> GetUserRole(
-            [FromBody] UserIdRequest request) =>
-            ForwardPost($"{BASE_ROLES}/user", request);
+                return result as ActionResult; 
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Gateway error",
+                    details = ex.Message
+                });
+            }
+        }
 
         [HttpPost("roles/update")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public Task<IActionResult> UpdateUserRole(
             [FromBody] UpdateUserRoleRequest dto) =>
             ForwardPost($"{BASE_ROLES}/update", dto);

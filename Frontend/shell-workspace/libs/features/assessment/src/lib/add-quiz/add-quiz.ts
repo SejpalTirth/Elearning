@@ -2,9 +2,9 @@ import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormArray, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { CourseFacade, AssessmentFacade } from '@frontend/core';
-import { ModuleTitlePipe } from '@frontend/core';
+import { ModuleTitlePipe } from '@frontend/shared';
 import { ToastService } from '@frontend/ui';
+import { AssessmentGatewayService, GatewayCourseService } from '@frontend/api';
 
 @Component({
   selector: 'app-add-quiz',
@@ -36,18 +36,18 @@ export class AddQuizComponent implements OnInit {
   questionCount = 0;
 
   private readonly fb = inject(FormBuilder);
-  private readonly assessmentApi = inject(AssessmentFacade);
-  private readonly courseApi = inject(CourseFacade);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly courseapi = inject(GatewayCourseService);
+  private readonly assessmentapi = inject(AssessmentGatewayService);
 
   ngOnInit(): void {
 
     this.courseId = Number(this.route.snapshot.paramMap.get('courseId'));
 
-    this.courseApi.getCourseModules({courseId: this.courseId}).subscribe(res => {
+    this.courseapi.postApiCourseModules({courseId: this.courseId}).subscribe(res => {
       this.modules = res;
       this.loadNextPendingModule();
     });
@@ -76,7 +76,7 @@ export class AddQuizComponent implements OnInit {
   }
 
   loadNextPendingModule(): void {
-    this.assessmentApi.getUnquizzedModules({courseId: this.courseId}).subscribe(missing => {
+    this.assessmentapi.postApiAssessmentCourseUnquizzedModules({courseId: this.courseId}).subscribe(missing => {
       this.unquizzedModules = missing;
 
       if (!missing || missing.length === 0) {
@@ -108,7 +108,7 @@ export class AddQuizComponent implements OnInit {
     return;
   }
 
-  this.assessmentApi.createQuiz(this.quizForm.value).subscribe({
+  this.assessmentapi.postApiAssessmentQuiz(this.quizForm.value).subscribe({
     next: (res: any) => {
 
       const quizId = res?.quizId ?? res?.id;
@@ -152,7 +152,7 @@ export class AddQuizComponent implements OnInit {
       }
     };
 
-    this.assessmentApi.addQuestion(payload).subscribe(() => {
+    this.assessmentapi.postApiAssessmentQuizQuestions(payload).subscribe(() => {
       this.questionCount++;
 
       this.questionForm.reset({
@@ -179,7 +179,7 @@ export class AddQuizComponent implements OnInit {
       return;
     }
 
-    this.assessmentApi.getUnquizzedModules({courseId: this.courseId}).subscribe(missing => {
+    this.assessmentapi.postApiAssessmentCourseUnquizzedModules({courseId: this.courseId}).subscribe(missing => {
       if (missing.includes(this.currentModuleId!)) {
         this.toast.showError('Please finish quiz creation for this module.');
         return;
