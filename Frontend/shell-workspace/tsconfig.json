@@ -5,31 +5,31 @@
   "compilerOptions": {
     "paths": {
       "@frontend/api": [
-        "./dist/api"
+        "./libs/api/src/public-api.ts"
       ],
       "@frontend/auth": [
-        "./dist/auth"
+        "./libs/auth/src/public-api.ts"
       ],
       "@frontend/core": [
-        "./dist/core"
+        "./libs/core/src/public-api.ts"
       ],
       "@frontend/shared": [
-        "./dist/shared"
+        "./libs/shared/src/public-api.ts"
       ],
       "@frontend/ui": [
-        "./dist/ui"
+        "./libs/ui/src/public-api.ts"
       ],
       "@frontend/features/home": [
-        "./dist/home"
+        "./libs/features/home/src/public-api.ts"
       ],
       "@frontend/features/courses": [
-        "./dist/courses"
+        "./libs/features/courses/src/public-api.ts"
       ],
       "@frontend/features/assessment": [
-        "./dist/assessment"
+        "./libs/features/assessment/src/public-api.ts"
       ],
       "@frontend/features/admin": [
-        "./dist/admin"
+        "./libs/features/admin/src/public-api.ts"
       ]
     },
     "strict": true,

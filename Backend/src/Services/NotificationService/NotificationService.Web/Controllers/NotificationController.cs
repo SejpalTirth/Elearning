@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using NotificationService.BLL.DTOs;
+using DTOs._6NotificationService;
 using NotificationService.BLL.Interface;
 
 namespace NotificationService.Web.Controllers
@@ -19,8 +19,9 @@ namespace NotificationService.Web.Controllers
         // ---------------- Direct Email ----------------
 
         [HttpPost("send")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> Send(
-            [FromBody] EmailRequest req)
+            [FromBody] EmailRequestDTO req)
         {
             await _service.SendEmailAsync(
                 req.UserId,
@@ -33,6 +34,7 @@ namespace NotificationService.Web.Controllers
         // ---------------- Template Email ----------------
 
         [HttpPost("template/send")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> SendTemplate(
             [FromBody] TemplateRequestDTO req)
         {
@@ -47,17 +49,19 @@ namespace NotificationService.Web.Controllers
         // ---------------- User Notifications ----------------
 
         [HttpPost("user")]
-        public async Task<IActionResult> GetUserNotifications(
+        [ProducesResponseType(typeof(NotificationDto), StatusCodes.Status200OK)]
+        public async Task<ActionResult<NotificationDto>> GetUserNotifications(
             [FromBody] UserIdRequestDto dto)
         {
-            return Ok(await _service
-                .GetUserNotificationsAsync(dto.UserId));
+            var result = await _service.GetUserNotificationsAsync(dto.UserId);
+            return Ok(result);
         }
 
         // ---------------- Triggered Notification ----------------
 
         [HttpPost("trigger")]
         [Consumes("application/json")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> TriggerNotification(
             [FromBody] TriggerNotificationDto request)
         {

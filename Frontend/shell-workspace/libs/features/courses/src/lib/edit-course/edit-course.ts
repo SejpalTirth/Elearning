@@ -3,9 +3,13 @@ import { FormBuilder, FormArray, FormGroup, Validators, ReactiveFormsModule } fr
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { DragDropModule, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
-import { CourseFacade, AssessmentFacade } from '@frontend/core';
 import { ToastService } from '@frontend/ui';
 import { LoadingService } from '@frontend/ui';
+import { GatewayCourseService,
+         GatewayContractsCourseCourseIdRequest,
+         GatewayContractsCourseUpdateCourseRequest,          
+         AssessmentGatewayService
+       } from '@frontend/api';
 
 @Component({
   selector: 'app-edit-course',
@@ -27,12 +31,12 @@ export class EditCourseComponent implements OnInit {
   submitted = false;
 
   private readonly fb = inject(FormBuilder);
-  private readonly api = inject(CourseFacade);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly assessmentApi = inject(AssessmentFacade);
   private readonly loading = inject(LoadingService);
   private readonly toast = inject(ToastService);
+  private readonly courseapi = inject(GatewayCourseService);
+  private readonly assessmentapi = inject(AssessmentGatewayService);
 
   ngOnInit(): void {
     this.courseId = Number(this.route.snapshot.paramMap.get('id'));
@@ -53,7 +57,7 @@ export class EditCourseComponent implements OnInit {
   }
 
   loadCategories(): void {
-    this.api.getCategories().subscribe({
+    this.courseapi.postApiCourseCategories().subscribe({
       next: res => {
         this.categories = res || [];
         this.loadCourse();
@@ -66,7 +70,10 @@ export class EditCourseComponent implements OnInit {
   }
 
   loadCourse(): void {
-    this.api.getCourseById({courseId: this.courseId}).subscribe({
+    const request: GatewayContractsCourseCourseIdRequest = {
+      courseId : this.courseId
+    }
+    this.courseapi.postApiCourseById(request).subscribe({
       next: course => {
         if (course.isDeleted) {
           this.loading.hide();
@@ -126,7 +133,7 @@ export class EditCourseComponent implements OnInit {
       return;
     }
 
-    const requestBody = {
+    const requestBody : GatewayContractsCourseUpdateCourseRequest = {
       courseId: this.courseId,
       course: {
         title: this.form.value.title,
@@ -142,9 +149,9 @@ export class EditCourseComponent implements OnInit {
 
     this.loading.show();
 
-    this.api.updateCourse(requestBody).subscribe({
+    this.courseapi.postApiCourseUpdate(requestBody).subscribe({
       next: () => {
-        this.assessmentApi.getQuizStatusForCourse({courseId: this.courseId}).subscribe({
+        this.assessmentapi.postApiAssessmentCourseQuizStatus({courseId: this.courseId}).subscribe({
           next: status => {
             this.loading.hide();
             if (!status.allQuizzesCreated) {

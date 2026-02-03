@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
-using CourseService.BLL.DTOs;
 using CourseService.DAL.Models;
+using DTOs._2CourseService;
 
 public class CourseProfile : Profile
 {

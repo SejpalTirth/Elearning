@@ -1,4 +1,4 @@
-﻿using AssessmentService.BLL.DTOs;
+﻿using DTOs._4AssessmentService;
 using AssessmentService.BLL.Interfaces;
 using AssessmentService.DAL.Models;
 using AssessmentService.DAL.Repo;
@@ -38,11 +38,21 @@ namespace AssessmentService.BLL.Services
 
         // ======================= CREATE QUIZ =======================
 
-        public async Task<object> CreateQuizAsync(CreateQuizDto dto)
+        public async Task<CreateQuizResponseDto> CreateQuizAsync(CreateQuizDto dto)
         {
             var existing = await _quizRepo.GetByModuleIdAsync(dto.ModuleId);
+
             if (existing != null)
-                return new { message = "Quiz already exists.", quizId = existing.Id };
+            {
+                return new CreateQuizResponseDto
+                {
+                    AlreadyExists = true,
+                    QuizId = existing.Id,
+                    Title = existing.Title,
+                    ModuleId = existing.ModuleId,
+                    Message = "Quiz already exists."
+                };
+            }
 
             var quiz = new Quiz
             {
@@ -55,7 +65,6 @@ namespace AssessmentService.BLL.Services
             await _quizRepo.AddAsync(quiz);
             await _quizRepo.SaveChangesAsync();
 
-            // Auto-publish course if ready
             try
             {
                 var client = CreateCourseServiceClient();
@@ -86,13 +95,26 @@ namespace AssessmentService.BLL.Services
                 Console.WriteLine("[AutoPublish] " + ex.Message);
             }
 
-            return new { quiz.Id, quiz.Title, quiz.ModuleId };
+            return new CreateQuizResponseDto
+            {
+                AlreadyExists = false,
+                QuizId = quiz.Id,
+                Title = quiz.Title,
+                ModuleId = quiz.ModuleId,
+                Message = "Quiz created successfully."
+            };
         }
-        public async Task<object> AddQuestionAsync(AddQuestionDto dto)
+        public async Task<AddQuestionResponseDto> AddQuestionAsync(AddQuestionDto dto)
         {
             var quiz = await _quizRepo.GetByIdAsync(dto.QuizId);
             if (quiz == null)
-                return new { message = "Quiz not found." };
+            {
+                return new AddQuestionResponseDto
+                {
+                    Success = false,
+                    Message = "Quiz not found."
+                };
+            }
 
             ValidateQuestion(dto.Question);
 
@@ -113,10 +135,11 @@ namespace AssessmentService.BLL.Services
             quiz.TotalMarks = (quiz.TotalMarks ?? 0) + dto.Question.Marks;
             await _quizRepo.SaveChangesAsync();
 
-            return new
+            return new AddQuestionResponseDto
             {
-                message = "Question added successfully.",
-                questionId = question.Id
+                Success = true,
+                Message = "Question added successfully.",
+                QuestionId = question.Id
             };
         }
 
@@ -224,49 +247,47 @@ namespace AssessmentService.BLL.Services
 
         // ======================= QUIZ STATUS =======================
 
-        public async Task<object> GetQuizStatusForCourseAsync(int courseId)
+        public async Task<CourseQuizStatusResponseDto> GetQuizStatusForCourseAsync(int courseId)
         {
             var modules = await FetchModulesForCourseAsync(courseId);
 
             if (modules == null)
             {
-                return new
+                return new CourseQuizStatusResponseDto
                 {
-                    courseId,
-                    allQuizzesCreated = false,
-                    modules = new List<object>(),
-                    nextPendingModuleId = (int?)null,
-                    error = "CourseService unavailable"
+                    CourseId = courseId,
+                    AllQuizzesCreated = false,
+                    Error = "CourseService unavailable"
                 };
             }
 
             if (!modules.Any())
             {
-                return new
+                return new CourseQuizStatusResponseDto
                 {
-                    courseId,
-                    allQuizzesCreated = false,
-                    modules = new List<object>(),
-                    nextPendingModuleId = (int?)null
+                    CourseId = courseId,
+                    AllQuizzesCreated = false
                 };
             }
 
-            var missing = await GetModulesWithoutQuizAsync(modules.Select(m => m.Id).ToList());
+            var missing = await GetModulesWithoutQuizAsync(
+                modules.Select(m => m.Id).ToList()
+            );
 
-            var moduleStatus = modules.Select(m => new
+            var moduleStatus = modules.Select(m => new QuizModuleStatusDto
             {
-                moduleId = m.Id,
-                title = m.Title,
-                quizExists = !missing.Contains(m.Id)
+                ModuleId = m.Id,
+                Title = m.Title,
+                QuizExists = !missing.Contains(m.Id)
             }).ToList();
 
-            return new
+            return new CourseQuizStatusResponseDto
             {
-                courseId,
-                allQuizzesCreated = missing.Count == 0,
-                modules = moduleStatus,
-                nextPendingModuleId =
-                    moduleStatus.FirstOrDefault(m => !m.quizExists)?.moduleId
+                CourseId = courseId,
+                AllQuizzesCreated = missing.Count == 0,
+                Modules = moduleStatus,
+                NextPendingModuleId =
+                    moduleStatus.FirstOrDefault(m => !m.QuizExists)?.ModuleId
             };
         }
 

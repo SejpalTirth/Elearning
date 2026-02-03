@@ -1,7 +1,7 @@
 ﻿using CourseService.BLL.Interface;
-using CourseService.BLL.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using DTOs._2CourseService;
 
 namespace CourseService.Web.Controllers
 {
@@ -20,6 +20,7 @@ namespace CourseService.Web.Controllers
         // ---------------- MODULES BY COURSE ----------------
 
         [HttpPost("by-course")]
+        [ProducesResponseType(typeof(IEnumerable<ModuleSummaryDto>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetByCourse(
             [FromBody] CourseIdRequestDto dto)
         {
@@ -32,6 +33,7 @@ namespace CourseService.Web.Controllers
         // ---------------- MODULE CONTENT ----------------
 
         [HttpPost("content")]
+        [ProducesResponseType(typeof(ModuleContentResponseDto), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetContent(
             [FromBody] ModuleIdRequestDto dto)
         {

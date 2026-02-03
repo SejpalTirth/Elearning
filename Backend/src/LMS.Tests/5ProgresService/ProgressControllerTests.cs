@@ -1,7 +1,7 @@
 ﻿using AutoFixture;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
-using ProgresService.BLL.DTOs;
+using DTOs._5ProgresService;
 using ProgresService.BLL.Interface;
 using ProgresService.BLL.Models;
 using ProgresService.BLL.UserContext;

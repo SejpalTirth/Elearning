@@ -1,10 +1,10 @@
 ﻿using FluentValidation;
-using NotificationService.BLL.DTOs;
+using DTOs._6NotificationService;
 
 namespace NotificationService.BLL.Validators
 {
     public class EmailRequestValidator
-        : AbstractValidator<EmailRequest>
+        : AbstractValidator<EmailRequestDTO>
     {
         public EmailRequestValidator()
         {

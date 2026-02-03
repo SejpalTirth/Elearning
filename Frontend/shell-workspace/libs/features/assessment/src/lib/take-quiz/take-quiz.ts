@@ -3,9 +3,9 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
-import { AssessmentFacade, ProgressService } from '@frontend/core'
 import { AuthStateService } from '@frontend/auth'
 import { ToastService } from '@frontend/ui'
+import { AssessmentGatewayService, ProgressGatewayService } from '@frontend/api';
 
 @Component({
   selector: 'app-take-quiz',
@@ -28,11 +28,11 @@ export class TakeQuizComponent implements OnInit, OnDestroy {
   userId: string | null = null;
 
   private readonly route = inject(ActivatedRoute);
-  private readonly api = inject(AssessmentFacade);
-  private readonly progressService = inject(ProgressService);
+  private readonly progressService = inject(ProgressGatewayService);
   private readonly router = inject(Router);
   private readonly authState = inject(AuthStateService);
   private readonly toast = inject(ToastService);
+  private readonly assessmentapi = inject(AssessmentGatewayService);
 
   private authSub?: Subscription;
 
@@ -58,7 +58,7 @@ export class TakeQuizComponent implements OnInit, OnDestroy {
   // ---------------- LOAD QUIZ ----------------
 
   loadQuiz(): void {
-    this.api.getQuizForModule({moduleId: this.moduleId}).subscribe({
+    this.assessmentapi.postApiAssessmentQuizModule({moduleId: this.moduleId}).subscribe({
       next: (res: any) => {
         this.quiz = res;
 
@@ -97,12 +97,12 @@ export class TakeQuizComponent implements OnInit, OnDestroy {
       answers: this.answers
     };
 
-    this.api.submitQuiz(payload).subscribe({
+    this.assessmentapi.postApiAssessmentQuizSubmit(payload).subscribe({
       next: (result: any) => {
 
         if (result.passed) {
           this.progressService
-            .completeModule({moduleId: this.moduleId})
+            .postApiProgressCompleteModule({moduleId: this.moduleId})
             .subscribe();
         }
 

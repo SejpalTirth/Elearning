@@ -1,6 +1,7 @@
-﻿using CourseService.BLL.DTOs;
-using CourseService.BLL.Interface;
+﻿using CourseService.BLL.Interface;
 using CourseService.BLL.UserContext;
+using CourseService.DAL.Models;
+using DTOs._2CourseService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,24 +14,24 @@ namespace CourseService.Web.Controllers
     {
         private readonly ICourseService _courseService;
         private readonly IModuleService _moduleService;
-        private readonly IHttpClientFactory _httpClientFactory;
         private readonly IUserContextAccessor _userContext;
 
         public CoursesController(
             ICourseService courseService,
             IModuleService moduleService,
-            IHttpClientFactory httpClientFactory,
             IUserContextAccessor userContext)
         {
             _courseService = courseService;
             _moduleService = moduleService;
-            _httpClientFactory = httpClientFactory;
             _userContext = userContext;
         }
 
         // ---------------- COURSES BY INSTRUCTOR ----------------
 
         [HttpPost("instructor")]
+        [ProducesResponseType(typeof(IEnumerable<Course>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetByInstructor()
         {
             var userId = _userContext.Current?.UserId;
@@ -38,16 +39,23 @@ namespace CourseService.Web.Controllers
             if (userId == null || userId == Guid.Empty)
                 return Unauthorized("Invalid user context.");
 
-            return Ok(await _courseService
-                .GetCoursesByInstructorAsync(userId.Value));
+            var courses = await _courseService
+                .GetCoursesByInstructorAsync(userId.Value);
+
+            if(courses == null || !courses.Any())
+                return NotFound("No courses found for the instructor.");
+
+            return Ok(courses);
         }
 
         // ---------------- GET ALL COURSES ----------------
 
         [HttpPost("all")]
+        [ProducesResponseType(typeof(IEnumerable<CourseResponseDto>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAll()
         {
-            return Ok(await _courseService.GetAllAsync());
+            var result = await _courseService.GetAllAsync();
+            return Ok(result);
         }
 
         // ---------------- COURSE BY ID ----------------
@@ -63,16 +71,25 @@ namespace CourseService.Web.Controllers
         // ---------------- CREATE COURSE ----------------
 
         [HttpPost("create")]
-        public async Task<IActionResult> Create(
+        [ProducesResponseType(typeof(Course), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<CourseDto>> Create(
             [FromBody] CourseDto dto)
         {
             var created = await _courseService.CreateAsync(dto);
-            return Ok(created);
+
+            return CreatedAtAction(
+                nameof(GetById),
+                new { id = created.Id },
+                created
+            );
         }
 
         // ---------------- UPDATE COURSE ----------------
 
         [HttpPost("update")]
+        [ProducesResponseType(typeof(Course), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Update(
             [FromBody] UpdateCourseRequestDto request)
         {
@@ -86,6 +103,8 @@ namespace CourseService.Web.Controllers
         // ---------------- DELETE COURSE ----------------
 
         [HttpPost("delete")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Delete(
             [FromBody] CourseIdRequestDto dto)
         {
@@ -96,6 +115,8 @@ namespace CourseService.Web.Controllers
         // ---------------- ENROLL ----------------
 
         [HttpPost("enroll")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Enroll([FromBody] EnrollRequestDto dto)
         {
             var user = _userContext.Current;
@@ -122,30 +143,37 @@ namespace CourseService.Web.Controllers
         // ---------------- ENROLLED COURSES ----------------
 
         [HttpPost("enrolled")]
-        public async Task<IActionResult> GetEnrolledCourses()
+        [ProducesResponseType(typeof(IEnumerable<EnrolledCourseResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<IEnumerable<EnrolledCourseResponseDto>>> GetEnrolledCourses()
         {
             var userId = _userContext.Current?.UserId;
 
             if (userId == null || userId == Guid.Empty)
                 return Unauthorized("Invalid user context.");
 
-            return Ok(await _courseService
-                .GetUserEnrolledCoursesAsync(userId.ToString()));
+            var courses = await _courseService
+                .GetUserEnrolledCoursesAsync(userId.ToString());
+
+            if (courses == null || !courses.Any())
+                return NotFound();
+
+            var response = courses.Select(c => new EnrolledCourseResponseDto
+            {
+                Id = c.Id,
+                Title = c.Title
+            });
+
+            return Ok(response);
         }
 
-        // ---------------- MODULES ----------------
-
-        [HttpPost("modules")]
-        public async Task<IActionResult> GetModulesForCourse(
-            [FromBody] CourseIdRequestDto dto)
-        {
-            return Ok(await _moduleService
-                .GetModulesByCourseAsync(dto.CourseId));
-        }
 
         // ---------------- PUBLISH COURSE ----------------
 
         [HttpPost("publish")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> PublishCourse(
             [FromBody] CourseIdRequestDto dto)
         {
@@ -162,6 +190,8 @@ namespace CourseService.Web.Controllers
         // ---------------- UNFINISHED COURSES ----------------
 
         [HttpPost("unfinished")]
+        [ProducesResponseType(typeof(IEnumerable<Course>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetUnfinishedCourses()
         {
             var instructorId = _userContext.Current?.UserId;
@@ -169,23 +199,35 @@ namespace CourseService.Web.Controllers
             if (instructorId == null || instructorId == Guid.Empty)
                 return Unauthorized("Invalid user context.");
 
-            return Ok(await _courseService
-                .GetAllUnfinishedCoursesAsync(instructorId.Value));
+            var result = await _courseService
+                .GetAllUnfinishedCoursesAsync(instructorId.Value);
+            
+                return Ok(result);
         }
 
         // ---------------- CONTINUE COURSE ----------------
 
         [HttpPost("continue")]
+        [ProducesResponseType(typeof(IEnumerable<Course>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> ContinueCourse(
             [FromBody] ContinueCourseRequestDto dto)
         {
-            return Ok(await _courseService
-                .ContinueUnfinishedCourseAsync(dto.CourseId));
+            var result = await _courseService
+                .GetByIdAsync(dto.CourseId);
+            if(result == null)
+            {
+                return NotFound("Course not found.");
+            }
+            
+            return Ok(result);
         }
 
         // ---------------- RESTORE COURSE ----------------
 
         [HttpPost("restore")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> Restore(
             [FromBody] RestoreCourseRequestDto dto)
         {

@@ -1,9 +1,0 @@
-﻿namespace UserService.BLL.DTOs
-{
-    public class CompleteProfileDto
-    {
-        public string UserId { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
-        public string Role { get; set; } = "Pending";
-    }
-}

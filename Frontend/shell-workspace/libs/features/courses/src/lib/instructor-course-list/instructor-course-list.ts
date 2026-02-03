@@ -2,7 +2,7 @@ import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { AuthStateService } from '@frontend/auth';
-import { CourseFacade } from '@frontend/core';
+import { GatewayCourseService } from '@frontend/api';
 
 @Component({
   selector: 'lib-instructor-course-list',
@@ -16,9 +16,9 @@ export class InstructorCourseList implements OnInit, OnDestroy{
   userId: string | null = null;
   loading = true;
 
-  private readonly courseApi = inject(CourseFacade);
   private readonly router = inject(Router);
   private readonly authState = inject(AuthStateService);
+  private readonly courseapi = inject(GatewayCourseService);
 
   private authSub?: Subscription;
 
@@ -49,7 +49,7 @@ export class InstructorCourseList implements OnInit, OnDestroy{
     }
     this.loading = true;
 
-    this.courseApi.getInstructorCourses().subscribe({
+    this.courseapi.postApiCourseInstructor().subscribe({
       next: (res: any[]) => {
         this.courses = res;
         this.loading = false;

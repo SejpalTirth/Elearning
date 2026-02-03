@@ -1,4 +1,5 @@
-﻿using ProgresService.BLL.Models;
+﻿using DTOs._5ProgresService;
+using ProgresService.BLL.Models;
 
 namespace ProgresService.BLL.Interface
 {

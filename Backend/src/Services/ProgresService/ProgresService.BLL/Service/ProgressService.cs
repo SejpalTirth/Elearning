@@ -1,8 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
-using NotificationService.BLL.DTOs;
-using NotificationService.BLL.Models;
+﻿using DTOs._5ProgresService;
+using DTOs._6NotificationService;
+using Microsoft.AspNetCore.Http;
 using ProgresService.BLL.Interface;
-using ProgresService.BLL.Models;
 using ProgresService.DAL.Repo;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;

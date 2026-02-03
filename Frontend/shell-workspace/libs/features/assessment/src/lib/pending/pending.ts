@@ -2,9 +2,9 @@ import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
-import { CourseFacade, AssessmentFacade } from '@frontend/core';
 import { ToastService, LoadingService } from '@frontend/ui';
 import { AuthStateService } from '@frontend/auth';
+import { AssessmentGatewayService, GatewayCourseService } from '@frontend/api';
 
 @Component({
   selector: 'app-pending',
@@ -21,9 +21,9 @@ export class Pending implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly toastService = inject(ToastService);
   private readonly authState = inject(AuthStateService);
-  private readonly courseApi = inject(CourseFacade);
-  private readonly assessmentApi = inject(AssessmentFacade);
   private readonly loading = inject(LoadingService);
+  private readonly courseapi = inject(GatewayCourseService);
+  private readonly assessmentapi = inject(AssessmentGatewayService);
 
   private authSub?: Subscription;
 
@@ -54,7 +54,7 @@ export class Pending implements OnInit, OnDestroy {
     return;
   }
 
-  this.courseApi.getUnfinishedCourses().subscribe({
+  this.courseapi.postApiCourseUnfinished().subscribe({
     next: (courses: any[]) => {
         this.pendingCourses = (courses || []).filter(c => !c.isDeleted);
 
@@ -78,7 +78,7 @@ export class Pending implements OnInit, OnDestroy {
   // Load quiz status per course (NEW)
   // ------------------------------------------
   loadPendingModules(course: any): void {
-    this.assessmentApi.getQuizStatusForCourse({courseId: course.id}).subscribe({
+    this.assessmentapi.postApiAssessmentCourseUnquizzedModules({courseId: course.id}).subscribe({
       next: (status: any) => {
         const pending = status.modules.filter(
           (m: any) => !m.quizExists
@@ -108,7 +108,7 @@ export class Pending implements OnInit, OnDestroy {
   // Publish course
   // ------------------------------------------
   publishCourse(courseId: number): void {
-    this.courseApi.publishCourse({courseId}).subscribe({
+    this.courseapi.postApiCoursePublish({courseId}).subscribe({
       next: () => {
         this.toastService.showSuccess('Course published successfully!');
         this.loadUnfinishedCourses();

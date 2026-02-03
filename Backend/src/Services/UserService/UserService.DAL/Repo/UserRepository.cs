@@ -30,12 +30,6 @@ namespace UserService.DAL.Repo
             return Task.CompletedTask;
         }
 
-        public Task DeleteAsync(User user)
-        {
-            _context.Users.Remove(user);
-            return Task.CompletedTask;
-        }
-
         public async Task<int> CountByRoleAsync(string role)
             => await _context.Users.CountAsync(u => u.Role == role);
 

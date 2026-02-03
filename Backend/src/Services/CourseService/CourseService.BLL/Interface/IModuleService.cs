@@ -1,5 +1,4 @@
-﻿using CourseService.BLL.DTOs;
-using CourseService.DAL.Models;
+﻿using DTOs._2CourseService;
 
 namespace CourseService.BLL.Interface
 {

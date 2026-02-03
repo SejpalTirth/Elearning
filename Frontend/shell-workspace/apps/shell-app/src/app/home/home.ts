@@ -3,8 +3,8 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { AuthStateService } from '@frontend/auth';
-import { AssessmentFacade, CourseFacade } from '@frontend/core';
 import { ToastService } from '@frontend/ui';
+import { AssessmentGatewayService, GatewayCourseService } from '@frontend/api';
 
 @Component({
   selector: 'app-home',
@@ -21,9 +21,9 @@ export class Home implements OnInit, OnDestroy {
 
   private readonly authState = inject(AuthStateService);
   private readonly toastService = inject(ToastService);
-  private readonly assessmentApi = inject(AssessmentFacade);
-  private readonly courseApi = inject(CourseFacade);
+  private readonly courseapi = inject(GatewayCourseService);
   private readonly router = inject(Router);
+  private readonly assessmentapi = inject(AssessmentGatewayService);
 
   private authSub?: Subscription;
 
@@ -62,14 +62,14 @@ export class Home implements OnInit, OnDestroy {
       return;
     }
 
-    this.courseApi.getUnfinishedCourses().subscribe({
+    this.courseapi.postApiCourseUnfinished().subscribe({
       next: (course: any): void => {
         if (!course?.id)
         {
           return;
         }
 
-        this.assessmentApi.getUnquizzedModules({courseId: course.id}).subscribe({
+        this.assessmentapi.postApiAssessmentCourseUnquizzedModules({courseId: course.id}).subscribe({
           next: (modules: number[]): void => {
             if (modules?.length > 0) {
               this.toastService.showError(

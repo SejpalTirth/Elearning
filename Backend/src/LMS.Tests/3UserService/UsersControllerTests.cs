@@ -1,7 +1,7 @@
 ﻿using AutoFixture;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
-using UserService.BLL.DTOs;
+using DTOs._3UserService;
 using UserService.BLL.Interface;
 using UserService.BLL.UserContext;
 using UserService.Web.Controllers;

@@ -4,8 +4,8 @@ using NotificationService.BLL.Service;
 using NotificationService.BLL.Interface;
 using NotificationService.DAL.Repo;
 using NotificationService.DAL.Models;
-using NotificationService.BLL.DTOs;
-using NotificationService.BLL.Models;
+using DTOs._6NotificationService;
+using DTOs._6NotificationService;
 
 namespace LMS.Tests.NotificationService
 {

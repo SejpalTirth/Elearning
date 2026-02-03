@@ -1,6 +1,6 @@
-﻿using NotificationService.BLL.DTOs;
+﻿using DTOs._6NotificationService;
 using NotificationService.BLL.Interface;
-using NotificationService.BLL.Models;
+using DTOs._6NotificationService;
 using NotificationService.DAL.Models;
 using NotificationService.DAL.Repo;
 

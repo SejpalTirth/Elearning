@@ -1,4 +1,4 @@
-﻿using AssessmentService.BLL.DTOs;
+﻿using DTOs._4AssessmentService;
 using AssessmentService.BLL.Interfaces;
 using AssessmentService.BLL.UserContext;
 using AssessmentService.Web.Controllers;

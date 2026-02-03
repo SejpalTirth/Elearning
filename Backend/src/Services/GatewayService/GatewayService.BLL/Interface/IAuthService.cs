@@ -1,5 +1,4 @@
-﻿using GatewayService.BLL.DTOs;
-using GatewayService.DAL.Models;
+﻿using DTOs._1GatewayService;
 
 namespace GatewayService.BLL.Interface
 {

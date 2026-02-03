@@ -1,7 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { CourseFacade } from '@frontend/core';
+import { GatewayCourseService } from '@frontend/api';
 
 @Component({
   selector: 'app-list-courses',
@@ -15,10 +15,9 @@ export class ListCoursesComponent implements OnInit {
   courses: any[] = [];
   loading = true;
 
-  private readonly courseApi = inject(CourseFacade);
   private readonly router = inject(Router);
+  private readonly courseapi = inject(GatewayCourseService)
 
-  // Small guard to ensure we only check overflow after list renders
   private _needsOverflowCheck = false;
 
   ngOnInit(): void {
@@ -26,13 +25,11 @@ export class ListCoursesComponent implements OnInit {
   }
 
   loadCourses():void {
-    this.courseApi.getAllCourses().subscribe({
+    this.courseapi.postApiCourseAll().subscribe({
       next: (res: any) => {
-        // Keep your existing filtering if needed (published only etc.)
         this.courses = (res || []).filter((c: any) => c.isDeleted === false && c.isDraft === false);
         this.loading = false;
 
-        // Mark for overflow checking on next tick after DOM paints
         this._needsOverflowCheck = true;
         setTimeout(() => this.checkAllOverflows(), 0);
       },
@@ -53,18 +50,14 @@ export class ListCoursesComponent implements OnInit {
   private checkAllOverflows():void {
     const descNodes = Array.from(document.querySelectorAll<HTMLParagraphElement>('.course-card .description'));
 
-    // Loop through nodes and set corresponding course.isTruncated flag
     descNodes.forEach((p, idx) => {
-      // Measure overflow: scrollHeight > clientHeight indicates hidden content
-      const isOverflowing = p.scrollHeight > p.clientHeight + 1; // +1 small tolerance
+      const isOverflowing = p.scrollHeight > p.clientHeight + 1;
 
-      // Safety: ensure we don't go out of bounds
       if (this.courses[idx]) {
         this.courses[idx].isTruncated = isOverflowing;
       }
     });
 
-    // Reset flag so further checks aren't required unless you reload items
     this._needsOverflowCheck = false;
   }
 }

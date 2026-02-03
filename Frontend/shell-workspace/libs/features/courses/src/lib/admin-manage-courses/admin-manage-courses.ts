@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { CourseFacade } from '@frontend/core';
 import { ToastService, LoadingService } from '@frontend/ui';
+import { GatewayCourseService } from '@frontend/api';
 
 @Component({
   selector: 'lib-admin-manage-courses',
@@ -14,17 +14,17 @@ export class AdminManageCoursesComponent implements OnInit {
   courses = signal<any[]>([]);
   loading = signal(true);
 
-  private readonly api = inject(CourseFacade);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly loader = inject(LoadingService);
+  private readonly courseapi = inject(GatewayCourseService);
 
   ngOnInit():void {
     this.loadCourses();
   }
 
   loadCourses():void {
-    this.api.getAllCourses().subscribe({
+    this.courseapi.postApiCourseAll().subscribe({
       next: res => {
         this.courses.set(res);
         this.loading.set(false);
@@ -41,7 +41,7 @@ export class AdminManageCoursesComponent implements OnInit {
   deleteCourse(id: number):void {
     if (!confirm('Are you sure you want to archive this course?')) { return; }
 
-    this.api.deleteCourse({courseId: id}).subscribe({
+    this.courseapi.postApiCourseDelete({courseId: id}).subscribe({
       next: () => {
         this.toast.showSuccess('Course archived (soft deleted) successfully!');
         this.loader.show();
@@ -53,7 +53,7 @@ export class AdminManageCoursesComponent implements OnInit {
   }
 
   restoreCourse(id: number): void {
-    this.api.restoreCourse({courseId: id}).subscribe({
+    this.courseapi.postApiCourseRestore({courseId: id}).subscribe({
       next: () => {
         this.toast.showSuccess('Course restored successfully!');
         this.loader.show();

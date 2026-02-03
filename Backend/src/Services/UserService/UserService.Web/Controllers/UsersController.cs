@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using UserService.BLL.DTOs;
+using DTOs._3UserService;
 using UserService.BLL.Interface;
-using System.Security.Claims;
 using UserService.BLL.UserContext;
+using DTOs._5ProgresService;
 
 namespace UserService.Web.Controllers
 {
@@ -26,15 +26,22 @@ namespace UserService.Web.Controllers
         // ---------------- ALL USERS ----------------
 
         [HttpPost("all")]
-        public async Task<IActionResult> GetAllUsers()
+        [ProducesResponseType(typeof(List<UserDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<List<UserDto>>> GetAllUsers()
         {
-            return Ok(await _userService.GetAll());
+            var result = await _userService.GetAll();
+            if(result == null || !result.Any())
+                return NotFound("No users found.");
+            return Ok(result);
         }
 
         // ---------------- USER BY ID ----------------
 
         [HttpPost("by-id")]
-        public async Task<IActionResult> GetUser()
+        [ProducesResponseType(typeof(UserDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<UserDto?>> GetUser()
         {
             var userId = _userContext.Current?.UserId;
 
@@ -45,24 +52,12 @@ namespace UserService.Web.Controllers
             return user == null ? NotFound() : Ok(user);
         }
 
-        // ---------------- DELETE USER ----------------
-
-        [HttpPost("delete")]
-        public async Task<IActionResult> Delete()
-        {
-            var userId = _userContext.Current?.UserId;
-
-            if (userId == null || userId == Guid.Empty)
-                return Unauthorized("Invalid user context.");
-
-            var result = await _userService.Delete(userId.Value);
-            return result ? Ok() : NotFound();
-        }
-
         // ---------------- COMPLETE PROFILE ----------------
 
         [AllowAnonymous]
         [HttpPost("complete-profile")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> CompleteProfile(
             [FromBody] CompleteProfileDto dto)
         {

@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using UserService.BLL.DTOs;
+using DTOs._3UserService;
 using UserService.DAL.Models;
 
 namespace UserService.BLL.Mapping

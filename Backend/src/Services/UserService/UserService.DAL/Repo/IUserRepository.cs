@@ -9,7 +9,6 @@ namespace UserService.DAL.Repo
         Task<List<User>> GetAllAsync();
         Task AddAsync(User user);
         Task UpdateAsync(User user);
-        Task DeleteAsync(User user);
         Task SaveAsync();
     }
 }

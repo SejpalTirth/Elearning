@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using UserService.BLL.DTOs;
+using DTOs._3UserService;
 using UserService.BLL.Interface;
 using UserService.BLL.UserContext;
 using UserService.DAL.Models;
@@ -31,7 +31,8 @@ namespace UserService.Web.Controllers
         // ---------------- ALL ROLES ----------------
 
         [HttpPost("all")]
-        public async Task<IActionResult> GetAllRoles()
+        [ProducesResponseType(typeof(List<Role>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<List<Role>>> GetAllRoles()
         {
             var roles = await _context.Roles
                 .Select(r => new { r.Id, r.Name })
@@ -43,6 +44,9 @@ namespace UserService.Web.Controllers
         // ---------------- UPDATE ROLE ----------------
 
         [HttpPost("update")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> UpdateUserRole(
             [FromBody] UpdateUserRoleRequest request)
         {
@@ -70,21 +74,5 @@ namespace UserService.Web.Controllers
             };
         }
 
-        // ---------------- USER ROLE ----------------
-
-        [HttpPost("user")]
-        public async Task<IActionResult> GetUserRole()
-        {
-            var userId = _userContext.Current?.UserId;
-
-            if (userId == null || userId == Guid.Empty)
-                return Unauthorized("Invalid user context.");
-
-            var user = await _users.GetById(userId.Value);
-            if (user == null)
-                return NotFound();
-
-            return Ok(new List<string> { user.Role });
-        }
     }
 }
