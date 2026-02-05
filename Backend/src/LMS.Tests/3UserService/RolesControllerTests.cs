@@ -59,9 +59,9 @@ namespace LMS.Tests.UserService
                 .Setup(s => s.UpdateUserRoleAsync(req))
                 .ReturnsAsync(UpdateUserRoleResult.Success);
 
-            var result = await _controller.UpdateUserRole(req) as OkObjectResult;
+            var result = await _controller.UpdateUserRole(req);
 
-            Assert.NotNull(result);
+            Assert.IsType<OkObjectResult>(result);
         }
 
         [Fact]
@@ -72,6 +72,34 @@ namespace LMS.Tests.UserService
             _serviceMock
                 .Setup(s => s.UpdateUserRoleAsync(req))
                 .ReturnsAsync(UpdateUserRoleResult.SameRole);
+
+            var result = await _controller.UpdateUserRole(req);
+
+            Assert.IsType<BadRequestObjectResult>(result);
+        }
+
+        [Fact]
+        public async Task UpdateUserRole_ShouldReturnBadRequest_WhenRoleNotFound()
+        {
+            var req = _fixture.Create<UpdateUserRoleRequest>();
+
+            _serviceMock
+                .Setup(s => s.UpdateUserRoleAsync(req))
+                .ReturnsAsync(UpdateUserRoleResult.RoleNotFound);
+
+            var result = await _controller.UpdateUserRole(req);
+
+            Assert.IsType<BadRequestObjectResult>(result);
+        }
+
+        [Fact]
+        public async Task UpdateUserRole_ShouldReturnBadRequest_WhenLastAdminRemoved()
+        {
+            var req = _fixture.Create<UpdateUserRoleRequest>();
+
+            _serviceMock
+                .Setup(s => s.UpdateUserRoleAsync(req))
+                .ReturnsAsync(UpdateUserRoleResult.LastAdminCannotBeRemoved);
 
             var result = await _controller.UpdateUserRole(req);
 
@@ -93,61 +121,6 @@ namespace LMS.Tests.UserService
         }
 
         // ============================================================
-        // GET USER ROLE
-        // ============================================================
-
-        [Fact]
-        public async Task GetUserRole_ShouldReturnRole_WhenUserExists()
-        {
-            var userId = Guid.NewGuid();
-
-            _userContextMock.Setup(x => x.Current)
-                .Returns(new UserContextDto { UserId = userId });
-
-            _serviceMock.Setup(s => s.GetById(userId))
-                .ReturnsAsync(new UserDto
-                {
-                    Id = userId,
-                    Role = "Admin"
-                });
-
-            var result = await _controller.GetUserRole() as OkObjectResult;
-
-            Assert.NotNull(result);
-
-            var roles = Assert.IsType<List<string>>(result!.Value);
-            Assert.Single(roles);
-            Assert.Equal("Admin", roles[0]);
-        }
-
-        [Fact]
-        public async Task GetUserRole_ShouldReturnUnauthorized_WhenUserContextInvalid()
-        {
-            _userContextMock.Setup(x => x.Current)
-                .Returns((UserContextDto?)null);
-
-            var result = await _controller.GetUserRole();
-
-            Assert.IsType<UnauthorizedObjectResult>(result);
-        }
-
-        [Fact]
-        public async Task GetUserRole_ShouldReturnNotFound_WhenUserMissing()
-        {
-            var userId = Guid.NewGuid();
-
-            _userContextMock.Setup(x => x.Current)
-                .Returns(new UserContextDto { UserId = userId });
-
-            _serviceMock.Setup(s => s.GetById(userId))
-                .ReturnsAsync((UserDto?)null);
-
-            var result = await _controller.GetUserRole();
-
-            Assert.IsType<NotFoundResult>(result);
-        }
-
-        // ============================================================
         // GET ALL ROLES
         // ============================================================
 
@@ -162,22 +135,22 @@ namespace LMS.Tests.UserService
 
             await _context.SaveChangesAsync();
 
-            var result = await _controller.GetAllRoles() as OkObjectResult;
+            var result = await _controller.GetAllRoles();
 
-            Assert.NotNull(result);
+            var ok = Assert.IsType<OkObjectResult>(result.Result);
+            var list = Assert.IsAssignableFrom<IEnumerable<object>>(ok.Value);
 
-            var list = Assert.IsAssignableFrom<IEnumerable<object>>(result!.Value);
             Assert.Equal(3, list.Count());
         }
 
         [Fact]
         public async Task GetAllRoles_ShouldReturnEmptyList_WhenNoRolesExist()
         {
-            var result = await _controller.GetAllRoles() as OkObjectResult;
+            var result = await _controller.GetAllRoles();
 
-            Assert.NotNull(result);
+            var ok = Assert.IsType<OkObjectResult>(result.Result);
+            var list = Assert.IsAssignableFrom<IEnumerable<object>>(ok.Value);
 
-            var list = Assert.IsAssignableFrom<IEnumerable<object>>(result!.Value);
             Assert.Empty(list);
         }
     }

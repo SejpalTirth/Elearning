@@ -1,7 +1,6 @@
 ﻿using AutoFixture;
 using CourseService.BLL.Service;
 using CourseService.DAL.Models;
-using CourseService.DAL.Repo;
 using Moq;
 using System.Net;
 using System.Text.Json;

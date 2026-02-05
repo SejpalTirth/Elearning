@@ -1,5 +1,6 @@
 ﻿using DTOs._6NotificationService;
 using Gateway.Contracts.Notification;
+using Gateway.Contracts.Users;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

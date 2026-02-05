@@ -21,8 +21,7 @@ namespace NotificationService.BLL.Validators
                 .WithMessage("Email is required.");
 
             RuleFor(x => x.Data)
-                .NotNull()
-                .Must(d => d.Any())
+                .NotEmpty()
                 .WithMessage("Notification data is required.");
         }
     }

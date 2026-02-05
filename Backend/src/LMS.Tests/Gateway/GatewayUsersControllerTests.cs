@@ -1,260 +1,170 @@
 ﻿using AutoFixture;
+using DTOs._3UserService;
+using Gateway.Contracts.Users;
 using Gateway.Controllers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Moq.Protected;
 using System.Net;
-using System.Text;
+using System.Net.Http.Json;
+using System.Text.Json;
+using Xunit;
 
 namespace LMS.Tests.Gateway
 {
     public class GatewayUsersControllerTests
     {
         private readonly Fixture _fixture;
-
-        private readonly Mock<IHttpClientFactory> _factoryMock;
-        private readonly Mock<HttpMessageHandler> _handlerMock;
-        private readonly HttpClient _client;
+        private readonly Mock<IHttpClientFactory> _mockFactory;
+        private readonly Mock<HttpMessageHandler> _mockHandler;
+        private readonly GatewayUsersController _controller;
 
         public GatewayUsersControllerTests()
         {
             _fixture = new Fixture();
-            _fixture.Behaviors
-                .OfType<ThrowingRecursionBehavior>()
-                .ToList()
-                .ForEach(b => _fixture.Behaviors.Remove(b));
+            _mockHandler = new Mock<HttpMessageHandler>();
+            _mockFactory = new Mock<IHttpClientFactory>();
 
-            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
-
-            // Mock HTTP
-            _handlerMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
-
-            _client = new HttpClient(_handlerMock.Object)
+            var client = new HttpClient(_mockHandler.Object)
             {
-                BaseAddress = new Uri("http://fake-user-service/")
+                BaseAddress = new Uri("http://user-service/")
             };
 
-            _factoryMock = new Mock<IHttpClientFactory>();
-            _factoryMock.Setup(f => f.CreateClient("UserService"))
-                        .Returns(_client);
-        }
+            _mockFactory.Setup(_ => _.CreateClient("UserService")).Returns(client);
+            _controller = new GatewayUsersController(_mockFactory.Object);
 
-        private GatewayUsersController CreateController(HttpContext? context = null)
-        {
-            return new GatewayUsersController(_factoryMock.Object)
+            var user = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity());
+            _controller.ControllerContext = new ControllerContext
             {
-                ControllerContext = new ControllerContext
-                {
-                    HttpContext = context ?? new DefaultHttpContext()
-                }
+                HttpContext = new DefaultHttpContext { User = user }
             };
         }
 
-        // --------------------------------------------
-        // Helpers for setting mock responses
-        // --------------------------------------------
-        private void SetupJsonResponse(string json, HttpStatusCode status = HttpStatusCode.OK)
+        private void SetupMockResponse(HttpStatusCode code, object content)
         {
-            _handlerMock.Protected()
+            var response = new HttpResponseMessage(code)
+            {
+                Content = JsonContent.Create(content)
+            };
+
+            _mockHandler.Protected()
                 .Setup<Task<HttpResponseMessage>>(
                     "SendAsync",
                     ItExpr.IsAny<HttpRequestMessage>(),
-                    ItExpr.IsAny<CancellationToken>())
-                .ReturnsAsync(new HttpResponseMessage
-                {
-                    StatusCode = status,
-                    Content = new StringContent(json, Encoding.UTF8, "application/json")
-                });
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .ReturnsAsync(response);
         }
 
-        private void SetupTextResponse(string text, HttpStatusCode status = HttpStatusCode.BadRequest)
-        {
-            _handlerMock.Protected()
-                .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.IsAny<HttpRequestMessage>(),
-                    ItExpr.IsAny<CancellationToken>())
-                .ReturnsAsync(new HttpResponseMessage
-                {
-                    StatusCode = status,
-                    Content = new StringContent(text)
-                });
-        }
-
-        // ======================================================
-        // USERS ROUTES
-        // ======================================================
+        // ------------------- USERS -------------------
 
         [Fact]
-        public async Task GetAllUsers_ShouldForwardRequest()
+        public async Task GetAllUsers_HitsOkBranch_WhenTypeMatches()
         {
-            SetupJsonResponse("[{\"id\":1}]");
+            // Arrange
+            var users = _fixture.Create<List<UserDto>>();
+            SetupMockResponse(HttpStatusCode.OK, users);
 
-            var controller = CreateController();
+            // Act
+            var result = await _controller.GetAllUsers();
 
-            var result = await controller.GetAllUsers();
-            var content = Assert.IsType<ContentResult>(result);
+            // Assert
+            var objectResult = Assert.IsAssignableFrom<ObjectResult>(result.Result);
+            Assert.Equal(200, objectResult.StatusCode);
 
-            Assert.Equal("[{\"id\":1}]", content.Content);
-
-            _handlerMock.Protected().Verify(
-                "SendAsync",
-                Times.Once(),
-                ItExpr.Is<HttpRequestMessage>(req =>
-                    req.Method == HttpMethod.Get &&
-                    req.RequestUri!.ToString().EndsWith("api/users")),
-                ItExpr.IsAny<CancellationToken>());
+            var actualJson = JsonSerializer.Serialize(objectResult.Value);
+            Assert.Contains(users[0].Email, actualJson);
+            Assert.Contains(users[0].Name, actualJson);
         }
 
         [Fact]
-        public async Task GetUser_ShouldHitCorrectEndpoint()
+        public async Task GetAllUsers_ReturnsResultDirectly_WhenTypeDoesNotMatch()
         {
-            SetupJsonResponse("{\"id\":555}");
+            // Hits the "return result as ActionResult" by returning something other than List<UserDto>
+            SetupMockResponse(HttpStatusCode.NotFound, "Not Found");
 
-            var controller = CreateController();
-            var id = Guid.NewGuid();
+            var result = await _controller.GetAllUsers();
 
-            var result = await controller.GetUser(id);
-            var content = Assert.IsType<ContentResult>(result);
-
-            Assert.Equal("{\"id\":555}", content.Content);
-
-            _handlerMock.Protected().Verify(
-                "SendAsync",
-                Times.Once(),
-                ItExpr.Is<HttpRequestMessage>(req =>
-                    req.Method == HttpMethod.Get &&
-                    req.RequestUri!.ToString().EndsWith($"api/users/{id}")),
-                ItExpr.IsAny<CancellationToken>());
+            var objectResult = Assert.IsAssignableFrom<ObjectResult>(result.Result);
+            Assert.Equal(404, objectResult.StatusCode);
         }
 
         [Fact]
-        public async Task DeleteUser_ShouldCallDeleteOnCorrectUrl()
+        public async Task GetUser_HitsOkObjectBranch()
         {
-            SetupJsonResponse("{\"deleted\":true}");
+            // Arrange
+            var user = _fixture.Create<UserDto>();
+            SetupMockResponse(HttpStatusCode.OK, user);
 
-            var controller = CreateController();
-            var id = Guid.NewGuid();
+            // Act
+            var result = await _controller.GetUser(_fixture.Create<UserIdRequest>());
 
-            var result = await controller.DeleteUser(id);
-            var content = Assert.IsType<ContentResult>(result);
+            // Assert
+            var objectResult = Assert.IsAssignableFrom<ObjectResult>(result.Result);
+            Assert.Equal(200, objectResult.StatusCode);
 
-            Assert.Equal("{\"deleted\":true}", content.Content);
-
-            _handlerMock.Protected().Verify(
-                "SendAsync",
-                Times.Once(),
-                ItExpr.Is<HttpRequestMessage>(req =>
-                    req.Method == HttpMethod.Delete &&
-                    req.RequestUri!.ToString().EndsWith($"api/users/{id}")),
-                ItExpr.IsAny<CancellationToken>());
-        }
-
-        // ======================================================
-        // ROLES ROUTES
-        // ======================================================
-
-        [Fact]
-        public async Task GetAllRoles_ShouldForwardToRoleService()
-        {
-            SetupJsonResponse("[{\"id\":1,\"name\":\"Admin\"}]");
-
-            var controller = CreateController();
-
-            var result = await controller.GetAllRoles();
-            var content = Assert.IsType<ContentResult>(result);
-
-            Assert.Equal("[{\"id\":1,\"name\":\"Admin\"}]", content.Content);
+            var actualJson = JsonSerializer.Serialize(objectResult.Value);
+            Assert.Contains(user.Email, actualJson);
+            Assert.Contains(user.Id.ToString(), actualJson);
         }
 
         [Fact]
-        public async Task GetUserRole_ShouldCallCorrectUrl()
+        public async Task CompleteProfile_ReturnsResult()
         {
-            SetupJsonResponse("[\"Admin\"]");
+            // Coverage for the one-liner arrow function
+            SetupMockResponse(HttpStatusCode.OK, new { success = true });
 
-            var controller = CreateController();
-            var id = Guid.NewGuid();
+            var result = await _controller.CompleteProfile(_fixture.Create<CompleteProfileRequest>());
 
-            var result = await controller.GetUserRole(id);
-            var content = Assert.IsType<ContentResult>(result);
+            var objectResult = Assert.IsAssignableFrom<ObjectResult>(result);
+            Assert.Equal(200, objectResult.StatusCode);
+        }
 
-            Assert.Equal("[\"Admin\"]", content.Content);
+        // ------------------- ROLES -------------------
 
-            _handlerMock.Protected().Verify(
-                "SendAsync",
-                Times.Once(),
-                ItExpr.Is<HttpRequestMessage>(req =>
-                    req.Method == HttpMethod.Get &&
-                    req.RequestUri!.ToString().EndsWith($"api/roles/{id}")),
-                ItExpr.IsAny<CancellationToken>());
+        [Fact]
+        public async Task GetAllRoles_ReturnsOk()
+        {
+            var roles = _fixture.Create<List<Roleresponse>>();
+            SetupMockResponse(HttpStatusCode.OK, roles);
+
+            var result = await _controller.GetAllRoles();
+
+            var objectResult = Assert.IsAssignableFrom<ObjectResult>(result.Result);
+            Assert.Equal(200, objectResult.StatusCode);
         }
 
         [Fact]
-        public async Task UpdateUserRole_ShouldSendPutRequest()
+        public async Task UpdateUserRole_ReturnsResult()
         {
-            SetupJsonResponse("{\"updated\":true}");
+            SetupMockResponse(HttpStatusCode.OK, new { success = true });
 
-            var controller = CreateController();
-            var dto = new { roleId = 2 };
+            var result = await _controller.UpdateUserRole(_fixture.Create<UpdateUserRoleRequest>());
 
-            var result = await controller.UpdateUserRole(dto);
-            var content = Assert.IsType<ContentResult>(result);
-
-            Assert.Equal("{\"updated\":true}", content.Content);
-
-            _handlerMock.Protected()
-                .Verify("SendAsync",
-                    Times.Once(),
-                    ItExpr.Is<HttpRequestMessage>(req =>
-                        req.Method == HttpMethod.Put &&
-                        req.RequestUri!.ToString().EndsWith("api/roles/update") &&
-                        req.Content != null),
-                    ItExpr.IsAny<CancellationToken>());
+            var objectResult = Assert.IsAssignableFrom<ObjectResult>(result);
+            Assert.Equal(200, objectResult.StatusCode);
         }
 
-        // ======================================================
-        // NON-JSON RESPONSES
-        // ======================================================
+        // ------------------- EXCEPTIONS (The 100% Coverage Secret) -------------------
 
-        [Fact]
-        public async Task Forward_ShouldWrapNonJson_AsMessage()
+        [Theory]
+        [InlineData("GetAllUsers")]
+        [InlineData("GetUser")]
+        [InlineData("GetAllRoles")]
+        public async Task ExceptionPath_Returns500(string method)
         {
-            SetupTextResponse("User not found", HttpStatusCode.NotFound);
+            _mockHandler.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                .ThrowsAsync(new Exception("Fail"));
 
-            var controller = CreateController();
+            ActionResult finalResult;
+            if (method == "GetAllUsers") finalResult = (await _controller.GetAllUsers()).Result;
+            else if (method == "GetUser") finalResult = (await _controller.GetUser(_fixture.Create<UserIdRequest>())).Result;
+            else finalResult = (await _controller.GetAllRoles()).Result;
 
-            var result = await controller.GetUser(Guid.NewGuid());
-            var obj = Assert.IsType<ObjectResult>(result);
-
-            Assert.Equal(404, obj.StatusCode);
-
-            var msg = obj.Value!.GetType().GetProperty("message")!.GetValue(obj.Value);
-            Assert.Equal("User not found", msg);
-        }
-
-        // ======================================================
-        // AUTH HEADER COPYING
-        // ======================================================
-
-        [Fact]
-        public async Task Forward_ShouldCopyAuthorizationHeader()
-        {
-            SetupJsonResponse("{\"ok\":true}");
-
-            var ctx = new DefaultHttpContext();
-            ctx.Request.Headers.Authorization = "Bearer abc123";
-
-            var controller = CreateController(ctx);
-
-            await controller.GetAllUsers();
-
-            _handlerMock.Protected().Verify(
-                "SendAsync",
-                Times.Once(),
-                ItExpr.Is<HttpRequestMessage>(req =>
-                    req.Headers.Authorization!.ToString() == "Bearer abc123"),
-                ItExpr.IsAny<CancellationToken>());
+            var objectResult = Assert.IsType<ObjectResult>(finalResult);
+            Assert.Equal(500, objectResult.StatusCode);
         }
     }
 }

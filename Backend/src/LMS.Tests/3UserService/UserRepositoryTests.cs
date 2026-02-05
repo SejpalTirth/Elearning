@@ -125,26 +125,10 @@ namespace LMS.Tests.UserService
 
             var updated = UserContext.Users.First(u => u.Email == "update@mail.com");
             Assert.Equal("Updated Name", updated.Name);
-        }
+        }      
 
         // ============================================================
-        // DELETE
-        // ============================================================
-        [Fact]
-        public async Task Delete_ShouldRemoveUser()
-        {
-            var user = CreateUser("delete@mail.com");
-            UserContext.Users.Add(user);
-            await UserContext.SaveChangesAsync();
-
-            await _repo.DeleteAsync(user);
-            await _repo.SaveAsync();
-
-            Assert.False(UserContext.Users.Any(u => u.Email == "delete@mail.com"));
-        }
-
-        // ============================================================
-        // COUNT BY ROLE  🔥 (New test added)
+        // COUNT BY ROLE
         // ============================================================
         [Fact]
         public async Task CountByRole_ShouldReturnCorrectCount()

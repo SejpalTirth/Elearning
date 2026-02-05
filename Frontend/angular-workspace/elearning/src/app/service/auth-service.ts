@@ -1,7 +1,8 @@
 import { Injectable, inject } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-import { environment } from '../../../environment/environment'
+import { environment } from '../../../environment/environment';
 
 import { 
   GatewayAuthService,
@@ -13,21 +14,15 @@ import { encryptPassword } from '../common-modules/utils/password-encryption';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-
   private readonly authClient = inject(GatewayAuthService);
+  private readonly document = inject(DOCUMENT);
 
-  // ------------------------------------------------
-  // AUTH API
-  // ------------------------------------------------
-
-  /** GET /me */
   getMe(): Observable<AuthUser> {
     return this.authClient.getApiGatewayAuthMe<AuthUser>({
       withCredentials: true
     });
   }
 
-  /** POST /refresh */
   refreshTokens(): Observable<boolean> {
     return this.authClient.postApiGatewayAuthRefresh({})
       .pipe(
@@ -37,48 +32,47 @@ export class AuthService {
   }
 
   logout(): void {
-  const redirectUrl = encodeURIComponent('http://localhost:4200');
-
-  window.location.href =
-    `${environment.apiBaseUrl}/api/GatewayAuth/logout?redirectUrl=${redirectUrl}`;
-}
-
-
-  // ------------------------------------------------
-  // OAUTH redirects
-  // ------------------------------------------------
+    const redirectUrl = encodeURIComponent('http://localhost:4200');
+    this.performRedirect(
+      `${environment.apiBaseUrl}/api/GatewayAuth/logout?redirectUrl=${redirectUrl}`
+    );
+  }
 
   loginWithGoogle(): void {
-    window.location.href =
-      `${environment.apiBaseUrl}/api/GatewayAuth/google-login`;
+    this.performRedirect(`${environment.apiBaseUrl}/api/GatewayAuth/google-login`);
   }
 
   loginWithMicrosoft(): void {
-    window.location.href =
-      `${environment.apiBaseUrl}/api/GatewayAuth/microsoft-login`;
+    this.performRedirect(`${environment.apiBaseUrl}/api/GatewayAuth/microsoft-login`);
   }
 
   localRegister(email: string, password: string) {
-  const payload: GatewayContractsAuthRegisterRequest = {
-    email,
-    password: encryptPassword(password)
-  };
+    const payload: GatewayContractsAuthRegisterRequest = {
+      email,
+      password: encryptPassword(password)
+    };
 
-  return this.authClient.postApiGatewayAuthLocalRegister(
-    payload,
-    { withCredentials: true }
-  );
-}
+    return this.authClient.postApiGatewayAuthLocalRegister(
+      payload,
+      { withCredentials: true }
+    );
+  }
 
-localLogin(email: string, password: string) {
-  const payload: GatewayContractsAuthLoginRequest = {
-    email,
-    password: encryptPassword(password)
-  };
+  localLogin(email: string, password: string) {
+    const payload: GatewayContractsAuthLoginRequest = {
+      email,
+      password: encryptPassword(password)
+    };
 
-  return this.authClient.postApiGatewayAuthLocalLogin(
-    payload,
-    { withCredentials: true }
-  );
-}
+    return this.authClient.postApiGatewayAuthLocalLogin(
+      payload,
+      { withCredentials: true }
+    );
+  }
+
+  private performRedirect(url: string): void {
+    if (this.document.defaultView) {
+      this.document.defaultView.location.href = url;
+    }
+  }
 }

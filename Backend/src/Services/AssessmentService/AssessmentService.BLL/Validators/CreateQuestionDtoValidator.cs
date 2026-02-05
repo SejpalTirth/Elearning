@@ -17,9 +17,9 @@ namespace AssessmentService.BLL.Validators
                 .WithMessage("Marks must be greater than zero.");
 
             RuleFor(x => x.Options)
-                .NotNull()
-                .Must(o => o.Count == 4)
+                .Must(o => o != null && o.Count == 4)
                 .WithMessage("Exactly 4 options are required.");
+
 
             RuleForEach(x => x.Options)
                 .NotEmpty()

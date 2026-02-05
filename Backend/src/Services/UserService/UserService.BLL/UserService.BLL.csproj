@@ -30,7 +30,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\DTOs\DTOs\DTOs.csproj" />
-    <ProjectReference Include="..\..\..\Response\ResponseDTOs\DTOs.csproj" />
     <ProjectReference Include="..\UserService.DAL\UserService.DAL.csproj" />
   </ItemGroup>
 

@@ -1,5 +1,11 @@
-import { Component, inject, OnInit, ChangeDetectorRef } from '@angular/core';
-import { FormBuilder, FormArray, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { Component, inject, OnInit } from '@angular/core';
+import {
+  FormBuilder,
+  FormArray,
+  FormGroup,
+  Validators,
+  ReactiveFormsModule
+} from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ModuleTitlePipe } from '../../../common-modules/pipes/module-title.pipe';
@@ -9,16 +15,11 @@ import { AssessmentGatewayService, GatewayCourseService } from 'api';
 @Component({
   selector: 'app-add-quiz',
   standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    ModuleTitlePipe
-  ],
+  imports: [CommonModule, ReactiveFormsModule, ModuleTitlePipe],
   templateUrl: './add-quiz.html',
   styleUrls: ['./add-quiz.css']
 })
 export class AddQuizComponent implements OnInit {
-
   modules: any[] = [];
   unquizzedModules: number[] = [];
 
@@ -39,18 +40,11 @@ export class AddQuizComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
-  private readonly cdr = inject(ChangeDetectorRef);
   private readonly courseapi = inject(GatewayCourseService);
   private readonly assessmentapi = inject(AssessmentGatewayService);
 
   ngOnInit(): void {
-
     this.courseId = Number(this.route.snapshot.paramMap.get('courseId'));
-
-    this.courseapi.postApiCourseModules({courseId: this.courseId}).subscribe(res => {
-      this.modules = res;
-      this.loadNextPendingModule();
-    });
 
     this.quizForm = this.fb.group({
       moduleId: ['', Validators.required],
@@ -69,6 +63,13 @@ export class AddQuizComponent implements OnInit {
       ]),
       correctAnswerIndex: [0, Validators.required]
     });
+
+    this.courseapi
+      .postApiCourseModules({ courseId: this.courseId })
+      .subscribe(res => {
+        this.modules = res;
+        this.loadNextPendingModule();
+      });
   }
 
   get options(): FormArray {
@@ -76,65 +77,61 @@ export class AddQuizComponent implements OnInit {
   }
 
   loadNextPendingModule(): void {
-    this.assessmentapi.postApiAssessmentCourseUnquizzedModules({courseId: this.courseId}).subscribe(missing => {
-      this.unquizzedModules = missing;
+    this.assessmentapi
+      .postApiAssessmentCourseUnquizzedModules({ courseId: this.courseId })
+      .subscribe(missing => {
+        this.unquizzedModules = missing;
 
-      if (!missing || missing.length === 0) {
-        this.currentModuleId = null;
-        this.router.navigate(['/courses']);
-        return;
-      }
+        if (!missing || missing.length === 0) {
+          this.currentModuleId = null;
+          this.router.navigate(['/courses']);
+          return;
+        }
 
-      this.currentModuleId = missing[0];
-      const found = this.modules.find(m => m.id === this.currentModuleId);
+        this.currentModuleId = missing[0];
+        const found = this.modules.find(m => m.id === this.currentModuleId);
 
-      this.quizForm.patchValue({
-        moduleId: this.currentModuleId,
-        title: found ? `${found.title} Quiz` : ''
+        this.quizForm.patchValue({
+          moduleId: this.currentModuleId,
+          title: found ? `${found.title} Quiz` : ''
+        });
+
+        this.quizCreated = false;
+        this.createdQuizId = 0;
+        this.questionCount = 0;
+        this.quizForm.enable();
       });
-
-      this.quizCreated = false;
-      this.createdQuizId = 0;
-      this.questionCount = 0;
-
-      this.quizForm.enable();
-    });
   }
 
   createQuiz(): void {
-  this.submittedQuiz = true;
+    this.submittedQuiz = true;
 
-  if (this.quizForm.invalid) {
-    return;
+    if (this.quizForm.invalid) {
+      return;
+    }
+
+    this.assessmentapi.postApiAssessmentQuiz(this.quizForm.value).subscribe({
+      next: res => {
+        if (!res || !res.quizId) {
+          this.toast.showError('Failed to create quiz.');
+          return;
+        }
+
+        this.toast.showInfo(
+          'Quiz details are now locked. You cannot change quiz information after creation.'
+        );
+
+        this.quizCreated = true;
+        this.createdQuizId = res.quizId;
+        this.quizForm.disable();
+      },
+      error: () => {
+        this.toast.showError('Failed to create quiz.');
+      }
+    });
   }
 
-  this.assessmentapi.postApiAssessmentQuiz(this.quizForm.value).subscribe({
-    next: (res: any) => {
 
-      const quizId = res?.quizId ?? res?.id;
-
-      if (!quizId) {
-        this.toast.showError('Failed to create quiz.');
-        return;
-      }
-
-      this.toast.showInfo(
-        'Quiz details are now locked. You cannot change quiz information after creation.'
-      );
-
-      this.quizCreated = true;
-      this.createdQuizId = quizId;
-
-      this.quizForm.disable();
-    },
-    error: () => {
-      this.toast.showError('Failed to create quiz.');
-    }
-  });
-}
-
-
-  /** Add question */
   addQuestion(): void {
     this.submittedQuestion = true;
 
@@ -152,23 +149,23 @@ export class AddQuizComponent implements OnInit {
       }
     };
 
-    this.assessmentapi.postApiAssessmentQuizQuestions(payload).subscribe(() => {
-      this.questionCount++;
+    this.assessmentapi
+      .postApiAssessmentQuizQuestions(payload)
+      .subscribe(() => {
+        this.questionCount++;
 
-      this.questionForm.reset({
-        text: '',
-        marks: 1,
-        correctAnswerIndex: 0,
-        options: ['', '', '', '']
+        this.questionForm.reset({
+          text: '',
+          marks: 1,
+          correctAnswerIndex: 0,
+          options: ['', '', '', '']
+        });
+
+        this.submittedQuestion = false;
       });
-
-      this.submittedQuestion = false;
-    });
   }
 
-  /** Complete module */
   completeModule(): void {
-
     if (!this.quizCreated) {
       this.toast.showError('Please create a quiz first.');
       return;
@@ -179,13 +176,17 @@ export class AddQuizComponent implements OnInit {
       return;
     }
 
-    this.assessmentapi.postApiAssessmentCourseUnquizzedModules({courseId: this.courseId}).subscribe(missing => {
-      if (missing.includes(this.currentModuleId!)) {
-        this.toast.showError('Please finish quiz creation for this module.');
-        return;
-      }
+    this.assessmentapi
+      .postApiAssessmentCourseUnquizzedModules({ courseId: this.courseId })
+      .subscribe(missing => {
+        if (missing.includes(this.currentModuleId!)) {
+          this.toast.showError(
+            'Please finish quiz creation for this module.'
+          );
+          return;
+        }
 
-      this.loadNextPendingModule();
-    });
+        this.loadNextPendingModule();
+      });
   }
 }

@@ -263,5 +263,4 @@ public class AuthService : IAuthService
 
         return await GenerateAndStoreTokensAsync(user);
     }
-
 }

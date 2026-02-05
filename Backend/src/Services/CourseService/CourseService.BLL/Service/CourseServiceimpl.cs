@@ -254,7 +254,7 @@ namespace CourseService.BLL.Service
 
             var client = _httpFactory.CreateClient("AssessmentService");
 
-            // 🔑 FORWARD USER TOKEN
+            // FORWARD USER TOKEN
             if (!string.IsNullOrWhiteSpace(authorizationHeader))
             {
                 client.DefaultRequestHeaders.Authorization =
@@ -391,7 +391,7 @@ namespace CourseService.BLL.Service
 
 
         // Helper DTO
-        private class InstructorDto
+        public class InstructorDto
         {
             public Guid Id { get; set; }
             public string Name { get; set; } = string.Empty;

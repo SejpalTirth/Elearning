@@ -3,13 +3,12 @@ using FluentValidation;
 
 namespace AssessmentService.BLL.Validators
 {
-    public class SubmitQuizDtoValidator
-        : AbstractValidator<SubmitQuizDto>
+    public class SubmitQuizDtoValidator : AbstractValidator<SubmitQuizDto>
     {
         public SubmitQuizDtoValidator()
         {
             RuleFor(x => x.UserId)
-                .NotEmpty()
+                .NotEqual(Guid.Empty)
                 .WithMessage("UserId is required.");
 
             RuleFor(x => x.QuizId)
@@ -17,8 +16,7 @@ namespace AssessmentService.BLL.Validators
                 .WithMessage("QuizId must be greater than zero.");
 
             RuleFor(x => x.Answers)
-                .NotNull()
-                .Must(a => a.Any())
+                .NotEmpty()
                 .WithMessage("At least one answer must be submitted.");
 
             RuleForEach(x => x.Answers)

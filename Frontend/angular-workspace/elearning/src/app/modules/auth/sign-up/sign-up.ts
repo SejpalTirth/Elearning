@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { LoadingService } from '../../../common-modules/ui/loading/loading-service';
-import { AuthService } from '../../../service/auth-service'; 
+import { AuthService } from '../../../service/auth-service';
+import { LOCATION_TOKEN } from '../../../common-modules/tokens/location.token';
 
 @Component({
   selector: 'app-sign-up',
@@ -13,7 +14,6 @@ import { AuthService } from '../../../service/auth-service';
   styleUrls: ['./sign-up.css']
 })
 export class SignUpComponent {
-
   email = '';
   password = '';
   confirmPassword = '';
@@ -26,9 +26,9 @@ export class SignUpComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly loader = inject(LoadingService);
+  private readonly location = inject(LOCATION_TOKEN);
 
-  private readonly passwordRegex =
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
+  private readonly passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
 
   register(): void {
     this.error = null;
@@ -39,8 +39,7 @@ export class SignUpComponent {
     }
 
     if (!this.passwordRegex.test(this.password)) {
-      this.error =
-        'Password must be at least 8 characters and include uppercase, lowercase, number, and special character';
+      this.error = 'Password must be at least 8 characters and include uppercase, lowercase, number, and special character';
       return;
     }
 
@@ -50,8 +49,7 @@ export class SignUpComponent {
       next: (res: any) => {
         this.loader.hide();
         if (res?.isNewUser && res.userId) {
-        window.location.href =
-          `http://localhost:4200/gateway/auth/callback?isNewUser=true&userId=${res.userId}`;
+          this.location.href = `http://localhost:4200/gateway/auth/callback?isNewUser=true&userId=${res.userId}`;
         }
       },
       error: err => {
@@ -59,7 +57,6 @@ export class SignUpComponent {
         this.error = err?.error?.message || 'Registration failed';
       }
     });
-
   }
 
   goToLogin(): void {

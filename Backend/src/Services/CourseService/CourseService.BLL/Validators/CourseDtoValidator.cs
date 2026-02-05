@@ -1,4 +1,4 @@
-﻿using DTOs._2CourseService;
+﻿    using DTOs._2CourseService;
 using FluentValidation;
 
 namespace CourseService.BLL.Validators
@@ -23,7 +23,7 @@ namespace CourseService.BLL.Validators
 
             RuleFor(x => x.Modules)
                 .NotNull()
-                .Must(m => m.Any())
+                .Must(m => m != null && m.Any())
                 .WithMessage("At least one module is required.");
 
             RuleForEach(x => x.Modules)

@@ -23,13 +23,24 @@ namespace Gateway.Controllers
         [HttpPost("quiz/module")]
         [ProducesResponseType(typeof(QuizForModuleDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetQuizForModule(
-            [FromBody] GetQuizForModuleRequest request)
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]  // Add this line for 401 Unauthorized
+        public async Task<IActionResult> GetQuizForModule([FromBody] GetQuizForModuleRequest request)
         {
             try
             {
+                // Example: Check if token exists in headers (adjust based on actual token validation logic)
+                if (string.IsNullOrEmpty(Request.Headers["Authorization"]))
+                {
+                    return Unauthorized(new { message = "Missing access token." });
+                }
+
                 var result = await ForwardPost($"{BASE}/quiz/module", request);
-                return result;
+                if (result is OkObjectResult ok)
+                {
+                    return Ok(ok.Value);
+                }
+
+                return result as ActionResult;
             }
             catch (Exception ex)
             {

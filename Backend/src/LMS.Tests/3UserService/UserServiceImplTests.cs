@@ -117,41 +117,6 @@ namespace LMS.Tests.UserService
             Assert.Equal("test@mail.com", captured!.Email);
         }
 
-        // -------------------------------------------------
-        // DELETE
-        // -------------------------------------------------
-        [Fact]
-        public async Task Delete_ShouldReturnTrue_WhenExists()
-        {
-            var user = _fixture.Create<User>();
-
-            _repoMock.Setup(r => r.GetByIdAsync(user.Id))
-                .ReturnsAsync(user);
-
-            _repoMock.Setup(r => r.DeleteAsync(It.IsAny<User>()))
-                .Returns(Task.CompletedTask);
-
-            _repoMock.Setup(r => r.SaveAsync())
-                .Returns(Task.CompletedTask);
-
-            var result = await _service.Delete(user.Id);
-
-            Assert.True(result);
-        }
-
-        [Fact]
-        public async Task Delete_ShouldReturnFalse_WhenMissing()
-        {
-            var id = Guid.NewGuid();
-
-            _repoMock.Setup(r => r.GetByIdAsync(id))
-                .ReturnsAsync((User?)null);
-
-            var result = await _service.Delete(id);
-
-            Assert.False(result);
-        }
-
 
         // =================================================================
         // UPDATE USER ROLE (MOST IMPORTANT LOGIC)

@@ -34,7 +34,6 @@ export class AuthCallback implements OnInit {
     // ----------------------------------
     // EXISTING USER
     // ----------------------------------
-    // Trigger backend session validation
     this.authState.initialize();
 
     this.authState.user$
@@ -51,7 +50,6 @@ export class AuthCallback implements OnInit {
         }
       });
 
-    // Safety fallback (cookie missing / expired)
     setTimeout(() => {
       if (!this.authState.user) {
         this.router.navigate(['/']);

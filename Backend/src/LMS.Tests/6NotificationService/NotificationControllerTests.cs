@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Moq;
 using DTOs._6NotificationService;
 using NotificationService.BLL.Interface;
-using DTOs._6NotificationService;
 using NotificationService.Web.Controllers;
 
 namespace LMS.Tests.NotificationService
@@ -27,13 +26,11 @@ namespace LMS.Tests.NotificationService
             _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
         }
 
-        // -----------------------------------------------------
-        // SEND DIRECT EMAIL
-        // -----------------------------------------------------
+        // ---------------- Direct Email ----------------
         [Fact]
         public async Task Send_ShouldInvokeService_AndReturnOk()
         {
-            var req = _fixture.Build<EmailRequest>()
+            var req = _fixture.Build<EmailRequestDTO>()
                 .With(x => x.Subject, "Hello")
                 .With(x => x.Body, "Body")
                 .Create();
@@ -48,9 +45,7 @@ namespace LMS.Tests.NotificationService
             Assert.Equal("Email sent successfully.", result!.Value);
         }
 
-        // -----------------------------------------------------
-        // SEND TEMPLATE EMAIL
-        // -----------------------------------------------------
+        // ---------------- Template Email ----------------
         [Fact]
         public async Task SendTemplate_ShouldInvokeService_AndReturnOk()
         {
@@ -69,9 +64,7 @@ namespace LMS.Tests.NotificationService
             Assert.Equal("Template email sent successfully.", result!.Value);
         }
 
-        // -----------------------------------------------------
-        // GET USER NOTIFICATIONS
-        // -----------------------------------------------------
+        // ---------------- User Notifications ----------------
         [Fact]
         public async Task GetUserNotifications_ShouldReturnNotifications()
         {
@@ -84,26 +77,23 @@ namespace LMS.Tests.NotificationService
                 .Setup(s => s.GetUserNotificationsAsync(dto.UserId))
                 .ReturnsAsync(notifications);
 
-            var result = await _controller.GetUserNotifications(dto) as OkObjectResult;
+            // Access the Result property of ActionResult<T>
+            var actionResult = await _controller.GetUserNotifications(dto);
+            var okResult = actionResult.Result as OkObjectResult;
 
-            Assert.NotNull(result);
-            var list = Assert.IsType<List<NotificationDto>>(result!.Value);
+            Assert.NotNull(okResult);
+            var list = Assert.IsType<List<NotificationDto>>(okResult!.Value);
             Assert.Single(list);
             Assert.Equal("T1", list[0].Title);
         }
 
-        // -----------------------------------------------------
-        // TRIGGER NOTIFICATION
-        // -----------------------------------------------------
+        // ---------------- Triggered Notification ----------------
         [Fact]
         public async Task TriggerNotification_ShouldCallService_AndReturnOk()
         {
             var dto = _fixture.Build<TriggerNotificationDto>()
                 .With(x => x.Type, NotificationType.Enrollment)
-                .With(x => x.Data, new Dictionary<string, string>
-                {
-                    { "UserName", "Kira" }
-                })
+                .With(x => x.Data, new Dictionary<string, string> { { "UserName", "Kira" } })
                 .Create();
 
             var result = await _controller.TriggerNotification(dto) as OkObjectResult;

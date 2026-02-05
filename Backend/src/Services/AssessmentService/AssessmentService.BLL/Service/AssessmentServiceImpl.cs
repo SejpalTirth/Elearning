@@ -293,7 +293,7 @@ namespace AssessmentService.BLL.Services
 
         // ======================= HELPERS =======================
 
-        private async Task<List<ModuleInfo>?> FetchModulesForCourseAsync(int courseId)
+        protected virtual async Task<List<ModuleInfo>?> FetchModulesForCourseAsync(int courseId)
         {
             try
             {
@@ -428,13 +428,13 @@ namespace AssessmentService.BLL.Services
                 throw new ArgumentException("CorrectAnswerIndex out of range.");
         }
 
-        private class ModuleInfo
+        public class ModuleInfo
         {
             public int Id { get; set; }
             public string Title { get; set; } = string.Empty;
         }
 
-        private class ModuleDetail
+        public class ModuleDetail
         {
             public int Id { get; set; }
             public int CourseId { get; set; }

@@ -2,6 +2,7 @@
 using GatewayService.DAL.Models;
 using GatewayService.DAL.Repo;
 using Microsoft.Extensions.DependencyInjection;
+
 using GatewayUser = GatewayService.DAL.Models.User;
 
 namespace LMS.Tests.GatewayService
@@ -11,6 +12,7 @@ namespace LMS.Tests.GatewayService
         private readonly RefreshTokenRepository _repo;
         private readonly Fixture _fixture;
         private readonly GatewayUser _seedUser;
+        private readonly GatewayUser _otherUser;
 
         public RefreshTokenRepositoryTests()
         {
@@ -31,7 +33,7 @@ namespace LMS.Tests.GatewayService
             _repo = new RefreshTokenRepository(GatewayContext);
 
             // -----------------------------
-            // Seed a single user (static)
+            // Seed users
             // -----------------------------
             _seedUser = new GatewayUser
             {
@@ -42,7 +44,16 @@ namespace LMS.Tests.GatewayService
                 CreatedAt = DateTime.UtcNow
             };
 
-            GatewayContext.Users.Add(_seedUser);
+            _otherUser = new GatewayUser
+            {
+                Id = Guid.NewGuid(),
+                Email = "other@mail.com",
+                Name = "Other User",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            GatewayContext.Users.AddRange(_seedUser, _otherUser);
             GatewayContext.SaveChanges();
         }
 
@@ -57,7 +68,7 @@ namespace LMS.Tests.GatewayService
         // ADD TOKEN
         // -----------------------------------------------------
         [Fact]
-        public async Task AddToken_ShouldStoreToken()
+        public async Task AddToken_ShouldStoreToken_AndSetIdAndCreatedAt()
         {
             var user = GetSeedUser();
 
@@ -71,7 +82,11 @@ namespace LMS.Tests.GatewayService
 
             await _repo.AddTokenAsync(token);
 
-            Assert.True(GatewayContext.RefreshTokens.Any(t => t.Token == "abc123"));
+            var persisted = GatewayContext.RefreshTokens.SingleOrDefault(t => t.Token == "abc123");
+            Assert.NotNull(persisted);
+            Assert.NotEqual(Guid.Empty, persisted!.Id);
+            Assert.NotEqual(default, persisted.CreatedAt);
+            Assert.Equal(user.Id, persisted.UserId);
         }
 
         // -----------------------------------------------------
@@ -83,14 +98,14 @@ namespace LMS.Tests.GatewayService
             var user = GetSeedUser();
 
             var token = _fixture.Build<RefreshToken>()
-                .Without(t => t.User) // manually set below
+                .Without(t => t.User)
                 .With(t => t.Token, "xyz999")
                 .With(t => t.UserId, user.Id)
                 .With(t => t.RevokedAt, (DateTime?)null)
                 .With(t => t.ExpiresAt, DateTime.UtcNow.AddHours(1))
                 .Create();
 
-            token.User = user; // explicit assignment
+            token.User = user; // explicit assignment for clarity
 
             GatewayContext.RefreshTokens.Add(token);
             GatewayContext.SaveChanges();
@@ -103,12 +118,18 @@ namespace LMS.Tests.GatewayService
             Assert.Equal("tester@mail.com", res.User.Email);
         }
 
+        [Fact]
+        public async Task GetByToken_Missing_ShouldReturnNull()
+        {
+            var res = await _repo.GetByTokenAsync("non-existent-token");
+            Assert.Null(res);
+        }
 
         // -----------------------------------------------------
         // REVOKE TOKEN
         // -----------------------------------------------------
         [Fact]
-        public async Task RevokeToken_ShouldSetRevokedAt()
+        public async Task RevokeToken_ShouldSetRevokedAt_Persisted()
         {
             var user = GetSeedUser();
 
@@ -123,20 +144,24 @@ namespace LMS.Tests.GatewayService
             GatewayContext.RefreshTokens.Add(token);
             GatewayContext.SaveChanges();
 
+            // Act
             await _repo.RevokeTokenAsync(token);
 
-            Assert.NotNull(token.RevokedAt);
+            // Reload from DB to ensure it's persisted
+            var persisted = GatewayContext.RefreshTokens.Single(t => t.Token == "rev123");
+            Assert.NotNull(persisted.RevokedAt);
+            Assert.True(persisted.RevokedAt.Value <= DateTime.UtcNow && persisted.RevokedAt.Value > DateTime.UtcNow.AddMinutes(-1));
         }
 
         // -----------------------------------------------------
         // GET ACTIVE TOKENS
         // -----------------------------------------------------
         [Fact]
-        public async Task GetActiveTokens_ShouldReturnOnlyValidTokens()
+        public async Task GetActiveTokens_ShouldReturnOnlyValidTokens_AndExcludeOtherUsers()
         {
             var user = GetSeedUser();
 
-            // VALID TOKEN
+            // VALID TOKEN for seed user
             var valid = _fixture.Build<RefreshToken>()
                 .Without(t => t.User)
                 .With(t => t.Token, "valid")
@@ -145,7 +170,7 @@ namespace LMS.Tests.GatewayService
                 .With(t => t.RevokedAt, (DateTime?)null)
                 .Create();
 
-            // EXPIRED TOKEN
+            // EXPIRED TOKEN for seed user
             var expired = _fixture.Build<RefreshToken>()
                 .Without(t => t.User)
                 .With(t => t.Token, "expired")
@@ -154,7 +179,7 @@ namespace LMS.Tests.GatewayService
                 .With(t => t.RevokedAt, (DateTime?)null)
                 .Create();
 
-            // REVOKED TOKEN
+            // REVOKED TOKEN for seed user
             var revoked = _fixture.Build<RefreshToken>()
                 .Without(t => t.User)
                 .With(t => t.Token, "revoked")
@@ -163,13 +188,45 @@ namespace LMS.Tests.GatewayService
                 .With(t => t.RevokedAt, DateTime.UtcNow)
                 .Create();
 
-            GatewayContext.RefreshTokens.AddRange(valid, expired, revoked);
+            // VALID TOKEN for other user (should not be returned for seed user)
+            var otherValid = _fixture.Build<RefreshToken>()
+                .Without(t => t.User)
+                .With(t => t.Token, "othervalid")
+                .With(t => t.UserId, _otherUser.Id)
+                .With(t => t.ExpiresAt, DateTime.UtcNow.AddHours(1))
+                .With(t => t.RevokedAt, (DateTime?)null)
+                .Create();
+
+            GatewayContext.RefreshTokens.AddRange(valid, expired, revoked, otherValid);
             GatewayContext.SaveChanges();
 
             var list = await _repo.GetActiveTokensForUserAsync(user.Id);
 
-            Assert.Single(list); // only "valid" should remain
+            Assert.Single(list); // only "valid" should remain for seed user
             Assert.Equal("valid", list.First().Token);
+
+            // Also assert other user's token is present when queried
+            var otherList = await _repo.GetActiveTokensForUserAsync(_otherUser.Id);
+            Assert.Single(otherList);
+            Assert.Equal("othervalid", otherList.First().Token);
+        }
+
+        [Fact]
+        public async Task SaveChangesAsync_ShouldReturnCompletedTask()
+        {
+            // Ensure method exists and works - call it after an add
+            var token = _fixture.Build<RefreshToken>()
+                .Without(t => t.User)
+                .With(t => t.Token, "temp-save")
+                .With(t => t.UserId, GetSeedUser().Id)
+                .With(t => t.ExpiresAt, DateTime.UtcNow.AddMinutes(5))
+                .Create();
+
+            GatewayContext.RefreshTokens.Add(token);
+            await _repo.SaveChangesAsync();
+
+            var persisted = GatewayContext.RefreshTokens.SingleOrDefault(t => t.Token == "temp-save");
+            Assert.NotNull(persisted);
         }
     }
 }

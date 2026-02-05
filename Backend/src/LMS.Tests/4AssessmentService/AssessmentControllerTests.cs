@@ -4,7 +4,6 @@ using AssessmentService.BLL.UserContext;
 using AssessmentService.Web.Controllers;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
-using UserService.DAL.Models;
 
 namespace LMS.Tests.AssessmentService
 {
@@ -31,14 +30,17 @@ namespace LMS.Tests.AssessmentService
         public async Task CreateQuiz_ShouldReturnOk()
         {
             var dto = new CreateQuizDto { ModuleId = 1, Title = "Test Quiz" };
+            var response = new CreateQuizResponseDto { QuizId = 99, Title = dto.Title };
 
             _serviceMock
                 .Setup(s => s.CreateQuizAsync(dto))
-                .ReturnsAsync(new { quizId = 99 });
+                .ReturnsAsync(response);
 
-            var result = await _controller.CreateQuiz(dto);
+            var actionResult = await _controller.CreateQuiz(dto);
+            var okResult = actionResult.Result as OkObjectResult;
 
-            Assert.IsType<OkObjectResult>(result);
+            Assert.NotNull(okResult);
+            Assert.Equal(response, okResult!.Value);
         }
 
         // -------------------------------------------------
@@ -59,19 +61,22 @@ namespace LMS.Tests.AssessmentService
                 }
             };
 
+            var response = new AddQuestionResponseDto { QuestionId = 5 };
+
             _serviceMock
                 .Setup(s => s.AddQuestionAsync(dto))
-                .ReturnsAsync(new { success = true });
+                .ReturnsAsync(response);
 
-            var result = await _controller.AddQuestion(dto);
+            var actionResult = await _controller.AddQuestion(dto);
+            var okResult = actionResult.Result as OkObjectResult;
 
-            Assert.IsType<OkObjectResult>(result);
+            Assert.NotNull(okResult);
+            Assert.Equal(response, okResult!.Value);
         }
 
         // -------------------------------------------------
         // GET QUIZ FOR MODULE
         // -------------------------------------------------
-
         [Fact]
         public async Task GetQuizForModule_ShouldReturnOk_WhenUserContextValid()
         {
@@ -82,19 +87,37 @@ namespace LMS.Tests.AssessmentService
                 .Returns(new UserContextDto { UserId = userId });
 
             var dto = new GetQuizForModuleDto { ModuleId = 20 };
+            var quiz = new QuizForModuleDto
+            {
+                QuizId = 1,
+                ModuleId = 20,
+                Title = "Test Quiz"
+            };
 
             _serviceMock
                 .Setup(s => s.GetQuizForModuleAsync(dto.ModuleId, userId))
-                .ReturnsAsync(new QuizForModuleDto
-                {
-                    QuizId = 1,
-                    ModuleId = 20,
-                    Title = "Test Quiz"
-                });
+                .ReturnsAsync(quiz);
 
+            var actionResult = await _controller.GetQuizForModule(dto);
+            var okResult = actionResult.Result as OkObjectResult;
+
+            Assert.NotNull(okResult);
+            var value = okResult!.Value as QuizForModuleDto;
+            Assert.NotNull(value);
+            Assert.Equal(dto.ModuleId, value!.ModuleId);
+        }
+
+        [Fact]
+        public async Task GetQuizForModule_ShouldReturnUnauthorized_WhenUserContextInvalid()
+        {
+            _userContextMock
+                .Setup(x => x.Current)
+                .Returns((UserContextDto?)null);
+
+            var dto = new GetQuizForModuleDto { ModuleId = 20 };
             var result = await _controller.GetQuizForModule(dto);
 
-            Assert.IsType<OkObjectResult>(result);
+            Assert.IsType<UnauthorizedObjectResult>(result.Result);
         }
 
         // -------------------------------------------------
@@ -110,9 +133,11 @@ namespace LMS.Tests.AssessmentService
                 Answers = new()
             };
 
+            var response = new QuizResultDto();
+
             _serviceMock
                 .Setup(s => s.SubmitQuizAsync(dto))
-                .ReturnsAsync(new QuizResultDto());
+                .ReturnsAsync(response);
 
             var result = await _controller.SubmitQuiz(dto);
 
@@ -142,18 +167,20 @@ namespace LMS.Tests.AssessmentService
         [Fact]
         public async Task GetSubmissionResult_ShouldReturnOk_WhenResultExists()
         {
+            var response = new QuizResultDto();
             _serviceMock
                 .Setup(s => s.GetSubmissionResultAsync(It.IsAny<Guid>()))
-                .ReturnsAsync(new QuizResultDto());
+                .ReturnsAsync(response);
 
             var dto = new SubmissionResultRequestDto
             {
                 SubmissionId = Guid.NewGuid()
             };
 
-            var result = await _controller.GetSubmissionResult(dto);
+            var result = await _controller.GetSubmissionResult(dto) as OkObjectResult;
 
-            Assert.IsType<OkObjectResult>(result);
+            Assert.NotNull(result);
+            Assert.Equal(response, result!.Value);
         }
 
         // -------------------------------------------------
@@ -162,15 +189,33 @@ namespace LMS.Tests.AssessmentService
         [Fact]
         public async Task GetQuizStatus_ShouldReturnOk()
         {
+            // Arrange
             var dto = new CourseQuizStatusDto { CourseId = 5 };
+            var response = new CourseQuizStatusResponseDto
+            {
+                CourseId = 5,
+                AllQuizzesCreated = true,
+                Modules = new List<QuizModuleStatusDto>(),
+                NextPendingModuleId = null,
+                Error = null
+            };
 
             _serviceMock
                 .Setup(s => s.GetQuizStatusForCourseAsync(dto.CourseId))
-                .ReturnsAsync(new { ok = true });
+                .ReturnsAsync(response);
 
-            var result = await _controller.GetQuizStatus(dto);
+            // Act
+            var actionResult = await _controller.GetQuizStatus(dto);
+            var okResult = actionResult.Result as OkObjectResult;
 
-            Assert.IsType<OkObjectResult>(result);
+            // Assert
+            Assert.NotNull(okResult);
+            var value = Assert.IsType<CourseQuizStatusResponseDto>(okResult!.Value);
+            Assert.Equal(response.CourseId, value.CourseId);
+            Assert.Equal(response.AllQuizzesCreated, value.AllQuizzesCreated);
+            Assert.Equal(response.Modules, value.Modules);
+            Assert.Equal(response.NextPendingModuleId, value.NextPendingModuleId);
+            Assert.Equal(response.Error, value.Error);
         }
 
         // -------------------------------------------------
@@ -180,14 +225,17 @@ namespace LMS.Tests.AssessmentService
         public async Task GetUnquizzedModules_ShouldReturnOk()
         {
             var dto = new GetUnquizzedModulesDto { CourseId = 3 };
+            var response = new List<int> { 1, 2 };
 
             _serviceMock
                 .Setup(s => s.GetModulesWithoutQuizByCourseAsync(dto.CourseId))
-                .ReturnsAsync(new List<int> { 1, 2 });
+                .ReturnsAsync(response);
 
-            var result = await _controller.GetUnquizzedModules(dto);
+            var actionResult = await _controller.GetUnquizzedModules(dto);
+            var okResult = actionResult.Result as OkObjectResult;
 
-            Assert.IsType<OkObjectResult>(result);
+            Assert.NotNull(okResult);
+            Assert.Equal(response, okResult!.Value);
         }
     }
 }

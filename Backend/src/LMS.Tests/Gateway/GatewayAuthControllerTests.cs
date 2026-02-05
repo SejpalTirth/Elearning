@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Security.Claims;
+using Microsoft.Extensions.Configuration;
 
 namespace LMS.Tests.Gateway
 {
@@ -38,7 +39,13 @@ namespace LMS.Tests.Gateway
             ClaimsPrincipal? externalUser = null,
             bool externalSucceeded = true)
         {
-            var controller = new GatewayAuthController(_authMock.Object, _logMock.Object);
+            var mockConfig = new Mock<IConfiguration>();
+
+            var controller = new GatewayAuthController(
+                _authMock.Object,
+                _logMock.Object,
+                mockConfig.Object
+            );
 
             // ----------------- HTTP CONTEXT + DI -----------------
             var ctx = new DefaultHttpContext();

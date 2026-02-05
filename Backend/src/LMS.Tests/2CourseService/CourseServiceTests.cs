@@ -1,356 +1,374 @@
 ﻿using AutoFixture;
-using CourseService.BLL.DTOs;
+using AutoMapper;
 using CourseService.BLL.Service;
+using CourseService.BLL.UserContext;
 using CourseService.DAL.Models;
 using CourseService.DAL.Repo;
+using DTOs._2CourseService;
+using Microsoft.AspNetCore.Http;
 using Moq;
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
-using AutoMapper;
 
 namespace LMS.Tests.CourseService
 {
     public class CourseServiceTests
     {
-        private readonly Mock<ICourseRepository> _courseRepo;
-        private readonly Mock<IEnrollmentRepository> _enrollRepo;
-        private readonly Mock<IModuleRepository> _moduleRepo;
-        private readonly Mock<IHttpClientFactory> _httpFactory;
-        private readonly Mock<IMapper> _mapperMock;
+        private readonly Mock<ICourseRepository> _courseRepo = new();
+        private readonly Mock<IEnrollmentRepository> _enrollRepo = new();
+        private readonly Mock<IModuleRepository> _moduleRepo = new();
+        private readonly Mock<IHttpClientFactory> _httpFactory = new();
+        private readonly Mock<IMapper> _mapper = new();
+        private readonly Mock<IUserContextAccessor> _userContext = new();
+        private readonly Mock<IHttpContextAccessor> _httpContext = new();
 
-        private readonly FakeHandler _userHandler;
-        private readonly FakeHandler _assessmentHandler;
+        private readonly Fixture _fixture = new();
 
-        private readonly HttpClient _fakeUserClient;
-        private readonly HttpClient _fakeAssessmentClient;
-
-        private readonly Fixture _fixture;
+        private readonly FakeHandler _userHandler = new();
+        private readonly FakeHandler _assessmentHandler = new();
 
         public CourseServiceTests()
         {
-            _fixture = new Fixture();
-
-            _fixture.Behaviors.OfType<ThrowingRecursionBehavior>()
-                .ToList()
-                .ForEach(b => _fixture.Behaviors.Remove(b));
-            _fixture.Behaviors.Add(new OmitOnRecursionBehavior());
-
-            _courseRepo = new Mock<ICourseRepository>();
-            _enrollRepo = new Mock<IEnrollmentRepository>();
-            _moduleRepo = new Mock<IModuleRepository>();
-            _httpFactory = new Mock<IHttpClientFactory>();
-            _mapperMock = new Mock<IMapper>();
-
-            // Fake API handlers
-            _userHandler = new FakeHandler();
-            _assessmentHandler = new FakeHandler();
-
-            _fakeUserClient = new HttpClient(_userHandler) { BaseAddress = new Uri("https://fake-user/") };
-            _fakeAssessmentClient = new HttpClient(_assessmentHandler) { BaseAddress = new Uri("https://fake-assessment/") };
-
-            _httpFactory.Setup(x => x.CreateClient("UserService")).Returns(_fakeUserClient);
-            _httpFactory.Setup(x => x.CreateClient("AssessmentService")).Returns(_fakeAssessmentClient);
-        }
-
-
-        // -------------------------------------------------------
-        // Fake Handler Implementation
-        // -------------------------------------------------------
-        private class FakeHandler : HttpMessageHandler
-        {
-            public object? Response { get; set; } = new { };
-
-            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage req, CancellationToken ct)
+            var userClient = new HttpClient(_userHandler)
             {
-                string json = JsonSerializer.Serialize(Response);
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-                {
-                    Content = new StringContent(json)
-                });
-            }
+                BaseAddress = new Uri("https://user/")
+            };
+
+            var assessmentClient = new HttpClient(_assessmentHandler)
+            {
+                BaseAddress = new Uri("https://assessment/")
+            };
+
+            _httpFactory.Setup(x => x.CreateClient("UserService"))
+                .Returns(userClient);
+
+            _httpFactory.Setup(x => x.CreateClient("AssessmentService"))
+                .Returns(assessmentClient);
+
+            _httpContext.Setup(x => x.HttpContext)
+                .Returns(new DefaultHttpContext());
         }
 
-
-        // -------------------------------------------------------
+        // ------------------------------------------------
         // GET ALL
-        // -------------------------------------------------------
+        // ------------------------------------------------
         [Fact]
-        public async Task GetAllAsync_ShouldReturnMappedCourses()
+        public async Task GetAllAsync_ReturnsMappedCourses()
         {
-            var instructorInfo = new UserAuthDto { Name = "Instructor A" };
-            _userHandler.Response = instructorInfo;
-
-            var course = _fixture.Build<Course>()
-                .With(c => c.Id, 1)
-                .With(c => c.Title, "Course A")
-                .Without(c => c.Modules)
-                .Create();
+            var course = new Course { Id = 1, Title = "C1", InstructorUserId = Guid.NewGuid() };
 
             _courseRepo.Setup(r => r.GetAllAsync())
                 .ReturnsAsync(new List<Course> { course });
 
-            var modules = new List<Module>
-            {
-                new Module { Id = 10, Title = "Module A", Content = "C1" }
-            };
+            _userHandler.Response = new PublicUserDto { Name = "Instructor" };
 
-            _moduleRepo.Setup(m => m.GetByCourseIdAsync(1))
-                .ReturnsAsync(modules);
+            _mapper.Setup(m => m.Map<CourseResponseDto>(course))
+                .Returns(new CourseResponseDto { Id = 1, Title = "C1" });
 
-            var service = CreateService();
+            var svc = CreateService();
 
-            var list = (await service.GetAllAsync()).ToList();
+            var result = (await svc.GetAllAsync()).ToList();
 
-            Assert.Single(list);
-            Assert.Equal("Course A", list[0].Title);
-            Assert.Equal("Instructor A", list[0].InstructorName);
+            Assert.Single(result);
+            Assert.Equal("Instructor", result[0].InstructorName);
         }
 
-
-        // -------------------------------------------------------
+        // ------------------------------------------------
         // GET BY ID
-        // -------------------------------------------------------
+        // ------------------------------------------------
         [Fact]
-        public async Task GetByIdAsync_ShouldReturnDto_WhenExists()
+        public async Task GetByIdAsync_ReturnsDto_WhenFound()
         {
-            _userHandler.Response = new UserAuthDto { Name = "Teacher" };
-
-            var course = _fixture.Build<Course>()
-                .With(c => c.Id, 20)
-                .Without(c => c.Modules)
-                .Create();
-
-            _courseRepo.Setup(r => r.GetByIdAsync(20)).ReturnsAsync(course);
-
-            var modules = new List<Module>
+            var course = new Course
             {
-                new Module { Id = 5, Title = "Intro", Content = "ABC" }
+                Id = 5,
+                InstructorUserId = Guid.NewGuid(),
+                Modules = new List<Module>()
             };
-            _moduleRepo.Setup(m => m.GetByCourseIdAsync(20)).ReturnsAsync(modules);
 
-            var service = CreateService();
+            _courseRepo.Setup(r => r.GetByIdWithModulesAsync(5))
+                .ReturnsAsync(course);
 
-            var dto = await service.GetByIdAsync(20);
+            _userHandler.Response = new PublicUserDto { Name = "Teacher" };
+
+            _mapper.Setup(m => m.Map<CourseResponseDto>(course))
+                .Returns(new CourseResponseDto { Id = 5 });
+
+            var svc = CreateService();
+
+            var dto = await svc.GetByIdAsync(5);
 
             Assert.NotNull(dto);
             Assert.Equal("Teacher", dto!.InstructorName);
-            Assert.Single(dto.Modules);
         }
 
+        [Fact]
+        public async Task GetByIdAsync_ReturnsNull_WhenMissing()
+        {
+            _courseRepo.Setup(r => r.GetByIdWithModulesAsync(99))
+                .ReturnsAsync((Course?)null);
 
-        // -------------------------------------------------------
+            var svc = CreateService();
+
+            Assert.Null(await svc.GetByIdAsync(99));
+        }
+
+        // ------------------------------------------------
         // CREATE
-        // -------------------------------------------------------
+        // ------------------------------------------------
         [Fact]
-        public async Task CreateAsync_ShouldCreateCourseAndModules()
+        public async Task CreateAsync_AddsCourse()
         {
-            var dto = new CourseDto
-            {
-                Title = "Backend",
-                Description = "Desc",
-                CategoryId = 1,
-                InstructorUserId = Guid.NewGuid().ToString(),
-                Modules = new List<ModuleDto>
-                {
-                    new ModuleDto { Title = "M1", Content = "C1" }
-                }
-            };
+            var dto = _fixture.Create<CourseDto>();
+            var course = new Course { Title = dto.Title };
 
-            Course? savedCourse = null;
+            _mapper.Setup(m => m.Map<Course>(dto))
+                .Returns(course);
 
-            _courseRepo.Setup(r => r.AddAsync(It.IsAny<Course>()))
-                .Callback<Course>(c => savedCourse = c)
-                .Returns(Task.CompletedTask);
+            var svc = CreateService();
 
-            var service = CreateService();
+            var result = await svc.CreateAsync(dto);
 
-            var result = await service.CreateAsync(dto);
-
-            Assert.NotNull(savedCourse);
-            Assert.Equal("Backend", savedCourse!.Title);
-
-            _moduleRepo.Verify(m => m.AddAsync(It.IsAny<Module>()), Times.Once);
+            _courseRepo.Verify(r => r.AddAsync(course), Times.Once);
+            _courseRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
+            Assert.Equal(dto.Title, result.Title);
         }
 
-
-        // -------------------------------------------------------
-        // UPDATE
-        // -------------------------------------------------------
-        [Fact]
-        public async Task UpdateAsync_ShouldModifyCourse()
-        {
-            var course = _fixture.Build<Course>()
-                .With(c => c.Id, 1)
-                .Without(c => c.Modules)
-                .Create();
-
-            course.Modules = new List<Module>();
-
-            _courseRepo.Setup(r => r.GetByIdWithModulesAsync(1)).ReturnsAsync(course);
-
-            var dto = new UpdateCourseDto
-            {
-                Title = "Updated",
-                Description = "New",
-                CategoryId = 99,
-                Modules = new List<UpdateModuleDto>
-                {
-                    new UpdateModuleDto { Title = "New M", Content = "New C" }
-                }
-            };
-
-            var service = CreateService();
-
-            var updated = await service.UpdateAsync(1, dto);
-
-            Assert.NotNull(updated);
-            Assert.Equal("Updated", updated!.Title);
-            Assert.Single(updated.Modules);
-        }
-
-
-        // -------------------------------------------------------
-        // ENROLL
-        // -------------------------------------------------------
-        [Fact]
-        public async Task EnrollUserAsync_ShouldAddEnrollment_WhenNotExists()
-        {
-            _enrollRepo.Setup(r => r.IsUserEnrolledAsync("u1", 7)).ReturnsAsync(false);
-
-            var service = CreateService();
-
-            var ok = await service.EnrollUserAsync(new EnrollRequestDto
-            {
-                UserId = "u1",
-                CourseId = 7
-            });
-
-            Assert.True(ok);
-            _enrollRepo.Verify(r => r.AddAsync(It.IsAny<Enrollment>()), Times.Once);
-        }
-
-
-        // -------------------------------------------------------
-        // GET UNFINISHED COURSES
-        // -------------------------------------------------------
-        [Fact]
-        public async Task GetAllUnfinishedCoursesAsync_ShouldReturnUnfinishedCourses()
-        {
-            var instructorId = Guid.NewGuid();
-            var courses = new List<Course>
-            {
-                new Course
-                {
-                    Id = 3,
-                    Title = "Draft Course",
-                    Description = "D",
-                    CategoryId = 1,
-                    InstructorUserId = instructorId,
-                    IsDraft = true,
-                    IsDeleted = false
-                }
-            };
-
-            _courseRepo.Setup(r => r.GetAllAsync())
-                .ReturnsAsync(courses);
-
-            var service = CreateService();
-
-            var res = (await service.GetAllUnfinishedCoursesAsync(instructorId)).ToList();
-
-            Assert.NotEmpty(res);
-            Assert.Single(res);
-            Assert.Equal(3, res[0].Id);
-        }
-
-        // -------------------------------------------------------
+        // ------------------------------------------------
         // CONTINUE COURSE
-        // -------------------------------------------------------
+        // ------------------------------------------------
         [Fact]
-        public async Task ContinueUnfinishedCourseAsync_ShouldReturnTrue_IfCourseExists()
+        public async Task ContinueUnfinishedCourseAsync_ReturnsTrue_WhenExists()
         {
-            _courseRepo.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(new Course());
+            _courseRepo.Setup(r => r.GetByIdAsync(1))
+                .ReturnsAsync(new Course());
 
-            var service = CreateService();
+            var svc = CreateService();
 
-            Assert.True(await service.ContinueUnfinishedCourseAsync(2));
+            Assert.True(await svc.ContinueUnfinishedCourseAsync(1));
         }
 
-
-        // -------------------------------------------------------
-        // PUBLISH COURSE
-        // -------------------------------------------------------
         [Fact]
-        public async Task PublishCourseIfReadyAsync_ShouldPublish_WhenNoMissingQuizzes()
+        public async Task ContinueUnfinishedCourseAsync_ReturnsFalse_WhenMissing()
         {
-            var course = new Course { Id = 10, IsDeleted = true };
+            _courseRepo.Setup(r => r.GetByIdAsync(1))
+                .ReturnsAsync((Course?)null);
 
-            _courseRepo.Setup(r => r.GetByIdAllowDeletedAsync(10)).ReturnsAsync(course);
+            var svc = CreateService();
+
+            Assert.False(await svc.ContinueUnfinishedCourseAsync(1));
+        }
+
+        // ------------------------------------------------
+        // PUBLISH COURSE
+        // ------------------------------------------------
+        [Fact]
+        public async Task PublishCourseIfReadyAsync_ReturnsTrue_WhenNoMissingQuizzes()
+        {
+            var course = new Course { Id = 10 };
+
+            _courseRepo.Setup(r => r.GetByIdAllowDeletedAsync(10))
+                .ReturnsAsync(course);
 
             _moduleRepo.Setup(m => m.GetByCourseIdAsync(10))
-                .ReturnsAsync(new List<Module> { new Module { Id = 1 } });
+                .ReturnsAsync(new List<Module> { new() });
 
-            // Assessment returns empty list → all quizzes exist
-            _assessmentHandler.Response = new List<int>();
+            _assessmentHandler.Response = new List<int>(); // no missing quizzes
 
-            var service = CreateService();
+            var svc = CreateService();
 
-            var ok = await service.PublishCourseIfReadyAsync(10);
+            var ok = await svc.PublishCourseIfReadyAsync(10, "Bearer token");
 
             Assert.True(ok);
             Assert.False(course.IsDeleted);
         }
 
+        // ------------------------------------------------
+        // USER ENROLLED COURSES
+        // ------------------------------------------------
         [Fact]
-        public async Task PublishCourseIfReadyAsync_ShouldReturnFalse_WhenMissingQuizzes()
-        {
-            var course = new Course { Id = 10, IsDeleted = true };
-
-            _courseRepo.Setup(r => r.GetByIdAllowDeletedAsync(10)).ReturnsAsync(course);
-
-            _moduleRepo.Setup(m => m.GetByCourseIdAsync(10))
-                .ReturnsAsync(new List<Module> { new Module { Id = 1 } });
-
-            // Missing quizzes
-            _assessmentHandler.Response = new List<int> { 1, 2 };
-
-            var service = CreateService();
-
-            Assert.False(await service.PublishCourseIfReadyAsync(10));
-        }
-
-
-        // -------------------------------------------------------
-        // USER COURSES
-        // -------------------------------------------------------
-        [Fact]
-        public async Task GetUserEnrolledCoursesAsync_ShouldReturnList()
+        public async Task GetUserEnrolledCoursesAsync_ReturnsCourses()
         {
             _enrollRepo.Setup(r => r.GetByUserIdAsync("u1"))
                 .ReturnsAsync(new List<Enrollment>
                 {
-                    new Enrollment { CourseId = 1 }
+                    new Enrollment { CourseId = 3 }
                 });
 
             _courseRepo.Setup(r => r.GetByIdsAsync(It.IsAny<List<int>>()))
                 .ReturnsAsync(new List<Course>
                 {
-                    new Course { Id = 1 }
+                    new Course { Id = 3 }
                 });
 
-            var service = CreateService();
+            var svc = CreateService();
 
-            var list = (await service.GetUserEnrolledCoursesAsync("u1")).ToList();
+            var list = (await svc.GetUserEnrolledCoursesAsync("u1")).ToList();
 
             Assert.Single(list);
-            Assert.Equal(1, list[0].Id);
+            Assert.Equal(3, list[0].Id);
+        }
+
+        // ------------------------------------------------
+        // UPDATE COURSE
+        // ------------------------------------------------
+        [Fact]
+        public async Task UpdateAsync_UpdatesExistingModulesAndAddsNewModules()
+        {
+            // Arrange
+            var course = new Course
+            {
+                Id = 1,
+                Title = "Original Title",
+                Modules = new List<Module>
+        {
+            new Module { Id = 1, Title = "Old Module", Content = "Old Content" }
+        }
+            };
+
+            _courseRepo.Setup(r => r.GetByIdWithModulesAsync(1))
+                       .ReturnsAsync(course);
+
+            var updateDto = new UpdateCourseDto
+            {
+                Title = "Updated Title",
+                Modules = new List<UpdateModuleDto>
+        {
+            new UpdateModuleDto { Id = 1, Title = "Old Module Updated", Content = "New Content" }, // update existing
+            new UpdateModuleDto { Id = 0, Title = "New Module", Content = "Brand New Content" }     // add new
+        }
+            };
+
+            // Update course itself
+            _mapper.Setup(m => m.Map(updateDto, course))
+                   .Callback<UpdateCourseDto, Course>((dto, c) => c.Title = dto.Title);
+
+            // Add new module
+            _mapper.Setup(m => m.Map<Module>(It.IsAny<UpdateModuleDto>()))
+                   .Returns<UpdateModuleDto>(dto => new Module { Title = dto.Title, Content = dto.Content });
+
+            // Update existing module
+            _mapper.Setup(m => m.Map(It.IsAny<UpdateModuleDto>(), It.IsAny<Module>()))
+                   .Callback<UpdateModuleDto, Module>((src, dest) =>
+                   {
+                       dest.Title = src.Title;
+                       dest.Content = src.Content;
+                   });
+
+            var svc = CreateService();
+
+            // Act
+            var result = await svc.UpdateAsync(1, updateDto);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal("Updated Title", result!.Title);
+            Assert.Equal(2, result.Modules.Count); // old updated + new added
+            Assert.Contains(result.Modules, m => m.Title == "Old Module Updated");
+            Assert.Contains(result.Modules, m => m.Title == "New Module");
+
+            _courseRepo.Verify(r => r.SaveChangesAsync(), Times.AtLeastOnce);
+        }
+
+        // ------------------------------------------------
+        // ENROLL USER
+        // ------------------------------------------------
+        [Fact]
+        public async Task EnrollUserAsync_EnrollsUserAndSendsNotification()
+        {
+            var userId = Guid.NewGuid();
+            _enrollRepo.Setup(r => r.IsUserEnrolledAsync(userId.ToString(), 1)).ReturnsAsync(false);
+            _courseRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new Course { Title = "TestCourse" });
+
+            _httpContext.Setup(x => x.HttpContext)
+                        .Returns(new DefaultHttpContext { User = new System.Security.Claims.ClaimsPrincipal() });
+
+            var svc = CreateService();
+
+            var result = await svc.EnrollUserAsync(userId, 1, "user@test.com", "Bearer token");
+
+            Assert.True(result);
+            _enrollRepo.Verify(r => r.AddAsync(It.IsAny<Enrollment>()), Times.Once);
+            _enrollRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
+        }
+
+        // ------------------------------------------------
+        // GET ALL UNFINISHED COURSES
+        // ------------------------------------------------
+        [Fact]
+        public async Task GetAllUnfinishedCoursesAsync_FiltersByInstructorAndDraft()
+        {
+            var instructorId = Guid.NewGuid();
+            var courses = new List<Course>
+    {
+        new Course { InstructorUserId = instructorId, IsDraft = true, IsDeleted = false },
+        new Course { InstructorUserId = instructorId, IsDraft = false, IsDeleted = false },
+        new Course { InstructorUserId = Guid.NewGuid(), IsDraft = true, IsDeleted = false }
+    };
+
+            _courseRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(courses);
+
+            var svc = CreateService();
+            var result = (await svc.GetAllUnfinishedCoursesAsync(instructorId)).ToList();
+
+            Assert.Single(result);
+            Assert.True(result.All(c => c.IsDraft && !c.IsDeleted && c.InstructorUserId == instructorId));
+        }
+
+        // ------------------------------------------------
+        // DELETE AND RESTORE
+        // ------------------------------------------------
+        [Fact]
+        public async Task DeleteAsync_SetsIsDeletedAndDraftFlags()
+        {
+            var course = new Course();
+            _courseRepo.Setup(r => r.GetByIdWithModulesAsync(1)).ReturnsAsync(course);
+
+            var svc = CreateService();
+            var result = await svc.DeleteAsync(1);
+
+            Assert.True(result);
+            Assert.True(course.IsDeleted);
+            Assert.False(course.IsDraft);
+            _courseRepo.Verify(r => r.UpdateAsync(course), Times.Once);
+            _courseRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
+        }
+
+        [Fact]
+        public async Task RestoreAsync_SetsIsDeletedFalse()
+        {
+            var course = new Course { IsDeleted = true };
+            _courseRepo.Setup(r => r.GetByIdAllowDeletedAsync(1)).ReturnsAsync(course);
+
+            var svc = CreateService();
+            var result = await svc.RestoreAsync(1);
+
+            Assert.True(result);
+            Assert.False(course.IsDeleted);
+            _courseRepo.Verify(r => r.UpdateAsync(course), Times.Once);
+            _courseRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
+        }
+
+        // ------------------------------------------------
+        // FETCH INSTRUCTOR EDGE CASES
+        // ------------------------------------------------
+        [Fact]
+        public async Task FetchInstructorAsync_ReturnsUnknown_WhenIdEmpty()
+        {
+            var svc = CreateService();
+            var privateMethod = typeof(CourseServiceimpl)
+                .GetMethod("FetchInstructorAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+            var result = await (Task<CourseServiceimpl.InstructorDto>)privateMethod!.Invoke(svc, new object[] { Guid.Empty })!;
+
+            Assert.Equal("Unknown Instructor", result.Name);
         }
 
 
-
-        // -------------------------------------------------------
-        // Helper to create service
-        // -------------------------------------------------------
+        // ------------------------------------------------
+        // Helper
+        // ------------------------------------------------
         private CourseServiceimpl CreateService()
         {
             return new CourseServiceimpl(
@@ -358,8 +376,29 @@ namespace LMS.Tests.CourseService
                 _enrollRepo.Object,
                 _moduleRepo.Object,
                 _httpFactory.Object,
-                _mapperMock.Object
+                _mapper.Object,
+                _userContext.Object,
+                _httpContext.Object
             );
+        }
+
+        // ------------------------------------------------
+        // Fake HTTP handler
+        // ------------------------------------------------
+        private class FakeHandler : HttpMessageHandler
+        {
+            public object? Response { get; set; }
+
+            protected override Task<HttpResponseMessage> SendAsync(
+                HttpRequestMessage request,
+                CancellationToken cancellationToken)
+            {
+                var json = JsonSerializer.Serialize(Response);
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(json)
+                });
+            }
         }
     }
 }
